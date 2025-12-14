@@ -63,6 +63,7 @@ Documents are ordered by conceptual dependency.
 - PoC definition, testing, and acceptance.
 - Architecture decisions.
 - Appendices and reference material.
+- Examples of apps.
 
 Each directory is self contained. Cross references are explicit.
 
