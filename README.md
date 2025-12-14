@@ -14,13 +14,24 @@ The scope is limited to what is required to build a correct, secure, interoperab
 
 ## 2. System overview
 
-2WAY is a local first, identity anchored, graph based system for peer to peer interaction between users, devices, and applications.
+2WAY is a peer to peer application platform that provides identity, data ownership, access control, synchronization, and trust semantics as shared infrastructure rather than application specific logic.
 
-The system models all actors and data as typed graph objects with immutable authorship and explicit ownership. Identity is the root of trust. Every operation is signed. Every mutation is validated. All access control is enforced structurally rather than implicitly.
+Applications built on 2WAY do not operate on isolated databases or central backends. They operate on a shared, local first graph that represents users, devices, relationships, content, and app specific state under a single identity and permission model. This allows multiple independent apps to interoperate over the same data without sharing control or authority.
 
-Each node maintains its own authoritative state. Nodes exchange data through signed, ordered synchronization envelopes. No node is required to trust remote peers, transports, or infrastructure. Consistency is achieved through deterministic validation, strict ordering, and explicit sync rules rather than global coordination.
+The platform enables applications to:
 
-The system is designed to operate under partial compromise. Individual apps, devices, peers, or identities may become hostile without compromising the integrity of unrelated state.
+- Share user owned data across apps without central storage.
+- Enforce permissions and visibility structurally rather than through server side policy.
+- Synchronize state directly between peers without trusted intermediaries.
+- Operate offline with full local authority and reconcile state incrementally.
+- Limit the influence of unknown or untrusted identities through graph structure.
+- Isolate application logic while reusing common identity, trust, and sync primitives.
+
+All actors and data are represented as typed graph objects with immutable authorship and explicit ownership. Identity is the root of trust. Every operation may be cryptographically signed. Every mutation is validated. Access control is enforced through schema and graph boundaries rather than implicit context.
+
+Each node maintains its own authoritative state. Nodes exchange data using signed, ordered synchronization envelopes. No node is required to trust remote peers, transports, or infrastructure. Consistency emerges from deterministic validation, strict ordering, and explicit synchronization rules rather than global coordination.
+
+The system is designed to operate under partial compromise. Individual applications, devices, peers, or identities may become hostile without compromising unrelated state or violating global invariants.
 
 ## 3. Design principles
 
