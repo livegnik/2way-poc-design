@@ -6,11 +6,11 @@
 
 ## 1. Purpose and scope
 
-This repository defines the complete normative design of the 2WAY proof of concept (PoC) system. It specifies the protocol, architecture, security model, data structures, and component boundaries required to implement and evaluate a 2WAY proof of concept.
+This repository defines the normative design for the 2WAY proof of concept (PoC) system. It specifies the protocol, architecture, security model, data structures, and component boundaries necessary to implement and evaluate the PoC.
 
-This repository is a design specification, not an implementation. It describes required behavior, invariants, and constraints. All documents are binding unless explicitly marked otherwise.
+This is a design specification, not an implementation. It outlines required behavior, invariants, and constraints. All documents are binding unless explicitly marked otherwise.
 
-The scope is limited to what is required to build a correct, secure, interoperable PoC.
+The scope is limited to the elements necessary for building a correct, secure, and interoperable PoC.
 
 ## 2. System overview
 
