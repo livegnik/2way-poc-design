@@ -2,172 +2,180 @@
 
 
 
-# 00. Scope and goals
+# 01. Scope and goals
 
 ## 1. Purpose and scope of this document
 
-This document defines the scope, goals, and boundaries of the 2WAY system proof of concept (PoC) design repository. It specifies what the repository is intended to describe, what guarantees it aims to establish at the design level, and what is explicitly out of scope. It does not define implementation details, deployment practices, or operational policy unless those are required to preserve correctness or security.
+This document defines the scope and goals of the 2WAY system design repository. It specifies what the system is intended to do, what properties it must guarantee, and which behaviors are explicitly allowed or forbidden at the design level.
 
-This document applies to the entire repository. All other documents are interpreted as refinements within the scope and constraints defined here.
+This document is normative. All other design documents in this repository must conform to the constraints, invariants, and boundaries defined here.
+
+This document defines scope and intent only. It does not define wire formats, schemas, APIs, or concrete implementations except where required to constrain correctness or security.
 
 ## 2. System scope
 
-The 2WAY system is a local first, graph based system for identity, data ownership, access control, peer to peer synchronization, and incentive mediated interaction. The scope of this repository is limited to the design required to build and evaluate a proof of concept implementation of that system.
+2WAY is a local first, graph based system for identity anchored data ownership, access control, incentive mediated interaction, and peer to peer synchronization over untrusted networks.
+
+This repository defines the complete design required to build and evaluate a single 2WAY proof of concept node and its interactions with peers.
 
 Within scope:
 
-- A formal protocol level model for identity, authorship, ownership, and mutation.
-- A graph based data model with explicit typing, ownership, and ordering.
-- A validation and enforcement pipeline that ensures structural correctness, authorization, and integrity.
-- A decentralized synchronization model with explicit trust boundaries and replay protection.
-- A modular backend architecture composed of strictly defined managers and services.
-- A local API surface for frontend applications and backend extensions.
-- Security properties derived from cryptographic identity, immutability, and constrained authority.
-- Economic and incentive mechanisms encoded as first class graph structures and app level logic.
+- A graph based object model with explicit identity, ownership, and ordering.
+- Cryptographically anchored identity and authorship.
+- A deterministic validation and enforcement pipeline for all state mutations.
+- A modular backend composed of Managers and Services with strict trust boundaries.
+- A local API surface for frontend applications.
+- A peer to peer synchronization model with explicit scoping, sequencing, and rejection rules.
+- App defined domains with isolated semantics enforced by schema and access control.
+- Economic and incentive mechanisms expressed as graph structures and enforced locally.
 
 Out of scope:
 
-- Production scalability guarantees beyond what is implied by the PoC design.
-- Centralized economic coordination, global settlement, or external token infrastructure.
-- User interface design, UX decisions, or frontend implementation details.
-- Centralized infrastructure assumptions or mandatory service dependencies.
-- Non local data custody or externally enforced state.
+- Centralized coordination, global consensus, or shared ledgers.
+- Externally enforced monetary policy or global settlement.
+- User interface or experience design beyond API boundary requirements.
+- Operational deployment strategies beyond a single node.
+- Any behavior that requires implicit trust in peers, transports, or infrastructure.
 
 ## 3. Design goals
 
-The design goals stated here are normative constraints on all components described in this repository.
+The goals in this section are mandatory constraints on the design.
 
-#### 3.1 Correctness and integrity
+### 3.1 Correctness
 
-The system must ensure that:
+- All persistent state mutations are validated before storage.
+- Unauthorized mutations are structurally impossible.
+- Historical state cannot be silently rewritten.
+- Invalid input is rejected deterministically.
 
-- All persisted state changes are attributable to a cryptographic identity.
-- Unauthorized mutations are structurally impossible, not merely discouraged.
-- Historical state cannot be rewritten or silently corrupted.
-- Invalid or malformed operations are rejected before persistence.
+### 3.2 Security
 
-#### 3.2 Local authority and autonomy
+- Every operation is attributable to exactly one cryptographic identity.
+- Identity verification is explicit and never inferred from context.
+- Authorization is enforced before persistence.
+- Sync inputs are validated for integrity, ordering, and authorization.
+- Key compromise is recoverable without rewriting history.
 
-Each node must be able to:
+### 3.3 Local authority and autonomy
 
-- Operate independently without reliance on a central coordinator.
-- Enforce its own validation, authorization, and visibility rules.
-- Select which peers, domains, and identities it interacts with.
-- Maintain a consistent local state while offline.
+- Each node enforces its own validation and authorization rules.
+- Nodes do not depend on external services to remain correct.
+- Nodes can operate offline without losing consistency.
+- Peer participation is optional and explicitly scoped.
 
-#### 3.3 Explicit trust boundaries
+### 3.4 Isolation and containment
 
-Trust relationships must be explicit and inspectable:
+- App domains are isolated by schema and access control rules.
+- App specific logic cannot mutate foreign domains without explicit authorization.
+- Backend core logic is isolated from app logic.
+- Frontend code cannot directly access backend Managers.
 
-- Identities are bound to keys represented in the graph.
-- Permissions are derived from schema rules and ACLs, not implicit roles.
-- Sync behavior is constrained by declared domains and sequence ordering.
-- No component may infer trust from transport context or network position.
+### 3.5 Incentive enforcement
 
-#### 3.4 Minimal trusted surface
+- Incentive mechanisms are represented as graph objects.
+- Incentive enforcement occurs locally through schema and access control.
+- Incentives do not bypass ownership, validation, or authorization rules.
+- Incentives do not require global agreement to be meaningful.
 
-The design must minimize the amount of logic that is implicitly trusted:
+## 4. Responsibilities of this specification
 
-- All writes flow through a single validation pipeline.
-- Managers form a closed backend kernel with no external mutation access.
-- Apps and services operate with explicitly scoped authority.
-- Transport security is not relied upon for correctness or integrity.
+This specification is responsible for defining:
 
-#### 3.5 Incentive alignment and local enforcement
+- The boundaries of the 2WAY system.
+- Global invariants that apply to all components.
+- Required guarantees for correctness and security.
+- Allowed and forbidden behaviors at the system level.
+- Expected behavior on failure or invalid input.
 
-The system must support incentive structures that:
+This specification is not responsible for defining:
 
-- Are encoded as graph objects with explicit ownership and authorship.
-- Are enforced locally by schema rules and ACL evaluation.
-- Do not require global consensus to be meaningful.
-- Remain interpretable and enforceable even under partial network participation.
-
-## 4. Responsibilities
-
-At the repository level, this design is responsible for defining:
-
-- The abstract protocol and data model used by all compliant implementations.
-- The invariants that must hold for graph state, identity, ownership, and incentives.
-- The interfaces and trust boundaries between major system components.
-- The conditions under which operations are accepted, rejected, or ignored.
-
-The design is not responsible for:
-
-- Market pricing, valuation, or external economic policy.
-- Guaranteeing liquidity or participation.
-- Resolving disputes outside the defined graph semantics.
+- Detailed protocol encoding.
+- Concrete database schemas.
+- Application specific semantics.
+- Deployment or operational policy.
 
 ## 5. Invariants and guarantees
 
-The following invariants apply globally and must not be violated by any component:
+The following invariants apply globally:
 
-- Every operation has exactly one author identity.
-- Every identity is anchored to at least one verifiable public key.
-- Ownership of graph Parents is immutable.
-- All persistent mutations are totally ordered by a local sequence.
-- Authorization is evaluated before any persistent write.
-- No component may bypass Graph Manager to write state.
+- All backend code consists of Managers and Services.
+- Frontend applications run outside the backend.
+- Apps may include backend extension Services, but never bypass Managers.
+- All graph writes occur through Graph Manager.
+- All authorization decisions occur through ACL Manager.
+- All schemas are sourced from the graph and validated by Schema Manager.
+- All synchronization state transitions occur through State Manager.
+- All network traffic is mediated by Network Manager.
+- All event emission is mediated by Event Manager.
 
 The system guarantees that:
 
-- Unauthorized operations do not reach persistent storage.
-- Authorship and provenance are verifiable from stored state alone.
-- Incentive structures cannot bypass authorization or ownership rules.
-- Partial compromise does not imply total system compromise.
-- State evolution is auditable, reproducible, and can be rolled back.
+- Unauthorized operations cannot reach persistent storage.
+- Persisted objects have verifiable authorship.
+- Sync cannot introduce out of order or replayed state.
+- Partial compromise does not imply total compromise.
+- State evolution is auditable from local data alone.
 
 ## 6. Allowed behaviors
 
-The following behaviors are explicitly allowed within this scope:
+The following behaviors are explicitly allowed:
 
-- Multiple independent implementations adhering to the same protocol.
-- Application specific schemas that define domain local semantics.
-- Selective synchronization based on explicit trust and visibility rules.
-- Delegation of limited authority via graph encoded relationships.
-- App defined incentive models operating within schema and ACL constraints.
+- Multiple independent nodes operating without coordination.
+- Selective synchronization with peers based on explicit rules.
+- Multiple apps with isolated schemas and semantics.
+- App defined economic and incentive models within enforced boundaries.
+- Delegation of limited authority encoded in graph structure.
 
 ## 7. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
-- Implicit trust based on network origin or transport layer identity.
-- Direct database access by apps or frontend components.
-- Mutation of objects without passing full validation and ACL checks.
-- Cross app interpretation or mutation of foreign domain objects.
-- Incentive mechanisms that require rewriting or bypassing ownership rules.
-- Silent rewriting or deletion of historical state.
+- Direct database access outside Graph Manager.
+- Authorization outside ACL Manager.
+- Implicit trust based on network or transport metadata.
+- Cross domain mutation without explicit authorization.
+- Silent mutation or deletion of historical state.
+- Bypassing validation for performance or convenience.
 
-## 8. Interactions with other components
+## 8. Trust boundaries and interactions
 
-This document defines no direct interfaces. It constrains other components as follows:
+This document defines trust boundaries without defining interfaces.
 
-- Protocol documents must conform to the invariants defined here.
-- Architecture documents must respect the stated trust boundaries.
-- Security documents must not weaken or bypass the guarantees listed.
-- Incentive mechanisms must be expressible using the core graph model.
-- PoC specific documents may narrow scope but may not expand authority.
+Untrusted inputs:
 
-All interactions between components are assumed to be adversarial by default and must be validated explicitly.
+- All network input.
+- All frontend input prior to authentication.
+- All app provided input.
+
+Trusted outputs only after validation:
+
+- Persisted graph objects.
+- Events emitted as a result of accepted operations.
+
+Trust boundaries:
+
+- Frontend to backend is mediated by authentication and operation context resolution.
+- Network to persistence is mediated by network handling, sync logic, and graph validation.
+- App logic to core state is mediated exclusively by Managers.
 
 ## 9. Failure and rejection behavior
 
-At the scope level, the system must behave as follows on failure:
+On failure or invalid input:
 
-- Invalid input results in explicit rejection.
-- Unauthorized operations are rejected without side effects.
-- Malformed data does not propagate beyond validation boundaries.
-- Partial failures do not result in undefined or ambiguous state.
+- Operations are rejected explicitly.
+- Rejected operations produce no persistent side effects.
+- Rejected sync inputs do not advance synchronization state.
+- Components fail closed at trust boundaries.
+- Partial failures do not create ambiguous or intermediate state.
 
-Silent failure, implicit acceptance, or best effort mutation are not permitted within this design.
+Silent acceptance, partial mutation, or best effort processing are not permitted.
 
 ## 10. Non goals
 
-The following are explicitly not goals of this design:
+The following are explicitly not goals:
 
-- Universal global consensus.
-- Globally enforced monetary policy.
-- Anonymous computation without identity.
-- Automatic trust or reputation inference outside schema rules.
-- Enforcement of social or legal policy outside the graph.
-
-Any extension that introduces these properties must be treated as a separate design effort and is not covered by this repository.
+- Universal consensus.
+- Global identity uniqueness.
+- Anonymous mutation without identity.
+- Automatic trust inference.
+- Enforcement of policy outside graph encoded rules.
