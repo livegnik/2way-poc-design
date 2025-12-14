@@ -6,279 +6,387 @@
 
 ## 1. Purpose and scope
 
-This document defines the normative terminology used across the 2WAY design repository. Its purpose is to establish precise meanings for core terms to ensure consistent interpretation across protocol, architecture, security, data, and interface specifications.
+This file defines the normative terminology used across the 2WAY PoC design repository. It standardizes names for core entities, graph object types, schema concepts, sync concepts, and security concepts so that other documents can be read and reviewed without ambiguity.
 
-This document does not define behavior, algorithms, or implementation details. It defines vocabulary, scope boundaries, and semantic invariants only.
-
-All terms defined here are binding for the entire repository unless explicitly overridden in a narrower scope document.
+This file does not define APIs, wire formats, database schemas, or protocol flows. Where a term depends on a formal structure, this file references the owning specification and constrains meaning only.
 
 ## 2. Responsibilities
 
-This document is responsible for:
+### 2.1 Responsibilities
 
-- Defining canonical meanings of core system terms.
-- Disambiguating overloaded or commonly misused terms.
-- Establishing invariant properties attached to terms.
-- Providing a shared vocabulary across all design documents.
+This file is responsible for:
 
-This document is not responsible for:
+1. Defining canonical meanings for repository level terms.
+2. Fixing canonical names for the fundamental graph object types and their related concepts.
+3. Defining the naming and scoping terms used for apps, types, and domains.
+4. Defining security vocabulary needed to interpret authorization, signing, and revocation rules.
 
-- Describing implementation details.
-- Specifying protocol flows.
-- Defining APIs, schemas, or wire formats.
-- Explaining rationale or historical context.
+### 2.2 Non responsibilities
+
+This file is not responsible for:
+
+1. Describing how managers execute validation or persistence.
+2. Defining the database schema, table layouts, or indexes.
+3. Defining envelope fields, request formats, or network message layouts.
+4. Defining app specific schemas or object types.
 
 ## 3. Invariants and guarantees
 
-- Terms defined in this document have a single authoritative meaning.
-- Identical terms must not be used with different meanings elsewhere in the repository.
-- Undefined terms must be introduced and defined in the document where they first appear.
-- Terminology does not imply implementation strategy unless explicitly stated.
+### 3.1 Terminology invariants
 
-## 4. Core system terms
+1. Terms defined in this file have a single authoritative meaning across the repository.
+2. The canonical graph object type names are Parent, Attribute, Edge, Rating, ACL.
+3. Canonical names must not be aliased, abbreviated, or replaced with synonyms in normative text.
+4. If a document introduces a new term, it must define it locally or reference a file that defines it.
 
-### 4.1 Node
+### 3.2 Repository guarantees
 
-A node is a single autonomous execution environment that hosts a complete 2WAY backend instance.
+1. Any normative use of a term defined here is interpreted as the definition in this file.
+2. Any conflicting definition elsewhere is treated as a specification error and must be corrected to match this file.
 
-Properties:
-- Maintains its own local persistent graph.
-- Enforces validation, authorization, and storage rules independently.
-- May participate in network sync with other nodes.
-- Is authoritative over its local state.
+## 4. Allowed and forbidden terminology usage
 
-A node is not a cluster, shard, or replicated service.
+### 4.1 Allowed usage
 
-### 4.2 Identity
+1. Using these terms verbatim as headings, identifiers, or normative labels.
+2. Narrowing a term within a specific file if the file explicitly states the narrower scope and does not conflict with this file.
+3. Referencing a different file for formal structure while keeping the term meaning consistent.
 
-An identity is a graph-level representation of an actor capable of authoring operations.
+### 4.2 Forbidden usage
 
-Properties:
-- Represented as a Parent object in app_0.
-- Anchored by at least one cryptographic public key.
-- Immutable in authorship and ownership.
-- May represent a user, device, service, or system component.
+1. Redefining a term in a different document without an explicit override statement and scope.
+2. Using synonyms in place of canonical object type names in normative requirements.
+3. Using the same word to refer to two different concepts, even if context appears clear.
 
-An identity is not inferred from network location, session state, or runtime context.
+## 5. System and runtime terms
 
-### 4.3 Device
+### 5.1 Node
 
-A device is a scoped identity associated with a primary identity.
+A node is a single running 2WAY backend instance with its own local persistent state.
 
 Properties:
-- Possesses its own cryptographic keypair.
-- Linked to a primary identity via typed edges.
-- Carries explicitly limited authority.
-- Can be independently revoked.
+1. A node assigns and maintains its own monotonic ordering for local writes.
+2. A node enforces validation and authorization for all accepted mutations.
+3. A node may participate in sync with peers.
 
-A device is not required to be a physical device.
+A node is not defined as a cluster, shard, or externally managed service.
 
-### 4.4 App
+### 5.2 Backend
 
-An app is a logically isolated domain that defines its own schema, object types, and semantics.
+The backend is the trusted local execution environment that hosts managers and services and exposes interfaces to frontend apps.
 
-Properties:
-- Owns its own namespace of object types.
-- May define app-specific Parents, Attributes, Edges, and Ratings.
-- Cannot reinterpret or mutate objects owned by another app.
-- Is enforced through schema and ACL boundaries.
+Trust boundary:
+1. The backend is trusted to enforce all validation and access control rules defined by this repository.
+2. Frontend apps are not trusted by default.
 
-An app is not equivalent to a frontend UI or executable package.
+### 5.3 Frontend app
 
-### 4.5 Service
+A frontend app is a user facing application that interacts with the backend only through the backend’s exposed interfaces.
 
-A service is a backend-resident component that operates within a defined app or system domain.
+Constraints:
+1. A frontend app does not directly invoke managers.
+2. A frontend app does not bypass backend validation or authorization.
 
-Properties:
-- Executes with explicit manager access.
-- Cannot bypass Graph Manager or ACL Manager.
-- May define background behavior or derived state.
-- Is bound to the schema of its owning domain.
+### 5.4 Manager
 
-A service is not trusted implicitly beyond its declared scope.
+A manager is a backend component that owns a narrow, explicit responsibility and exposes a stable interface for that responsibility.
 
-### 4.6 Frontend app
+Constraints:
+1. Managers are the only components permitted to perform their responsibility.
+2. Write paths that mutate persisted graph state are mediated by the backend’s write pipeline as defined in the architecture and build guide documents.
 
-A frontend app is a user-facing application that interacts with the backend exclusively through exposed interfaces.
+This file does not define manager APIs.
 
-Properties:
-- Cannot directly access backend managers.
-- Operates within an explicit OperationContext.
-- Is subject to ACL and schema enforcement.
+### 5.5 Service
 
-A frontend app is not a security boundary.
+A service is backend resident logic that operates within a specific app or system scope using managers.
 
-## 5. Graph model terms
+Constraints:
+1. A service does not bypass manager enforced rules.
+2. A service is constrained by schema and ACL enforcement for the objects it attempts to create or mutate.
 
-### 5.1 Graph
+## 6. App and type system terms
 
-The graph is the complete set of persisted objects stored by a node.
+### 6.1 App
+
+An app is a logical domain that defines its own schema scoped object types and semantics.
 
 Properties:
-- Append-oriented with immutable ownership.
-- Ordered by a global sequence.
-- Typed and schema-constrained.
-- Locally authoritative.
+1. App semantics are isolated. Objects and type meanings are app scoped.
+2. App boundaries are enforced by schema validation and authorization rules.
 
-The graph is not globally shared or centrally replicated.
+### 6.2 app_id and app_slug
 
-### 5.2 Parent
+An app_id is the numeric identifier used to bind storage and types to an app. An app_slug is the stable string name used for human readable identification and routing.
 
-A Parent is a top-level graph object that establishes ownership and identity context.
+Constraints:
+1. app_id determines the per app table set in storage.
+2. app_slug identifies the app in configuration and higher level interfaces.
 
-Properties:
-- Created by exactly one identity.
-- Immutable in authorship.
-- Serves as the anchor for related objects.
-- Cannot be reassigned or overwritten.
+This file does not define allocation rules for app_id.
 
-A Parent is not a container or namespace.
+### 6.3 Type
 
-### 5.3 Attribute
+A type is an app scoped identifier for a specific Parent type, Attribute type, Edge type, Rating type, or ACL type.
 
-An Attribute is a typed value attached to a Parent.
+Two representations are used across the design:
+1. type_key. A stable string key used in schema definitions and documentation.
+2. type_id. A numeric identifier used in persisted storage.
 
-Properties:
-- Owned by the Parent’s identity.
-- Schema-defined in type and representation.
-- Subject to ACL enforcement.
-- May be mutable or append-only depending on domain rules.
+Constraint:
+1. type_key and type_id mapping is app scoped.
 
-### 5.4 Edge
+### 6.4 Schema
 
-An Edge is a typed relationship between two Parents.
+A schema is an app scoped declaration of allowed types and allowed relationships among types.
 
-Properties:
-- Directional.
-- Schema-constrained.
-- May encode trust, membership, delegation, or association.
-- Evaluated during ACL and traversal operations.
+Constraint:
+1. Schema validation uses schema declared constraints to accept or reject operations.
 
-Edges do not imply transitive permission unless explicitly defined.
+This file does not define schema file formats, value representations, or validation algorithms. Those are defined in the schema and data model specifications.
 
-### 5.5 Rating
+### 6.5 Value kind
 
-A Rating is a typed evaluative object scoped to an app-defined meaning.
+A value kind is the schema level classification used to validate the representation of an Attribute value.
 
-Properties:
-- Interpreted only by the owning app.
-- Has no global semantic meaning.
-- May influence app-level behavior only.
+In the PoC build guide schema examples, value_kind includes:
+1. text.
+2. number.
+3. json.
 
-Ratings are not global reputation signals.
+This file does not define encoding rules beyond these labels.
 
-## 6. Operation and envelope terms
+## 7. Graph model terms
 
-### 6.1 Operation
+### 7.1 Graph
 
-An operation is a request to create, modify, or relate graph objects.
+The graph is the set of persisted objects stored by a node across all apps.
 
-Properties:
-- Authored by exactly one identity.
-- Subject to validation, schema checks, and ACL enforcement.
-- Atomic with respect to graph mutation.
+Constraints:
+1. The graph is local to a node.
+2. The graph is the authoritative record for the node’s accepted operations.
 
-Operations do not imply successful persistence.
+### 7.2 Graph object
 
-### 6.2 Envelope
+A graph object is a persisted record of one of the fundamental object types.
 
-An envelope is the signed, transportable representation of one or more operations.
+The fundamental object types are:
+1. Parent.
+2. Attribute.
+3. Edge.
+4. Rating.
+5. ACL.
 
-Properties:
-- Carries author identity.
-- Cryptographically signed.
-- May be encrypted.
-- Verified independently of transport.
+### 7.3 Parent
 
-An envelope is not trusted until fully validated.
+A Parent is a top level graph object that anchors ownership and is the root for related objects.
 
-### 6.3 OperationContext
+Constraints:
+1. A Parent has an owning identity.
+2. A Parent is used as the anchor for Attributes and as the endpoint for Edges.
 
-An OperationContext is the execution context derived from an envelope.
+This file does not define Parent fields.
 
-Properties:
-- Binds identity, device, app, and permissions.
-- Is explicitly constructed.
-- Is not inferred from runtime state.
+### 7.4 Attribute
 
-OperationContext is mandatory for all graph mutations.
+An Attribute is a typed value associated with a Parent.
 
-## 7. Sequence and sync terms
+Constraints:
+1. Attribute meaning is defined by the app schema.
+2. Attribute representation is validated against value kind constraints.
 
-### 7.1 global_seq
+This file does not define Attribute fields.
 
-global_seq is a strictly monotonic sequence number assigned by a node.
+### 7.5 Edge
 
-Properties:
-- Defines total ordering of local operations.
-- Cannot be rewritten or reused.
-- Anchors provenance and replay detection.
+An Edge is a typed directed relationship between two Parents.
 
-global_seq is node-local.
+Constraints:
+1. Edge meaning is defined by the app schema.
+2. Edge validity is constrained by schema allowed relations.
 
-### 7.2 Sync domain
+This file does not define Edge fields.
 
-A sync domain is a defined subset of the graph eligible for replication.
+### 7.6 Rating
 
-Properties:
-- Explicitly declared.
-- ACL-constrained.
-- App-scoped or system-scoped.
-- Selectively shared.
+A Rating is a typed evaluative object with app scoped semantics.
 
-Sync domains do not imply full graph visibility.
+Constraints:
+1. Rating meaning is interpreted only within the app that defines the rating type.
+2. Ratings do not imply a global reputation model.
 
-### 7.3 Peer
+This file does not define Rating fields.
 
-A peer is a remote node participating in sync.
+### 7.7 ACL
 
-Properties:
-- Identified by a graph identity.
-- Not inherently trusted.
-- Subject to rate limits and ACL rules.
+An ACL is a graph object that defines visibility and mutation permissions for target objects within a defined scope.
 
-Peers are not assumed to be honest.
+Constraints:
+1. ACL interpretation is defined by the authorization model.
+2. ACL evaluation is applied to read and write decisions according to the access control specification.
 
-## 8. Security and trust terms
+This file does not define ACL fields or evaluation rules.
 
-### 8.1 Trust boundary
+## 8. Operation and validation terms
 
-A trust boundary is a point where assumptions about correctness or authority change.
+### 8.1 Operation
 
-Defined trust boundaries include:
-- Frontend to backend.
-- Backend to network.
-- App to system services.
-- Local node to peer node.
+An operation is a request to create, update, or relate graph objects.
 
-No implicit trust crosses a boundary.
+Constraints:
+1. An operation is subject to validation and authorization.
+2. An operation may be rejected and therefore not persisted.
 
-### 8.2 Revocation
+This file does not define the operation vocabulary.
 
-Revocation is the invalidation of a previously valid key or authority.
+### 8.2 Envelope
 
-Properties:
-- Represented as immutable graph structure.
-- Takes precedence over subsequent operations.
-- Propagated through sync.
+An envelope is a signed container used to carry one or more operations for local processing or network sync.
 
-Revocation does not rewrite history.
+Constraints:
+1. An envelope includes an explicit author identity reference.
+2. An envelope is not trusted until verified and validated.
 
-## 9. Allowed and forbidden usage
+This file does not define envelope fields, signing formats, or encryption formats.
 
-Allowed:
-- Reuse of defined terms with identical meaning across documents.
-- Narrowing of terms within a clearly defined local scope.
+### 8.3 OperationContext
 
-Forbidden:
-- Redefinition of terms without explicit reference.
-- Overloading terms with multiple meanings.
-- Using informal synonyms for defined terms in normative text.
+An OperationContext is the backend derived context used to evaluate an operation.
 
-## 10. Failure and invalid usage handling
+Constraints:
+1. OperationContext binds the author identity and any scoped authority relevant to the operation.
+2. OperationContext is explicitly derived, it is not inferred from transport, session, or client supplied claims.
 
-- Undefined or ambiguous terminology is treated as a specification error.
-- Conflicting definitions invalidate the affected document section.
-- Implementations encountering undefined terms must reject dependent behavior until clarified.
+This file does not define OperationContext fields.
 
-This document defines language. It does not define recovery behavior beyond specification consistency.
+## 9. Ordering and sync terms
+
+### 9.1 global_seq
+
+global_seq is a node local strictly monotonic sequence number assigned to accepted persisted writes.
+
+Constraints:
+1. global_seq defines a total order of accepted writes on a node.
+2. global_seq is used to support incremental sync and provenance checks.
+
+This file does not define how global_seq is stored, indexed, or transmitted.
+
+### 9.2 domain_seq
+
+domain_seq is a sequence number scoped to a specific sync domain as defined by the PoC build guide.
+
+Constraint:
+1. domain_seq ordering is meaningful only within its domain scope.
+
+This file does not define domain sequencing rules beyond this scope meaning.
+
+### 9.3 Sync
+
+Sync is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
+
+Constraint:
+1. Sync does not imply that a node accepts all received content.
+
+This file does not define sync protocol flows.
+
+### 9.4 Sync domain
+
+A sync domain is an explicit subset of data eligible for sync under defined authorization and scoping rules.
+
+Constraints:
+1. Domains constrain what can be requested and what can be sent.
+2. Domain scoping limits disclosure and replication.
+
+This file does not define domain membership rules.
+
+### 9.5 Peer
+
+A peer is a remote node that participates in sync with a node.
+
+Constraints:
+1. A peer is identified by an identity in the graph.
+2. A peer is not inherently trusted.
+
+This file does not define peer discovery or transport requirements.
+
+### 9.6 sync_state
+
+sync_state is the node maintained local record of sync progress and constraints for a specific peer.
+
+Constraint:
+1. sync_state is used to reject replayed, malformed, or out of scope sync inputs.
+
+This file does not define sync_state structure.
+
+## 10. Security and trust terms
+
+### 10.1 Cryptographic identity
+
+A cryptographic identity is the association between a graph identity and at least one public key used to verify signatures.
+
+Constraint:
+1. Authorship claims are verified against stored public keys.
+
+This file does not define key storage layout or rotation rules.
+
+### 10.2 Authorship
+
+Authorship is the binding between an operation or envelope and the identity that signed it.
+
+Constraints:
+1. Authorship is explicit in the envelope.
+2. Authorship is verified, not inferred.
+
+### 10.3 Ownership
+
+Ownership is the association between a graph object and the identity that created or controls it under system rules.
+
+Constraint:
+1. Ownership is used to enforce mutation rules and reject unauthorized writes.
+
+This file does not define ownership enforcement logic.
+
+### 10.4 Trust boundary
+
+A trust boundary is any interface where data crosses from a less trusted environment to a more trusted environment.
+
+In this repository, the core trust boundaries include:
+1. Frontend app to backend interface boundary.
+2. Network input to node boundary.
+3. App scoped logic to system scoped logic boundary.
+
+This file does not define mitigations beyond vocabulary.
+
+### 10.5 Revocation
+
+Revocation is a graph represented event that invalidates a previously valid key or scoped authority.
+
+Constraints:
+1. Revocation affects acceptance of future envelopes signed with the revoked key.
+2. Revocation does not rewrite historical persisted objects.
+
+This file does not define revocation object structure.
+
+## 11. Failure, rejection, and invalid input handling
+
+### 11.1 Terminology failures
+
+1. If a normative document uses an undefined term without reference, it is a specification error.
+2. If two documents define the same term differently, it is a specification error.
+
+### 11.2 Runtime interpretation failures
+
+For any component that references terms from this file:
+
+1. If an input claims a type, domain, identity, or author that cannot be resolved under the repository’s defined structures, the input is invalid.
+2. Invalid inputs are rejected, they are not partially applied.
+3. Rejection must not create new persisted graph objects.
+
+This file does not define error codes or logging requirements.
+
+### 11.3 Trust boundary failures
+
+1. Inputs received across a trust boundary are treated as untrusted until validated by the backend’s defined validation and authorization pipeline.
+2. If validation cannot be completed due to missing prerequisites, the input is rejected.
+
+This file does not define prerequisite acquisition behavior.
