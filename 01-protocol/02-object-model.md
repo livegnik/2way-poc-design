@@ -2,253 +2,330 @@
 
 
 
+# 02 Object model
+
 ## 1. Purpose and scope
 
-This document defines the 2WAY object model. It specifies the set of object types that constitute the graph, their structural properties, invariants, and permitted relationships. It defines what an object is, how objects relate, and which properties are enforced at the model level.
+This document defines the normative graph object model used by 2WAY. It specifies the canonical object categories, required fields, structural constraints, and invariants that must hold for any object to be accepted into the graph.
 
-This document does not define storage layout, serialization formats, validation pipelines, access control logic, or synchronization behavior. Those are specified elsewhere and are only referenced here where required to define object correctness or trust boundaries.
+This document does not define serialization formats, envelope structures, schema semantics, ACL evaluation logic, persistence layout, or synchronization behavior. Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
 
 ## 2. Responsibilities
 
-The object model is responsible for:
+This specification is responsible for:
 
-* Defining the canonical object types used by the 2WAY graph.
-* Defining mandatory and optional fields for each object type.
-* Defining ownership, authorship, and immutability rules at the object level.
-* Defining allowed relationships between object types.
-* Defining invariants that must hold for all valid objects.
+* Defining the canonical graph object categories.
+* Defining required fields and reference structure for each object category.
+* Defining object level invariants that are enforced independently of schema or ACL logic.
+* Defining cross object and cross category structural constraints.
+* Defining explicit rejection conditions for structurally invalid objects.
 
-The object model is not responsible for:
+This specification is not responsible for:
 
-* Enforcing access control decisions.
-* Performing schema or application-level semantic validation.
-* Managing persistence, indexing, or storage optimization.
-* Resolving conflicts or ordering operations.
-* Network transport, encryption, or synchronization.
+* Defining schema meaning, type validation, or value interpretation.
+* Defining authorization rules or ACL evaluation.
+* Defining envelope formats or wire serialization.
+* Defining persistence schemas, indexes, or query behavior.
+* Defining sync ordering, conflict resolution, or domain selection.
 
-## 3. Object taxonomy
+## 3. Invariants and guarantees
 
-All persistent state in 2WAY is represented as graph objects. There are exactly four first-class object types:
+### 3.1 Invariants
 
-1. Parent
-2. Attribute
-3. Edge
-4. Rating
+The following invariants apply to all graph objects:
 
-No other persistent object types are permitted.
+* All persistent state is represented exclusively using the canonical object categories defined in this document.
+* Every object belongs to exactly one application domain identified by `app_id`.
+* Every object has a single immutable author identity.
+* Object identifiers, ownership, and provenance metadata are immutable once assigned.
+* All references between objects are explicit and must resolve within the same `app_id` scope.
 
-Each object belongs to exactly one application domain, identified by an app identifier. System-level objects belong to app_0.
+### 3.2 Guarantees
 
-## 4. Common object properties
+When enforced as specified, the object model guarantees:
 
-All object types share the following mandatory properties:
+* Stable authorship and ownership binding for all objects.
+* Referential integrity within each application domain.
+* Structural isolation between application domains.
+* Deterministic rejection of structurally invalid objects.
 
-* Object identifier. Globally unique within the local graph.
-* App identifier. Identifies the application domain that defines the object semantics.
-* Owner identity. Cryptographic identity that authored the object.
-* Global sequence number. Assigned at acceptance time by the local node.
-* Creation timestamp. Local node time at acceptance.
+This document does not guarantee schema validity, authorization correctness, or semantic consistency beyond structural constraints.
 
-The following properties are invariant once assigned:
+## 4. Canonical object categories
 
-* Object identifier.
-* App identifier.
-* Owner identity.
-* Global sequence number.
+### 4.1 Categories
 
-Objects are immutable unless explicitly defined otherwise in this specification.
+2WAY defines five canonical graph object categories:
 
-## 5. Parent objects
+* Parent
+* Attribute
+* Edge
+* Rating
+* ACL
 
-### 5.1 Definition
+Parent, Attribute, Edge, and Rating are stored as first class object records. ACL is a canonical category at the protocol level and is represented structurally using Parent and Attribute records.
 
-A Parent represents a durable entity in the graph. It is the root to which other objects attach.
+No other persistent object categories are permitted.
 
-### 5.2 Properties
+### 4.2 Naming constraints
 
-A Parent object has:
+* The category names Parent, Attribute, Edge, Rating, ACL are canonical and fixed.
+* Implementations must not alias or redefine these category names in protocol visible behavior.
 
-* A unique object identifier.
-* An owner identity.
-* An app identifier.
-* Zero or more associated Attributes.
-* Zero or more incoming and outgoing Edges.
-* Zero or more associated Ratings.
+## 5. Common fields and reference rules
 
-### 5.3 Invariants
+### 5.1 Required metadata fields
 
-* A Parent is immutable after creation.
-* Ownership of a Parent cannot change.
-* A Parent cannot be deleted.
-* A Parent cannot be retyped or reassigned to another app.
+All stored object records include the following required metadata fields:
 
-### 5.4 Guarantees
+* `app_id`. Integer identifier of the application domain.
+* `id`. Integer identifier of the object within its category and `app_id` scope.
+* `type_id`. Integer identifier of the object type within the `app_id` scope.
+* `owner_identity`. Integer identifier of the authoring identity.
+* `global_seq`. Integer sequence assigned by the local node at accept time.
+* `sync_flags`. Integer metadata used by the sync subsystem.
 
-* A Parent uniquely anchors authorship for all objects attached to it.
-* A Parent provides a stable reference point for ACL and schema evaluation.
+The presence and immutability of these fields are defined here. Their assignment and interpretation are defined elsewhere.
 
-### 5.5 Forbidden behaviors
+### 5.2 Immutability rules
 
-* Modifying a Parent after creation.
-* Deleting a Parent.
-* Creating a Parent without a valid owner identity.
+For any persisted object:
 
-## 6. Attribute objects
+* `app_id` MUST NOT change.
+* `id` MUST NOT change.
+* `type_id` MUST NOT change.
+* `owner_identity` MUST NOT change.
+* `global_seq` MUST NOT change.
+* `sync_flags` MUST NOT change once persisted.
+
+If updates are supported, only value bearing fields defined for the object category may change, and only under external validation and authorization.
+
+### 5.3 Object reference form
+
+All object references are explicit and consist of:
+
+* `app_id`
+* object category
+* object `id`
+
+References MUST NOT rely on implicit `app_id` inheritance or contextual assumptions.
+
+## 6. Parent
 
 ### 6.1 Definition
 
-An Attribute represents typed data attached to exactly one Parent.
+A Parent represents an entity root within an application domain. All other object categories attach to a Parent directly or indirectly.
 
-### 6.2 Properties
+### 6.2 Required fields
 
-An Attribute has:
+A Parent record includes:
 
-* A unique object identifier.
-* A target Parent identifier.
-* A declared type identifier.
-* A value representation.
-* An owner identity.
+* Common metadata fields defined in Section 5.1.
+* `value_json`. Optional, schema defined payload.
 
-### 6.3 Invariants
+The contents of `value_json` are opaque to this specification.
 
-* An Attribute must reference exactly one existing Parent.
-* The referenced Parent must belong to the same app.
-* Attribute ownership must match the Parent owner unless explicitly permitted by ACL rules.
-* Attribute type and representation must conform to the schema of the app.
+### 6.3 Structural invariants
 
-### 6.4 Mutability rules
+* A Parent anchors attachment of Attributes, Edges, Ratings, and ACL structures.
+* Ownership of a Parent is permanent.
+* A Parent cannot be reassigned to another `app_id`.
 
-* Attributes may be mutable or immutable as defined by schema.
-* Mutable Attributes may only be modified by their owner or explicitly authorized identities.
-* Immutable Attributes cannot be modified after creation.
+### 6.4 Explicitly allowed
 
-### 6.5 Forbidden behaviors
+* Creation of a Parent with valid metadata fields.
+* Attachment of other objects that satisfy the constraints in this document.
 
-* Attributes referencing non-existent Parents.
-* Attributes crossing app boundaries.
-* Reassigning an Attribute to a different Parent.
+### 6.5 Explicitly forbidden
 
-## 7. Edge objects
+* Deleting a Parent.
+* Changing `owner_identity`, `type_id`, or `app_id` of a Parent.
+* Referencing a non-existent Parent.
+
+## 7. Attribute
 
 ### 7.1 Definition
 
-An Edge represents a typed relationship between two Parents.
+An Attribute represents typed data attached to a source Parent.
 
-### 7.2 Properties
+### 7.2 Required fields
 
-An Edge has:
+An Attribute record includes:
 
-* A unique object identifier.
-* A source Parent identifier.
-* A target Parent identifier.
-* A declared edge type.
-* An owner identity.
+* Common metadata fields defined in Section 5.1.
+* `src_parent_id`. Identifier of the Parent the Attribute attaches to.
+* `value_json`. Optional, schema defined payload.
 
-### 7.3 Invariants
+### 7.3 Structural invariants
 
-* Source and target Parents must exist.
-* Source and target Parents must belong to the same app.
-* Edge type must be defined by the app schema.
-* Edge direction is fixed at creation.
+* `src_parent_id` MUST reference an existing Parent within the same `app_id`.
+* Attribute ownership is permanent.
+* An Attribute MUST NOT reference a Parent in a different `app_id`.
 
-### 7.4 Semantics
+### 7.4 Explicitly allowed
 
-* Edges may represent relationships such as membership, trust, delegation, or containment.
-* Edge semantics are defined entirely by the consuming app and schema.
+* Creation of an Attribute attached to an existing Parent.
+* Updating `value_json` only, if updates are supported and externally authorized.
 
-### 7.5 Forbidden behaviors
+### 7.5 Explicitly forbidden
 
-* Edges across app boundaries.
-* Retargeting an Edge after creation.
-* Modifying Edge type after creation.
+* Rebinding an Attribute to a different Parent.
+* Changing `owner_identity` or `type_id`.
+* Creating an Attribute whose source Parent does not exist.
 
-## 8. Rating objects
+## 8. Edge
 
 ### 8.1 Definition
 
-A Rating represents a typed evaluation issued by one identity toward a Parent.
+An Edge represents a typed relationship issued from a source Parent to a destination object.
 
-### 8.2 Properties
+### 8.2 Required fields
 
-A Rating has:
+An Edge record includes:
 
-* A unique object identifier.
-* A subject Parent identifier.
-* A declared rating type.
-* A value representation.
-* An issuing identity.
+* Common metadata fields defined in Section 5.1.
+* `src_parent_id`. Identifier of the source Parent.
+* `dst_parent_id` or `dst_attr_id`. Exactly one MUST be present.
 
-### 8.3 Invariants
+### 8.3 Structural invariants
 
-* The subject Parent must exist.
-* Rating types are app-scoped.
-* A Rating is immutable after creation.
-* Ratings do not imply global reputation.
+* `src_parent_id` MUST reference an existing Parent in the same `app_id`.
+* If present, `dst_parent_id` MUST reference an existing Parent in the same `app_id`.
+* If present, `dst_attr_id` MUST reference an existing Attribute in the same `app_id`.
+* Exactly one destination selector MUST be set.
+* Edge ownership is permanent.
 
-### 8.4 Semantics
+### 8.4 Explicitly allowed
 
-* Ratings are interpreted only by the app that defines them.
-* Ratings have no cross-app meaning.
-* Aggregation rules are outside the scope of this document.
+* Creation of an Edge with valid source and destination references.
+* Updating destination or value fields, if supported and externally authorized, while preserving invariants.
 
-### 8.5 Forbidden behaviors
+### 8.5 Explicitly forbidden
 
-* Modifying or deleting Ratings.
-* Using Ratings outside their app context.
+* Setting both destination selectors or neither.
+* Changing `owner_identity` or `type_id`.
+* Creating an Edge with unresolved references.
 
-## 9. Ownership and authorship rules
+## 9. Rating
 
-* Every object has exactly one owner identity.
-* Ownership is determined at creation and never changes.
-* All write operations must be signed by the owner or an authorized delegate.
-* Objects cannot be forged because ownership is cryptographically verifiable.
+### 9.1 Definition
 
-Ownership rules are enforced structurally by the object model and procedurally by the validation pipeline defined elsewhere.
+A Rating represents a typed evaluation issued by an identity toward a target object.
 
-## 10. Cross-object constraints
+### 9.2 Required fields
 
-The following constraints apply globally:
+A Rating record includes:
 
-* All objects must belong to exactly one app.
-* Objects may only reference other objects within the same app.
-* Cycles are permitted unless forbidden by app schema.
-* Referential integrity must be satisfied at creation time.
+* Common metadata fields defined in Section 5.1.
+* `target_parent_id` or `target_attr_id`. Exactly one MUST be present.
+* `value_json`. Optional, schema defined payload.
 
-## 11. Interaction with other components
+### 9.3 Structural invariants
 
-### 11.1 Inputs
+* Target references MUST resolve within the same `app_id`.
+* Exactly one target selector MUST be set.
+* Rating ownership is permanent.
 
-* Signed operation envelopes proposing object creation or modification.
+### 9.4 Explicitly allowed
 
-### 11.2 Outputs
+* Creation of a Rating targeting a valid object.
+* Updating `value_json` only, if supported and externally authorized.
 
-* Accepted objects committed to the graph.
-* Rejection signals indicating object model violations.
+### 9.5 Explicitly forbidden
 
-### 11.3 Trust boundaries
+* Changing `owner_identity` or `type_id`.
+* Targeting non-existent objects.
+* Cross application targeting.
 
-* The object model does not trust callers.
-* All object correctness assumptions rely on prior signature verification.
-* Access control decisions are external to this specification.
+## 10. ACL
 
-## 12. Failure and rejection behavior
+### 10.1 Definition
 
-Operations are rejected if any of the following occur:
+ACL is a canonical object category used to express authorization structures as graph data.
 
-* Required properties are missing.
-* Object references are invalid.
-* Invariants defined in this document are violated.
-* App boundary constraints are violated.
+ACL is represented as:
 
-Rejected operations produce no partial state and have no side effects. Rejection reasons must be explicit and deterministic.
+* A Parent that serves as the ACL root.
+* A constrained set of Attributes attached to that Parent.
 
-## 13. Guarantees summary
+### 10.2 Structural invariants
 
-The object model guarantees:
+* ACL structures MUST be representable using only Parent and Attribute records.
+* All ACL objects MUST reside within a single `app_id` scope, unless explicitly defined as system scope elsewhere.
 
-* Stable authorship and ownership.
-* Immutable history anchors.
-* Strict app-level isolation.
-* Referential integrity within the graph.
+### 10.3 Explicitly forbidden
 
-No other guarantees are provided by this specification.
+* Representing ACL data as a separate storage category.
+* Introducing cross application references not permitted by the ACL model.
+
+## 11. Application domain isolation
+
+### 11.1 Isolation invariant
+
+For all object categories:
+
+* All object references MUST resolve within the same `app_id`.
+
+This applies to:
+
+* Attribute source references.
+* Edge source and destination references.
+* Rating target references.
+* ACL related attachments.
+
+### 11.2 Explicitly forbidden
+
+* Accepting objects that reference other application domains.
+* Accepting objects that rely on implicit domain inheritance.
+
+## 12. Inputs, outputs, and trust boundaries
+
+### 12.1 Inputs
+
+The object model evaluates proposed object mutations that include:
+
+* Object category and `app_id`.
+* Required fields for that category.
+* Declared `owner_identity`.
+
+Authentication, signature verification, schema validation, and ACL evaluation are assumed to occur outside this specification.
+
+### 12.2 Outputs
+
+The object model produces one of two outcomes:
+
+* Accept. The object satisfies all structural constraints.
+* Reject. One or more constraints are violated.
+
+### 12.3 Trust boundaries
+
+* Caller supplied fields are not trusted.
+* Object existence checks must be explicit.
+* Structural validation is mandatory before any persistence.
+
+## 13. Failure and rejection behavior
+
+### 13.1 Rejection conditions
+
+A proposed mutation MUST be rejected if:
+
+* Required fields are missing.
+* Destination selector rules are violated.
+* Referenced objects do not exist.
+* Application domain isolation is violated.
+* An immutable field would be modified.
+
+### 13.2 Failure handling guarantees
+
+* Rejection produces no partial persistence.
+* Rejection is deterministic given the proposed mutation and current graph state.
+* Rejection reasons must distinguish structural violations from external validation failures.
+
+## 14. Guarantees summary
+
+When enforced as specified, this object model guarantees:
+
+* Immutable authorship and provenance metadata.
+* Strict structural validity of all graph objects.
+* Referential integrity within application domains.
+* Canonical representation of ACL structures using graph primitives.
