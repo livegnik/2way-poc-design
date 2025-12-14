@@ -6,230 +6,286 @@
 
 ## 1. Purpose and scope
 
-This document defines the canonical serialization rules and envelope structure used by the 2WAY protocol to represent operations, objects, and sync payloads. It specifies how data is encoded for persistence and transmission, how authorship and integrity are bound to serialized data, and which invariants must hold for serialized material to be considered valid.
+This document defines the normative envelope structures and serialization rules used by 2WAY for local graph mutations and for node to node sync packages. It specifies field names, required and optional fields, how operations are represented, what is signed, and what must be rejected.
 
-This document does not define object semantics, schema rules, access control, sync policy, or cryptographic algorithms in detail. Those are specified in other protocol documents and are referenced here only where required to define correctness boundaries.
+This document does not define object semantics, schema content, ACL logic, sync selection rules, or storage layout. Those are defined elsewhere.
 
 ## 2. Responsibilities
 
-This specification is responsible for defining:
+This specification is responsible for:
 
-* The envelope as the atomic unit of transport and validation.
-* Canonical serialization rules for envelopes and enclosed payloads.
-* The binding between serialized content, identity, and cryptographic signatures.
-* Required and forbidden fields and structures.
-* Failure handling for malformed or invalid serialized input.
+* Defining envelope types and their required fields.
+* Defining operation identifiers and operation record shapes for Parent, Attribute, Edge, Rating.
+* Defining serialization constraints for interoperability, including field naming conventions.
+* Defining the signed portion of envelopes that carry signatures.
+* Defining structural validation and rejection conditions for malformed envelopes.
 
 This specification is not responsible for:
 
-* Interpreting object meaning or schema validity.
-* Granting or denying permissions.
-* Managing storage layout or database schema.
-* Network transport selection or session management.
+* Mapping `type_key` to `type_id`, or validating schema semantics.
+* Evaluating authorization and ACL rules.
+* Assigning `global_seq` for local writes, or managing sync state.
+* Defining transport framing, session tokens, or peer discovery.
 
-## 3. Terminology
+## 3. Invariants and guarantees
 
-For the purposes of this document:
+### 3.1 Invariants
 
-* Envelope refers to a signed, serialized container that carries one or more graph mutations or protocol control objects.
-* Payload refers to the content inside an envelope that is subject to signature verification.
-* Author refers to the identity that signs the envelope.
-* Identity refers to a Parent object with one or more associated public keys, as defined in the identity and key specification.
-* Sequence refers to global or domain sequence numbers assigned by the receiving node.
+* All write operations, including local writes, are represented as graph message envelopes.
+* Envelope keys use lowercase snake_case.
+* Operation identifiers use supervised lowercase naming, for example `parent_create`, `attr_update`.
+* An envelope contains one or more operations, and is processed atomically, either all operations apply or none apply.
+* Private key material is never serialized into envelopes.
 
-## 4. Envelope role and guarantees
+### 3.2 Guarantees
 
-### 4.1 Guarantees
+A structurally valid envelope provides these guarantees:
 
-A valid envelope provides the following guarantees:
+* Deterministic interpretation of fields, because field names and types are fixed.
+* Atomic processing boundaries at the Graph Manager boundary, subject to downstream validation.
+* A single declared author context for remote sync packages, carried as metadata and enforced by the receiving node.
 
-* Authorship. The envelope is cryptographically bound to exactly one author identity.
-* Integrity. Any modification to the payload invalidates the signature.
-* Atomicity. All enclosed payload elements are accepted or rejected as a unit.
-* Replay detectability. The envelope can be identified as duplicate or out of order relative to prior envelopes from the same author.
+This file does not define authorization, schema validity, or application semantics, and therefore does not guarantee them.
 
-### 4.2 Non-guarantees
+## 4. Allowed and forbidden behaviors
 
-The envelope does not guarantee:
+### 4.1 Explicitly allowed
 
-* Authorization to perform the enclosed operations.
-* Semantic correctness of enclosed objects.
-* Ordering relative to envelopes from other authors.
-* Confidentiality unless combined with an encrypted transport.
+* Local services and app extension services may submit graph message envelopes to Graph Manager using an OperationContext supplied by the HTTP layer.
+* State Manager may submit remote graph message envelopes to Graph Manager using an OperationContext that marks the request as remote and binds it to a sync domain.
+* A graph message envelope may contain a mixture of operation kinds, provided all are for supported object categories and pass validation.
+* A sync package may carry additional metadata fields that are required for sync state updates.
 
-## 5. Canonical serialization
+### 4.2 Explicitly forbidden
 
-### 5.1 Format requirements
+* Any component other than Graph Manager applies operations to persistent graph state.
+* Any write path that bypasses graph message envelopes.
+* Any envelope or operation that uses non snake_case keys.
+* Any operation identifier outside the supervised set defined in this document.
+* Any envelope that includes private keys, raw secrets, or key store material.
+* Any envelope that attempts to redefine schema, ACL semantics, or manager boundaries via ad hoc fields.
 
-All envelopes and payloads are serialized using a deterministic, canonical encoding with the following properties:
+## 5. Naming and serialization conventions
 
-* Field ordering is fixed and deterministic.
-* No optional field may be omitted if its value is semantically required.
-* No field may appear more than once.
-* Numeric values are represented in a single canonical form.
-* String values are encoded as UTF-8.
-* Binary values are encoded as explicit byte sequences, not implicit encodings.
+### 5.1 Key naming
 
-The specific encoding format is defined in the protocol overview and applies uniformly across all protocol components.
+* All envelope and operation fields use lowercase snake_case.
+* Sync domain identifiers use lowercase with underscores, for example `messages`, `contacts`.
+* Operation identifiers use lowercase with underscores and are supervised, for example `edge_create`.
 
-### 5.2 Canonicalization invariant
+### 5.2 JSON representation
 
-Before signing or verification:
+Envelopes and operations are represented as JSON objects in documentation and in the PoC API surfaces. Binary formats are avoided.
 
-* The payload MUST be serialized into its canonical byte representation.
-* The signature MUST be computed over exactly those bytes.
-* Verification MUST reject any envelope whose canonicalized payload differs from the signed bytes.
+Constraints:
 
-Any deviation from canonical form renders the envelope invalid.
+* Strings are UTF-8.
+* Integers are JSON numbers and must be representable losslessly in the target implementation.
+* Objects must not contain duplicate keys.
+* Unknown keys are rejected unless explicitly permitted by the envelope type definition in this document.
 
-## 6. Envelope structure
+## 6. Envelope types
 
-### 6.1 Required fields
+2WAY uses one logical envelope format for graph operations. That same format is used for local writes and for remote sync, with additional metadata for sync packages.
 
-Every envelope MUST contain the following fields:
+Two envelope types are defined:
 
-* `author_id`. A reference to the Parent identity claiming authorship.
-* `author_key`. An identifier for the specific public key used to sign.
-* `payload`. The serialized payload content.
-* `signature`. A cryptographic signature over the canonical payload.
-* `envelope_type`. A discriminator defining how the payload is interpreted.
-* `envelope_version`. A protocol version identifier.
+* Graph message envelope, used for local writes and as the inner payload of sync packages.
+* Sync package envelope, used for node to node transmission, which carries a graph message envelope plus sync metadata and a signature.
 
-### 6.2 Optional fields
+## 7. Graph message envelope
 
-An envelope MAY contain additional fields only if explicitly defined by the envelope type. Undeclared or unknown fields are forbidden.
+### 7.1 Purpose
 
-### 6.3 Forbidden structures
+A graph message envelope represents one or more graph operations to be applied atomically by Graph Manager.
 
-The following are explicitly forbidden:
+### 7.2 Structure
 
-* Nested envelopes.
-* Multiple signatures within a single envelope.
-* Ambiguous or polymorphic payload encodings.
-* Payload fields that depend on out-of-band context for interpretation.
+A graph message envelope is a JSON object with these required fields:
 
-## 7. Payload rules
+* `ops`. An array of one or more operation objects, each conforming to Section 8.
 
-### 7.1 Payload composition
+A graph message envelope may include these optional fields:
 
-A payload consists of one or more protocol-defined objects. These may include:
+* `trace_id`. An opaque identifier used for logging and correlation. If present, it must be a string.
 
-* Graph mutations.
-* Control objects related to sync, revocation, or schema propagation.
+No other fields are permitted in a graph message envelope.
 
-All objects inside a payload are interpreted in the context of the envelope author.
+### 7.3 Processing boundary
 
-### 7.2 Atomic acceptance
+* Graph Manager processes the envelope as a single transaction boundary.
+* If any operation is rejected by structural validation, schema validation, ACL enforcement, or graph invariants, the entire envelope is rejected.
 
-If any object within the payload fails validation at any stage, the entire envelope is rejected. Partial acceptance is forbidden.
+## 8. Operation records
 
-## 8. Identity and signature binding
+### 8.1 Common fields
 
-### 8.1 Signature requirements
+Each operation object MUST contain:
 
-* The signature MUST be verifiable using the public key referenced by `author_key`.
-* The referenced key MUST belong to the identity referenced by `author_id`.
-* The key MUST not be revoked at the time of validation.
+* `op`. The operation identifier, defined in Section 8.2.
+* `app_id`. Integer identifier of the app domain for the object.
+* `type_key` or `type_id`. Exactly one MUST be present.
 
-### 8.2 Identity resolution
+  * `type_key`. A human-readable type key defined by the app schema.
+  * `type_id`. An integer type id compiled by Schema Manager.
+* `owner_identity`. Integer identity id that owns the object targeted or created by the operation.
+* `payload`. A JSON object whose shape is defined per operation kind below.
 
-Identity resolution is performed by the receiving node using its local graph state. The envelope does not carry identity definitions inline.
+Constraints:
 
-If identity resolution fails, the envelope is rejected.
+* `app_id` and `owner_identity` are required for all operation kinds.
+* An operation MUST NOT contain both `type_key` and `type_id`.
+* If `type_key` is present, it MUST be a string.
+* If `type_id` is present, it MUST be an integer.
 
-## 9. Interaction with validation pipeline
+### 8.2 Operation identifiers
 
-### 9.1 Inputs and outputs
+The supervised operation identifiers are:
 
-Inputs:
+* `parent_create`
+* `parent_update`
+* `attr_create`
+* `attr_update`
+* `edge_create`
+* `edge_update`
+* `rating_create`
+* `rating_update`
 
-* Serialized envelope bytes.
-* Local graph state.
-* Local key and revocation state.
+No other `op` values are permitted.
 
-Outputs:
+Deletion operations do not exist in the PoC. Pruning requires complexity outside of the scope of this PoC.
 
-* Either a fully parsed, verified envelope passed to higher layers.
-* Or a terminal rejection with no side effects.
+### 8.3 Parent operations
 
-### 9.2 Trust boundaries
+For `parent_create` and `parent_update`, `payload` MUST contain:
 
-The envelope is the sole trust boundary between external input and internal processing. No assumptions are made about the source, transport, or intent of the sender.
+* `parent_id`. Required for `parent_update`. Forbidden for `parent_create` unless the object model defines externally supplied identifiers.
+* Additional fields required by the Parent object model are defined in the object model document.
 
-## 10. Sequence handling
+### 8.4 Attribute operations
 
-### 10.1 External sequence declarations
+For `attr_create` and `attr_update`, `payload` MUST contain:
 
-Envelopes received from peers MAY declare expected sequence ranges as part of their payload, depending on envelope type.
+* `parent_id`. The Parent the Attribute attaches to.
+* `value`. The attribute value.
 
-Declared sequences are advisory and subject to independent verification.
+For `attr_update`, `payload` MAY include:
 
-### 10.2 Local sequence assignment
+* `attr_id`. If present, it identifies the specific attribute record being updated. If absent, the update target resolution rules are defined in the object model document.
 
-Global and domain sequence numbers are assigned by the receiving node after acceptance. Envelopes do not carry authoritative sequence numbers for local state.
+### 8.5 Edge operations
 
-## 11. Failure and rejection behavior
+For `edge_create` and `edge_update`, `payload` MUST contain:
 
-### 11.1 Immediate rejection conditions
+* `src_parent_id`. Source Parent id.
+* `dst_parent_id`. Destination Parent id.
 
-An envelope MUST be rejected immediately if any of the following are true:
+For `edge_update`, `payload` MAY include:
 
-* Serialization is not canonical.
-* Required fields are missing or duplicated.
+* `edge_id`. If present, it identifies the specific edge record being updated. If absent, the update target resolution rules are defined in the object model document.
+
+### 8.6 Rating operations
+
+For `rating_create` and `rating_update`, `payload` MUST contain:
+
+* `subject_parent_id`. The Parent being rated.
+* `value`. The rating value.
+
+For `rating_update`, `payload` MAY include:
+
+* `rating_id`. If present, it identifies the specific rating record being updated. If absent, the update target resolution rules are defined in the object model document.
+
+### 8.7 Structural constraints across operations
+
+* Operations MUST NOT include `global_seq`. `global_seq` is assigned during application by Graph Manager for local writes, and is not a client controlled field.
+* Operations MUST NOT include `sync_flags`. `sync_flags` is determined by schema and domain membership during application.
+* Operations MUST NOT include ACL rule material inline. ACL evaluation inputs are defined by the ACL model documents.
+
+## 9. Sync package envelope
+
+### 9.1 Purpose
+
+A sync package envelope is the unit transmitted between nodes for synchronization. It carries sync metadata and a graph message envelope. In the PoC, outbound sync packages are signed using the node key.
+
+### 9.2 Structure
+
+A sync package envelope is a JSON object with these required fields:
+
+* `sender_identity`. Integer identity id of the sending node identity.
+* `sync_domain`. String domain name, for example `messages`.
+* `from_seq`. Integer. The first sequence number included, computed as last known sequence plus one.
+* `to_seq`. Integer. The highest sequence number included.
+* `envelope`. A graph message envelope object as defined in Section 7.
+* `signature`. String. A secp256k1 signature over the signed portion defined in Section 9.3.
+
+No other fields are permitted in a sync package envelope.
+
+### 9.3 Signed portion
+
+The signed portion of a sync package envelope is the JSON serialization of the sync package envelope excluding the `signature` field.
+
+Constraints:
+
+* The sender MUST serialize the signed portion deterministically so that the receiver can reproduce the same byte sequence for verification.
+* The receiver MUST verify the signature before applying any enclosed operations.
+* Verification uses the sender public key resolved from the sender identity as distributed through identity exchange and stored in the graph.
+
+The cryptographic algorithms and key distribution rules are defined in the cryptography and identity documents. This section defines only the binding between the signature and the serialized package fields.
+
+### 9.4 Relationship to OperationContext
+
+When a node receives a sync package envelope:
+
+* State Manager constructs an OperationContext with `is_remote=True`, `sync_domain=sync_domain`, and `remote_node_identity_id` bound to the peer identity.
+* Graph Manager applies the enclosed graph message envelope under that context.
+
+This document does not define OperationContext fields beyond those required to interpret the sync package metadata.
+
+## 10. Validation and rejection
+
+### 10.1 Structural validation
+
+An envelope MUST be rejected before any semantic validation if any of the following occur:
+
+* The top-level JSON is not an object.
+* Required fields are missing.
+* Unknown fields are present for the envelope type.
+* Any field has the wrong JSON type.
+* `ops` is empty, or not an array.
+* Any operation object is missing required fields, contains unknown fields not defined by this document, or uses an unsupported `op`.
+* An operation contains both `type_key` and `type_id`, or contains neither.
+* Any operation contains forbidden fields such as `global_seq` or `sync_flags`.
+
+### 10.2 Signature validation for sync packages
+
+A sync package envelope MUST be rejected if:
+
 * Signature verification fails.
-* Author identity or key cannot be resolved.
-* Envelope version is unsupported.
-* Forbidden fields or structures are present.
+* The sender identity cannot be resolved to a public key.
+* The sender public key is revoked by local policy.
 
-### 11.2 Rejection effects
+Signature verification failure is terminal for that package. The receiver MUST NOT attempt to partially process the enclosed operations.
+
+### 10.3 Sequence validation for sync packages
+
+A sync package envelope MUST be rejected if:
+
+* `from_seq` is greater than `to_seq`.
+* The `(peer_id, sync_domain)` sync_state indicates the package is out of order, replayed, or inconsistent with the expected next sequence.
+
+The specific sync_state rules are defined by the sync and consistency documents. This section defines only the required envelope fields and their basic ordering constraints.
+
+### 10.4 Failure handling and side effects
 
 On rejection:
 
-* No payload objects are processed.
-* No state is mutated.
-* The envelope is not forwarded, stored, or partially recorded, except for optional rate limiting or abuse tracking as defined elsewhere.
+* No enclosed operations are applied.
+* No partial writes occur.
+* The receiver may record a local log entry and may update local rate limiting or abuse tracking state as defined elsewhere.
+* Error information returned to a peer, if any, is constrained to avoid leaking internal state.
 
-### 11.3 Error visibility
+## 11. Trust boundaries
 
-Error details MAY be logged locally. Error information returned to peers, if any, is implementation-defined and must not leak internal state.
-
-## 12. Explicitly allowed behaviors
-
-This specification explicitly allows:
-
-* Stateless validation of envelopes.
-* Offline verification of stored envelopes.
-* Deferred semantic validation after signature verification.
-* Envelope types with distinct payload semantics, provided they adhere to this structure.
-
-## 13. Explicitly forbidden behaviors
-
-This specification explicitly forbids:
-
-* Inferring identity from transport or session context.
-* Accepting unsigned or partially signed payloads.
-* Modifying payload content prior to verification.
-* Accepting envelopes that rely on implicit defaults or contextual interpretation.
-
-## 14. Security invariants
-
-The following invariants MUST hold at all times:
-
-* No graph mutation enters the system without a valid envelope.
-* No envelope is accepted without a verifiable author.
-* No accepted envelope can be altered without detection.
-* Envelope validity is independent of transport security.
-
-Failure to uphold any invariant constitutes a protocol violation.
-
-## 15. References
-
-This document depends on and is consistent with:
-
-* Identity and keys specification.
-* Cryptography specification.
-* Graph object model.
-* Sync and consistency specification.
-* Security model overview.
-
-No other dependencies exist.
+* Graph message envelopes received over local APIs are not trusted for authorization or schema correctness. They are trusted only as input data and are validated by Graph Manager, Schema Manager, and ACL Manager.
+* Sync package envelopes received from peers are untrusted until signature verification and structural validation succeed.
+* Network Manager provides transport and cryptography services, but does not interpret graph operations. Graph Manager remains the authority for mutation correctness, subject to schema and ACL enforcement.
