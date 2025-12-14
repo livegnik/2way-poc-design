@@ -44,13 +44,13 @@ The design adheres to the following principles:
 - Identity is explicit, cryptographic, and first class.
 - All state transitions are verifiable.
 - Trust is minimized and distributed.
-- Authority is scoped and delegated explicitly.
+- Authority is explicitly scoped and delegated.
 - History is append only and tamper evident.
-- Isolation is enforced between apps and domains.
+- Isolation is enforced between applications and domains.
 - Validation precedes persistence.
 - Failure modes are explicit and closed by default.
 
-These principles are enforced structurally and are not optional.
+These principles are enforced structurally and are mandatory.
 
 ## 4. Document authority and interpretation
 
@@ -60,27 +60,29 @@ The following rules apply:
 
 - All documents are normative unless explicitly marked as informational.
 - Lower numbered sections override higher numbered sections within the same file.
-- More specific documents override more general documents when conflicts exist.
-- Architecture Decision Records override earlier design text for the decisions they cover.
+- More specific documents override more general documents where conflicts exist.
+- Architecture Decision Records override prior design text for the decisions they cover.
 
 No external documents are required to interpret or implement this design.
 
 ## 5. Repository organization
 
-Documents are ordered by conceptual dependency.
+Documents are organized by conceptual dependency. Earlier sections define constraints and rules that later sections rely on. Readers are expected to progress in this order when approaching the system for the first time.
 
-- Scope, assumptions, and constraints.
-- Protocol definition.
-- Architecture and component model.
-- Data layout and interfaces.
-- Security model.
-- End to end flows.
-- PoC definition, build plan, testing, and acceptance.
-- Architecture decisions.
+The repository is structured as follows:
+
+- Scope, assumptions, and system constraints.
+- Protocol definition, including identity, object model, and synchronization rules.
+- Architecture and component model, including managers, services, and trust boundaries.
+- Data layout and interfaces, including persistence, APIs, and ordering guarantees.
+- Security model, including threat assumptions, enforcement layers, and recovery mechanisms.
+- End to end flows describing normative system behavior.
+- PoC definition, build plan, testing strategy, and acceptance criteria.
+- Architecture decisions that record resolved tradeoffs and deviations.
 - Appendices and reference material.
-- Examples of apps.
+- Examples of applications and platform usage.
 
-Each directory is self contained. Cross references are explicit.
+Each directory is self contained. Cross references are explicit and normative.
 
 ## 6. Design responsibilities
 
