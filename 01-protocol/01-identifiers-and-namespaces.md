@@ -6,78 +6,111 @@
 
 ## 1. Purpose and scope
 
-This document defines the identifier types and namespace rules used by the 2WAY protocol. It specifies how identities, objects, applications, domains, and schemas are named, scoped, and referenced at the protocol level. It establishes invariants and guarantees required for correctness, security, and interoperability.
+This document defines the identifier classes and namespace rules used by the 2WAY protocol as specified by the PoC design. It establishes how identities, applications, objects, domains, and schemas are named, scoped, and referenced at the protocol level. It specifies invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling required for correctness and security.
 
-This document does not define storage layout, cryptographic primitives, access control semantics, or sync behavior, except where identifier structure directly constrains those systems. Those aspects are defined elsewhere in the repository.
+This document is authoritative only for identifier semantics and namespace isolation. It does not define cryptographic primitives, schema content, ACL logic, sync mechanics, storage layout, or network transport, except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
 
-## 2. Responsibilities
+## 2. Responsibilities and non-responsibilities
 
-This specification is responsible for the following:
+This specification is responsible for:
 
-* Defining canonical identifier forms used by the protocol.
+* Defining all identifier classes used by the protocol.
 * Defining namespace boundaries and isolation rules.
-* Defining uniqueness and immutability guarantees for identifiers.
+* Defining identifier uniqueness, immutability, and lifetime guarantees.
 * Defining how identifiers are interpreted across trust boundaries.
-* Defining rejection conditions for invalid or ambiguous identifiers.
+* Defining rejection behavior for invalid, ambiguous, or unauthorized identifier usage.
 
-## 3. Non-responsibilities
+This specification is not responsible for:
 
-This specification does not define:
+* Key generation, signing algorithms, or encryption algorithms.
+* Graph object schemas or attribute semantics.
+* Access control evaluation rules.
+* Sync ordering, conflict resolution, or replication mechanics.
+* Physical storage, indexing, or persistence strategies.
+* Network addressing or peer discovery identifiers.
 
-* Key generation or cryptographic algorithms.
-* Object schemas or attribute semantics.
-* ACL evaluation rules.
-* Storage or indexing strategies.
-* Network addressing or transport identifiers.
+## 3. Identifier classes
 
-## 4. Identifier classes
+### 3.1 Identity identifiers
 
-### 4.1 Identity identifiers
+An identity identifier represents a principal that can author operations.
 
-An identity identifier uniquely represents an actor in the system.
-
-Actors include:
+Principals include:
 
 * Users.
-* Devices.
 * Backend services.
 * Applications when acting as signing entities.
 
 Properties:
 
-* Each identity identifier corresponds to exactly one Parent object.
-* Each identity identifier is anchored to at least one public key.
+* Each identity identifier corresponds to exactly one Parent object in app_0.
+* Each identity identifier is anchored to one or more public keys via Attributes.
 * Identity identifiers are immutable for the lifetime of the Parent.
-* Identity identifiers are globally unique within a node and across sync domains.
+* Identity identifiers are globally unique within the node and across sync.
 
 Invariants:
 
 * An identity identifier MUST NOT be reassigned.
-* An identity identifier MUST NOT be reused, even after revocation.
-* An identity identifier MUST resolve to exactly one cryptographic authority at any given time.
+* An identity identifier MUST NOT be reused.
+* An identity identifier MUST always resolve to exactly one owning Parent.
 
 Guarantees:
 
-* Authorship attribution is stable and verifiable.
-* Identity collision is structurally prevented.
+* Authorship attribution is stable.
+* Impersonation through identifier reuse is structurally prevented.
 
-### 4.2 Object identifiers
+### 3.2 Device identifiers
+
+A device identifier represents a device acting on behalf of an identity.
+
+Properties:
+
+* Device identifiers are represented as Parents linked to an identity Parent.
+* Device identifiers may carry scoped authority defined by typed edges.
+* Device identifiers may be independently revoked.
+
+Invariants:
+
+* A device identifier MUST be linked to exactly one identity identifier.
+* A device identifier MUST NOT exist without an owning identity.
+* A device identifier MUST NOT exceed the authority explicitly granted to it.
+
+Guarantees:
+
+* Device compromise impact is limited to its granted scope.
+* Device authority is explicit and auditable.
+
+### 3.3 Application identifiers
+
+An application identifier represents an application domain.
+
+Properties:
+
+* Application identifiers define namespace boundaries for schemas, object types, ratings, and domains.
+* Application identifiers are declared explicitly before use.
+* Application identifiers are stable across sync.
+
+Invariants:
+
+* Application identifiers MUST be globally unique.
+* Application identifiers MUST NOT overlap.
+* Objects belonging to one application MUST NOT be interpreted as belonging to another.
+
+Guarantees:
+
+* Cross-application contamination is prevented.
+* Schema interpretation is deterministic.
+
+### 3.4 Object identifiers
 
 An object identifier uniquely identifies a graph object.
 
-Object classes include:
-
-* Parents.
-* Attributes.
-* Edges.
-* Ratings.
-* ACL objects.
-* Revocation and recovery objects.
+Object classes include Parents, Attributes, Edges, Ratings, ACL objects, revocation objects, and recovery objects.
 
 Properties:
 
 * Object identifiers are assigned at creation time.
-* Object identifiers are unique within their app namespace.
+* Object identifiers are unique within their application namespace.
 * Object identifiers are immutable.
 
 Invariants:
@@ -88,70 +121,50 @@ Invariants:
 
 Guarantees:
 
-* Object lineage is traceable.
+* Object provenance is traceable.
 * Ownership enforcement is deterministic.
 
-### 4.3 Application identifiers
+### 3.5 Domain identifiers
 
-An application identifier uniquely identifies an application domain.
-
-Properties:
-
-* Application identifiers define namespace boundaries.
-* Application identifiers scope schemas, object types, and ratings.
-* Application identifiers are stable across sync.
-
-Invariants:
-
-* An application identifier MUST NOT overlap with another application identifier.
-* An application identifier MUST be explicitly declared before use.
-* Objects belonging to one application MUST NOT be interpreted as belonging to another.
-
-Guarantees:
-
-* Cross-application contamination is prevented.
-* Schema interpretation is unambiguous.
-
-### 4.4 Device identifiers
-
-A device identifier represents a specific device acting on behalf of an identity.
+A domain identifier represents a replication and visibility scope.
 
 Properties:
 
-* Device identifiers are subordinate to an identity identifier.
-* Device identifiers may carry scoped authority.
-* Device identifiers may be revoked independently.
+* Domain identifiers constrain sync participation.
+* Domain identifiers constrain visibility and disclosure.
 
 Invariants:
 
-* A device identifier MUST be linked to exactly one identity.
-* A device identifier MUST NOT exist without an owning identity.
+* Domain identifiers MUST be explicitly declared.
+* Objects MUST declare domain membership explicitly.
+* Objects outside a domain MUST NOT appear in domain-scoped sync.
 
 Guarantees:
 
-* Device compromise impact is limited.
-* Authority delegation is explicit and auditable.
+* Selective sync is enforceable.
+* Unintended disclosure is prevented.
 
-## 5. Namespace structure
+## 4. Namespace structure
 
-### 5.1 Global namespace
+### 4.1 Global namespace
 
-The global namespace contains identifiers that must be interpretable across all sync domains.
+The global namespace contains identifiers that must be interpretable across all peers.
 
 Includes:
 
 * Identity identifiers.
 * Application identifiers.
+* Domain identifiers.
 * Global sequence identifiers.
 
 Rules:
 
 * Global namespace identifiers MUST be globally unique.
-* Global namespace identifiers MUST be stable across time.
+* Global namespace identifiers MUST be stable over time.
 
-### 5.2 Application namespaces
+### 4.2 Application namespaces
 
-Each application defines its own internal namespace.
+Each application defines an internal namespace.
 
 Includes:
 
@@ -163,23 +176,19 @@ Includes:
 Rules:
 
 * Identifiers are unique only within the application scope.
-* Interpretation outside the owning application is forbidden unless explicitly defined.
+* Interpretation outside the owning application is forbidden unless explicitly defined by schema linkage.
 
-### 5.3 Domain namespaces
+### 4.3 Domain namespaces
 
-Domains define subsets of the graph that participate in sync and visibility rules.
-
-Properties:
-
-* Domain identifiers scope replication.
-* Domain identifiers constrain visibility and disclosure.
+Domains define subsets of the graph eligible for sync and visibility.
 
 Rules:
 
-* An object MUST belong to zero or more explicitly declared domains.
-* An object outside a domain MUST NOT be included in domain-scoped sync.
+* Domain namespaces MUST NOT overlap implicitly.
+* Domain membership MUST be explicit.
+* Domain interpretation is local and enforced by policy.
 
-## 6. Identifier resolution
+## 5. Identifier resolution and trust boundaries
 
 Resolution rules:
 
@@ -189,54 +198,54 @@ Resolution rules:
 
 Trust boundaries:
 
-* Incoming identifiers from remote peers are treated as untrusted input.
+* Identifiers received from remote peers are untrusted input.
 * Resolution occurs only after signature verification and schema validation.
 
 Failure handling:
 
-* Unknown identifiers result in rejection.
-* Ambiguous identifiers result in rejection.
-* Identifiers resolving to multiple objects result in rejection.
+* Unknown identifiers MUST cause rejection.
+* Ambiguous identifiers MUST cause rejection.
+* Identifiers resolving to multiple objects MUST cause rejection.
 
-## 7. Allowed behaviors
+## 6. Allowed behaviors
 
 The following behaviors are explicitly allowed:
 
+* Independent creation of identifiers on disconnected nodes.
 * Creation of new identifiers within declared namespaces.
-* Independent identifier creation across disconnected nodes.
 * Deferred resolution during sync until prerequisites are satisfied.
-* Coexistence of multiple identifiers referring to the same real-world entity.
+* Multiple identifiers representing the same real-world entity.
 
-## 8. Forbidden behaviors
+## 7. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
 * Reassignment of an existing identifier.
-* Cross-application interpretation without explicit schema linkage.
+* Reuse of identifiers after revocation.
 * Implicit namespace inference.
-* Identifier reuse after revocation.
-* Overloading identifiers with multiple semantic meanings.
+* Cross-application interpretation without explicit schema linkage.
+* Overloading a single identifier with multiple semantic meanings.
 
 Violations MUST result in immediate rejection.
 
-## 9. Failure and rejection semantics
+## 8. Failure and rejection semantics
 
-On invalid identifier input, the system MUST:
+On invalid identifier usage, the system MUST:
 
 * Reject the operation before persistent storage.
 * Record the rejection in the local log.
-* Avoid partial application of related operations.
+* Apply no partial state changes.
 
 Invalid conditions include:
 
 * Malformed identifier structure.
-* Namespace violation.
-* Ownership mismatch.
-* Undeclared application or domain reference.
+* Namespace violations.
+* Ownership mismatches.
+* References to undeclared applications or domains.
 
 No recovery action is implied by rejection.
 
-## 10. Guarantees summary
+## 9. Guarantees summary
 
 This specification guarantees:
 
@@ -246,4 +255,4 @@ This specification guarantees:
 * Predictable failure behavior.
 * Absence of identifier-based privilege escalation.
 
-No additional guarantees are implied beyond those explicitly stated.
+No guarantees beyond those explicitly stated are implied.
