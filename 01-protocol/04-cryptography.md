@@ -6,205 +6,235 @@
 
 ## 1. Purpose and scope
 
-This document defines the cryptographic primitives, guarantees, and constraints used by the 2WAY protocol at the protocol layer. It specifies how cryptography is applied to protocol messages, objects, and transport envelopes, independent of identity semantics, key lifecycle management, or access control policy. Key ownership, identity binding, rotation, revocation, and delegation are defined elsewhere and are not covered here.
+This file specifies the cryptographic algorithms and protocol level rules for signing, verification, encryption, and decryption of 2WAY node to node messages and graph envelopes. It defines what must be signed, what may be encrypted, what inputs are required, what outputs are produced, and what must be rejected on failure.
 
-This document is normative.
+Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in other documents and are out of scope here.
 
 ## 2. Responsibilities
 
-The cryptographic layer defined here is responsible for:
+This specification is responsible for:
 
-- Providing authenticity of protocol messages and graph mutations.
-- Providing integrity of envelopes and transported data.
-- Providing confidentiality where explicitly required.
-- Enabling replay detection and ordered verification in conjunction with sequence metadata.
-- Operating independently of transport security guarantees.
+- Defining the required signing algorithm for protocol messages and envelopes.
+- Defining the required asymmetric encryption algorithm for confidential payloads.
+- Defining what fields are cryptographically protected, and what fields must remain visible for routing and validation.
+- Defining verification and decryption failure behavior at protocol boundaries.
+- Defining cryptographic trust boundaries between Network Manager, State Manager, Key Manager, and Graph Manager.
 
-The cryptographic layer is not responsible for:
+This specification is not responsible for:
 
-- Identity creation or management.
-- Authorization or permission evaluation.
-- Trust decisions beyond signature verification.
-- Key rotation, revocation, or recovery semantics.
+- Defining how keys are generated, stored, rotated, revoked, or delegated.
+- Defining how identities are represented in the graph.
+- Defining ACL rules, schema rules, or write permissions.
+- Defining the full envelope schema beyond fields required to apply cryptographic rules.
 
-## 3. Cryptographic primitives
+## 3. Cryptographic algorithms
 
-### 3.1 Asymmetric signing
+## 3.1 Signing
 
-- All signatures use secp256k1 elliptic curve cryptography.
-- Signatures are deterministic.
-- Each signed artifact has exactly one author.
-- The signing algorithm provides message authenticity and integrity.
+- All signatures use secp256k1.
+- Signatures are applied to protocol message bytes as defined by the message serialization used for transport.
+- Verification uses the corresponding public key supplied by local state.
 
-The protocol does not permit alternative signing curves or algorithms.
+## 3.2 Asymmetric encryption
 
-### 3.2 Asymmetric encryption
+- Confidentiality uses ECIES over secp256k1.
+- Encryption and decryption operate on message bytes, or on explicitly designated payload portions.
+- Encryption is applied only when the protocol step requires confidentiality.
 
-- Confidential payloads use ECIES over secp256k1.
-- Encryption is optional and context dependent.
-- Encryption applies only to explicitly defined payload sections.
+## 3.3 Algorithm constraints
 
-The protocol does not define symmetric-only encryption modes at the protocol level.
+- Nodes must not negotiate alternative signing or encryption algorithms within the PoC protocol scope.
+- Nodes must not accept messages that claim an unsupported algorithm.
 
-### 3.3 Hashing
+## 4. Cryptographically protected structures
 
-- Cryptographic hashes are used only for integrity verification and signature binding.
-- Hash algorithms must be collision resistant and deterministic.
-- Hashes are never treated as identifiers or authorities on their own.
+## 4.1 Node to node packages
 
-## 4. Signed artifacts
+Node to node packages are cryptographically protected at the package level.
 
-### 4.1 Envelope signatures
+A node to node package that crosses the node trust boundary must include:
 
-Every protocol envelope that crosses a trust boundary must be signed.
+- A signature over the package content.
+- Sender identification sufficient for the receiver to select the correct public key from local state.
 
-A signature covers:
+If confidentiality is required for the package payload, the payload must be encrypted using ECIES as specified in 3.2.
 
-- The complete serialized envelope payload.
-- All declared metadata fields relevant to validation.
-- Sequence identifiers included in the envelope.
+## 4.2 Graph envelopes transmitted over remote sync
 
-Unsigned envelopes are invalid and must be rejected without further processing.
+Remote sync uses the same graph envelope abstraction used for local writes, with additional metadata required for sync.
 
-### 4.2 Object signatures
+For cryptographic purposes, a remote sync envelope must include the following metadata fields, because they participate in validation and replay protection:
 
-Graph objects are not individually signed outside of their enclosing envelope.
+- sender identity
+- domain name
+- from_seq
+- to_seq
+- signature
 
-Integrity and authorship are derived from:
+The full envelope and operation structure is defined in the envelope specification under 01-protocol and in the PoC build guide. This file defines only the cryptographic rules that apply to those structures.
 
-- The envelope signature.
-- The declared author identity.
-- The immutable ownership rules enforced elsewhere.
+## 4.3 Signature coverage
 
-The protocol forbids partially signed envelopes or mixed-author envelopes.
+A signature must cover all bytes whose modification could change meaning, authorization context, or replay semantics.
 
-## 5. Encryption rules
+At minimum, the signature must cover:
 
-### 5.1 Encryption scope
+- The operations contained in the package or envelope.
+- The sync metadata fields listed in 4.2 when present.
 
-Encryption may be applied to:
+A receiver must treat any message as invalid if signature verification succeeds but the receiver cannot associate the verified signature with the exact metadata and operations the receiver is about to apply.
 
-- Envelope payloads.
-- Subsections of payloads explicitly marked as confidential.
+## 5. Visibility requirements for cryptographic processing
 
-Encryption must not obscure fields required for routing, validation, or replay protection.
+Fields required for routing, sync validation, and signature verification must remain visible to the receiver prior to decryption.
 
-### 5.2 Encryption requirements
+The protocol forbids encrypting the entire message in a way that prevents the receiver from:
 
-When encryption is used:
+- Selecting the correct public key for signature verification from local state.
+- Reading domain name and sequence range values needed to validate ordering and replay constraints.
 
-- The recipient must be explicitly identifiable.
-- The encryption key must correspond to the recipient’s public key.
-- Decryption failure must result in envelope rejection.
+If partial encryption is used, the encrypted portion must be limited to payload bytes that are not required for the checks above.
 
-The protocol forbids opportunistic or unauthenticated encryption.
+## 6. Component interactions and trust boundaries
 
-## 6. Replay protection and ordering
+## 6.1 Key Manager
 
-### 6.1 Sequence binding
+Inputs:
 
-Signatures bind to:
+- Requests to sign bytes.
+- Requests to decrypt ECIES ciphertext.
+- Requests to encrypt bytes for a specified recipient public key.
 
-- Global sequence identifiers.
-- Domain-specific sequence identifiers when present.
+Outputs:
 
-A valid signature does not override sequence validation rules.
+- Signatures over provided bytes.
+- Plaintext bytes after successful decryption.
+- Ciphertext bytes after successful encryption.
 
-### 6.2 Replay rejection
+Trust boundary:
 
-An envelope must be rejected if:
+- Key Manager is the only component that may access private keys for signing and decryption.
+- Callers must treat Key Manager outputs as cryptographic results only. Authorization semantics are out of scope for Key Manager.
 
-- Its sequence identifiers are stale or duplicated.
-- Its sequence range conflicts with known sync state.
-- Its signature is valid but bound to an invalid sequence context.
+## 6.2 Network Manager
 
-Cryptographic validity alone is insufficient for acceptance.
+Inputs:
 
-## 7. Trust boundaries and interactions
+- Raw inbound remote packages from transport.
+- Outbound packages produced by State Manager.
 
-### 7.1 Inputs
+Outputs:
 
-The cryptographic layer accepts:
+- Verified package bytes and extracted metadata for consumption by State Manager.
+- Rejection of invalid packages.
+- Encrypted and signed outbound packages for transport.
 
-- Serialized envelopes.
-- Declared author public keys.
-- Optional recipient public keys for encrypted payloads.
+Trust boundary:
 
-### 7.2 Outputs
+- Network Manager terminates the network trust boundary and applies cryptographic verification and decryption required for remote packages.
+- Network Manager must not interpret graph semantics, schema semantics, or ACL semantics.
 
-The cryptographic layer produces:
+## 6.3 State Manager
 
-- Signature verification results.
-- Decryption results or failures.
-- Deterministic acceptance or rejection signals.
+Inputs:
 
-### 7.3 Trust assumptions
+- Verified and, where required, decrypted packages from Network Manager.
 
-- No trust is placed in the transport layer.
-- No trust is placed in peer ordering or delivery guarantees.
-- All trust derives from cryptographic verification and local state.
+Outputs:
 
-## 8. Invariants and guarantees
+- Envelopes submitted to Graph Manager for validation and application.
+- Outbound sync packages provided to Network Manager for signing and optional encryption.
 
-The following invariants always hold:
+Trust boundary:
 
-- A valid envelope has exactly one verifiable author.
-- Any modification to a signed envelope invalidates its signature.
-- Encrypted payloads cannot be interpreted without successful decryption.
-- Cryptographic verification is deterministic.
+- State Manager must rely on cryptographic verification performed at the Network Manager boundary.
+- State Manager must additionally enforce sync ordering constraints using sequence metadata. Cryptographic validity does not override ordering rules.
 
-The following guarantees are provided:
+## 6.4 Graph Manager
 
-- Authenticity of authorship.
-- Integrity of transmitted data.
-- Confidentiality when encryption is applied correctly.
+Inputs:
 
-The protocol makes no guarantee of availability, liveness, or delivery.
+- Envelopes and operations accompanied by signer identity information as provided by Network Manager and State Manager.
 
-## 9. Explicitly allowed behavior
+Outputs:
 
-The protocol explicitly allows:
+- Acceptance or rejection of operations based on validation, schema, and ACL processing.
+- No direct cryptographic outputs.
 
-- Operating over untrusted or hostile networks.
-- Partial encryption of payloads.
-- Offline verification of signatures.
-- Independent verification by each node.
+Trust boundary:
 
-## 10. Explicitly forbidden behavior
+- Graph Manager is cryptography agnostic. It must not perform signing, verification, encryption, or decryption.
+- Graph Manager must not accept any remote sourced envelope that is not delivered through the Network Manager and State Manager path.
 
-The protocol explicitly forbids:
+## 7. Invariants and guarantees
 
-- Accepting unsigned envelopes.
-- Accepting envelopes signed with unknown or mismatched keys.
-- Modifying signed data in transit or at rest.
-- Inferring authorship from transport or connection context.
-- Using cryptographic primitives not defined in this document.
+## 7.1 Invariants
 
-## 11. Failure and rejection behavior
+- Every remote package that crosses the node trust boundary is either rejected or verified using secp256k1.
+- If ECIES encryption is used for a payload, the payload is either decrypted successfully and processed, or rejected without partial application.
+- Cryptographic verification and decryption occur before any envelope is eligible for graph application.
 
-On cryptographic failure:
+## 7.2 Guarantees
 
-- The envelope must be rejected immediately.
-- No further validation or processing is permitted.
-- No partial state changes may occur.
+When verification succeeds and the message is accepted by higher layers:
 
-Failures include:
+- Message integrity is guaranteed with respect to the signed bytes.
+- Message authenticity is guaranteed with respect to the public key selected by the receiver from local state.
+- Confidentiality is provided for encrypted payload bytes, assuming correct recipient key selection and correct ECIES usage.
 
-- Invalid signatures.
-- Decryption errors.
-- Malformed cryptographic fields.
-- Algorithm mismatches.
+The cryptographic layer provides no guarantee of:
 
-Failures are non-recoverable at the envelope level. Recovery, retry, or remediation is handled by higher protocol layers.
+- Authorization correctness.
+- Schema correctness.
+- Delivery, ordering, liveness, or availability.
 
-## 12. Non-goals
+## 8. Allowed behavior
 
-This specification does not define:
+The specification explicitly allows:
 
-- Key storage formats.
-- Key lifecycle events.
-- Identity semantics.
-- Authorization logic.
-- Transport anonymity guarantees.
+- Operating without relying on transport security properties.
+- Signing and verifying node to node packages and graph envelopes at the Network Manager boundary.
+- Encrypting payload bytes when confidentiality is required by the protocol step.
+- Rejecting messages solely on cryptographic failure, without additional processing.
 
-Those concerns are explicitly delegated to other documents in the repository.
+## 9. Forbidden behavior
+
+The specification explicitly forbids:
+
+- Accepting any remote package or envelope that lacks a verifiable signature.
+- Accepting any message using an algorithm other than secp256k1 for signatures and ECIES for encryption.
+- Allowing components other than Key Manager to access private keys for signing or decryption.
+- Allowing Graph Manager or app extensions to bypass Network Manager and State Manager to introduce remote envelopes.
+- Encrypting required routing or sync validation metadata such that the receiver cannot validate signature, domain name, or sequence range prior to decryption.
+
+## 10. Failure and rejection behavior
+
+## 10.1 Verification failure
+
+If signature verification fails, the receiver must:
+
+- Reject the package or envelope.
+- Perform no further processing of the contained operations.
+- Perform no state changes, including sync state updates.
+
+## 10.2 Decryption failure
+
+If decryption is required for a payload and decryption fails, the receiver must:
+
+- Reject the package or envelope.
+- Perform no further processing of the contained operations.
+- Perform no state changes, including sync state updates.
+
+## 10.3 Unsupported algorithm or malformed cryptographic fields
+
+If a message claims an unsupported algorithm, or its cryptographic fields are malformed, the receiver must:
+
+- Reject the package or envelope.
+- Treat the failure as non recoverable for that message.
+- Avoid attempting partial interpretation of operations.
+
+## 10.4 Cryptographic success with higher layer rejection
+
+If cryptographic checks succeed but higher layers reject the envelope due to ordering, schema, or ACL rules, the message must be treated as rejected. Cryptographic validity must not override ordering constraints, schema constraints, or ACL constraints.
+
+The handling of peer scoring, rate limiting, and sync state consequences of repeated failures is defined in the DoS and sync specifications, not in this file.
