@@ -6,177 +6,196 @@
 
 ## 1. Purpose and scope
 
-This document defines how identities and cryptographic keys are represented, bound, and interpreted at the protocol level in 2WAY. It specifies identity structure, key ownership, key relationships, and the invariants that govern authorship and authority. It does not define storage, rotation workflows, revocation mechanics, transport encryption, or access control evaluation, which are specified elsewhere.
+This document defines the protocol-level model for identities and cryptographic keys in 2WAY. It specifies how identities are represented in the graph, how public keys are bound to identities, how authorship is asserted and verified, and which invariants and failure conditions apply. It is limited to protocol semantics. Storage, rotation procedures, revocation mechanics, transport encryption, ACL evaluation, and device or app policy are defined in other documents and are only referenced where required for correctness.
 
-This document is normative for all protocol-compliant implementations.
+This document is normative for all 2WAY-compliant implementations.
 
 ## 2. Responsibilities
 
 This specification defines:
 
-- The protocol-level definition of an identity.
-- The binding between identities and cryptographic keys.
-- The representation of identities and keys in the graph.
-- The rules governing authorship, ownership, and authority.
-- The validity requirements for signatures and identity references in protocol envelopes.
+- The definition of an identity at the protocol level.
+- The binding between identities and public keys.
+- The rules for authorship and ownership attribution.
+- The requirements for identity references and signatures in envelopes.
+- Mandatory invariants and rejection conditions related to identity and keys.
 
 This specification does not define:
 
-- Key storage mechanisms.
-- Key generation procedures.
-- Cryptographic algorithms beyond required properties.
-- UI or user-facing identity management.
-- Application-specific interpretation of identity beyond protocol guarantees.
+- Key generation or entropy requirements.
+- Private key storage or protection.
+- Key rotation, revocation, or recovery workflows.
+- Transport-level confidentiality.
+- Authorization rules or permission evaluation.
+- Application-specific identity semantics.
 
-## 3. Core concepts
+## 3. Identity model
 
-### 3.1 Identity
+### 3.1 Identity representation
 
-An identity is a first-class protocol entity that represents an actor capable of authorship. Actors include users, devices, backend nodes, services, and delegated agents.
+An identity is a first-class protocol entity that represents an actor capable of authorship.
 
 An identity is represented as a Parent object in app_0.
 
 An identity exists if and only if:
 
-- A corresponding Parent object exists.
-- At least one valid public key is bound to that Parent.
+- The Parent object exists in the graph.
+- The Parent has at least one bound public key Attribute that is valid under schema rules.
 
-There is no anonymous identity at the protocol level.
+Identities are not inferred, implicit, or contextual. All identities are explicit graph objects.
 
-### 3.2 Cryptographic keys
+### 3.2 Identity scope
 
-Each identity is anchored by one or more asymmetric cryptographic keypairs.
+Identities may represent:
 
-Keys have the following properties:
+- Users.
+- Nodes.
+- Devices.
+- Backend services.
+- Delegated or automated actors.
 
-- Each keypair consists of exactly one private key and one public key.
-- The public key is represented as an Attribute attached to the identity Parent.
-- The private key never appears in the graph or protocol messages.
+The protocol does not distinguish these categories at the identity layer. Distinctions, if any, are imposed by schema, ACL, or application logic.
 
-The protocol requires that keys support:
+## 4. Key model
 
-- Deterministic signature verification.
-- Non-malleable signatures.
-- Unique binding between message and signer.
+### 4.1 Key type
 
-The specific cryptographic algorithms are defined in the cryptography specification.
+Keys are asymmetric cryptographic keypairs.
 
-### 3.3 Key binding
+Protocol requirements for keys:
 
-A public key is bound to an identity by attaching it as an Attribute to the identity Parent.
+- The public key is represented as an Attribute attached to an identity Parent.
+- The private key is never represented in the graph or transmitted.
+- Each keypair uniquely identifies a signing authority.
 
-Key binding is immutable once accepted. A bound key cannot be reassigned to another identity.
+The specific algorithms and encodings are defined in the cryptography specification referenced by the PoC build guide.
 
-Multiple keys may be bound to the same identity Parent, subject to schema and ACL rules.
+### 4.2 Key binding
 
-## 4. Invariants and guarantees
+A public key is bound to an identity by being attached as an Attribute to the identity Parent.
 
-### 4.1 Identity invariants
+Key binding rules:
 
-The following invariants are mandatory:
+- A bound public key belongs to exactly one identity.
+- A bound public key cannot be reassigned to another identity.
+- Key binding is immutable once accepted into the graph.
 
-- Every operation has exactly one author identity.
-- Every author identity resolves to exactly one Parent.
-- Every Parent that represents an identity has at least one bound public key.
-- Identity Parents are immutable once created.
-- Ownership of an identity Parent cannot be transferred.
+Multiple public keys may be bound to the same identity Parent, subject to schema and ACL constraints.
 
-### 4.2 Authorship guarantees
+## 5. Authorship and signatures
+
+### 5.1 Authorship assertion
+
+Every operation envelope declares exactly one author identity.
+
+Authorship is asserted by:
+
+- Including the identity reference in the envelope.
+- Signing the envelope with a private key corresponding to a public key bound to that identity.
+
+The backend never infers authorship from transport, session state, or network metadata.
+
+### 5.2 Signature verification
+
+An operation is considered authentic if and only if:
+
+- The claimed author identity exists.
+- The identity has at least one bound public key.
+- The envelope signature verifies against one of the bound public keys.
+
+Signature verification is mandatory and precedes all other validation steps.
+
+## 6. Invariants and guarantees
+
+### 6.1 Mandatory invariants
+
+The following invariants are enforced by the protocol:
+
+- Every accepted operation has exactly one author identity.
+- Every author identity resolves to exactly one identity Parent.
+- Every identity Parent has at least one bound public key.
+- Identity Parents are immutable after creation.
+- Public keys cannot change identity ownership.
+
+### 6.2 Guarantees
 
 The protocol guarantees:
 
-- Every accepted operation can be attributed to a cryptographically verifiable identity.
-- Authorship is stable across time and sync.
-- No operation can be accepted without a valid signature from a key bound to the claimed identity.
+- Stable and permanent authorship attribution.
+- Cryptographic verifiability of all accepted operations.
+- Structural prevention of identity impersonation.
+- Independence of identity verification from network trust.
 
-### 4.3 Ownership guarantees
-
-The protocol guarantees:
-
-- Objects created by an identity are permanently owned by that identity unless explicitly defined otherwise by schema.
-- Ownership cannot be overwritten by remote peers.
-- Ownership is verified independently of transport or trust assumptions.
-
-## 5. Allowed behaviors
+## 7. Allowed behaviors
 
 The following behaviors are explicitly allowed:
 
-- An identity may have multiple bound public keys.
-- A single device may hold multiple identities.
-- Multiple devices may be bound to the same identity through separate keys.
-- An identity may delegate limited authority through additional keys, subject to schema and ACL constraints.
-- Nodes may reject identities that violate schema, ACL, or trust constraints.
+- Binding multiple public keys to a single identity.
+- Using different keys for the same identity across devices.
+- Using identities for users, nodes, services, or delegated actors.
+- Rejecting identities that violate schema or validation rules.
 
-## 6. Forbidden behaviors
+## 8. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
-- Accepting an operation without verifying its signature.
+- Accepting an operation without a valid signature.
 - Accepting an operation signed by a key not bound to the claimed identity.
-- Reassigning a public key to a different identity Parent.
+- Rebinding a public key to a different identity.
 - Mutating an identity Parent after creation.
-- Inferring identity from transport context, network address, or session state.
-- Treating unsigned data as authoritative input.
+- Inferring identity from IP address, session, or transport channel.
+- Treating unsigned or partially signed data as authoritative.
 
-## 7. Interaction with other components
+## 9. Interaction with other components
 
-### 7.1 Inputs
+### 9.1 Inputs
 
 This specification consumes:
 
-- Signed protocol envelopes that declare an author identity.
-- Public keys stored as Attributes in the graph.
+- Operation envelopes with declared author identities.
+- Public key Attributes stored on identity Parents.
 - Schema definitions that classify identity Parents and key Attributes.
 
-### 7.2 Outputs
+### 9.2 Outputs
 
 This specification produces:
 
-- A binary decision on whether an operation’s claimed identity is valid.
-- A resolved identity reference for downstream components.
+- A verified or rejected identity assertion.
+- A resolved author identity for downstream components.
 
-### 7.3 Trust boundaries
+### 9.3 Trust boundaries
 
-Identity validation occurs before:
+Identity and signature verification occurs before:
 
-- Schema-level semantic validation.
-- Access control evaluation.
-- Persistent storage writes.
+- Schema semantic validation.
+- ACL evaluation.
+- Any persistent graph mutation.
 
-No downstream component may bypass identity verification.
+No component may bypass identity verification.
 
-## 8. Failure and rejection behavior
+## 10. Failure and rejection behavior
 
-An operation must be rejected if any of the following conditions hold:
+An operation must be rejected if any of the following conditions occur:
 
 - The author identity does not exist.
 - The author identity has no bound public keys.
-- The signature does not verify against any bound public key.
-- The envelope claims an identity inconsistent with the signing key.
+- The envelope signature fails verification.
+- The signature does not correspond to the claimed identity.
 - The identity Parent violates schema invariants.
 
-Rejection is final for the operation. Rejected operations must not:
+Rejected operations:
 
-- Be written to persistent storage.
-- Affect sync state.
-- Trigger side effects or events.
+- Must not be written to storage.
+- Must not advance sequence state.
+- Must not produce side effects or events.
 
-## 9. Security properties
+Rejection is final for the envelope.
 
-This specification enforces:
+## 11. Compliance requirements
 
-- Strong authorship attribution.
-- Non-repudiation at the protocol level.
-- Structural resistance to impersonation.
-- Independence from network or transport trust.
-
-No confidentiality, availability, or authorization guarantees are provided by this specification alone. These are defined in other components.
-
-## 10. Compliance requirements
-
-An implementation is protocol-compliant with respect to keys and identity if and only if:
+An implementation is compliant with this specification if and only if:
 
 - All invariants defined in this document are enforced.
 - All forbidden behaviors are structurally impossible.
-- All rejection conditions are correctly applied.
 - Identity verification precedes all state mutation paths.
+- Rejection conditions are applied deterministically and consistently.
