@@ -21,10 +21,14 @@ Applications built on 2WAY do not operate on isolated databases or central backe
 The platform enables applications to:
 
 - Share user owned data across apps without central storage.
+- Compose multiple applications over a common identity, contact, and trust graph.
 - Enforce permissions and visibility structurally rather than through server side policy.
 - Synchronize state directly between peers without trusted intermediaries.
 - Operate offline with full local authority and reconcile state incrementally.
 - Limit the influence of unknown or untrusted identities through graph structure.
+- Provide verifiable authorship, provenance, and ordering for all application state.
+- Recover from compromise or corruption using cryptographically anchored history.
+- Delegate scoped authority to devices, services, or automated agents.
 - Isolate application logic while reusing common identity, trust, and sync primitives.
 
 All actors and data are represented as typed graph objects with immutable authorship and explicit ownership. Identity is the root of trust. Every operation may be cryptographically signed. Every mutation is validated. Access control is enforced through schema and graph boundaries rather than implicit context.
