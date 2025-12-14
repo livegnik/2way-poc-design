@@ -6,166 +6,133 @@
 
 ## 1. Purpose and scope
 
-This document defines what the 2WAY system explicitly does not attempt to provide, guarantee, or solve. Its purpose is to establish hard boundaries around responsibility, trust, functionality, and assumptions, in order to prevent scope creep, incorrect threat assumptions, and invalid architectural dependencies.
+This document defines what 2WAY explicitly does not specify, implement, or guarantee. It constrains the PoC design to prevent implicit dependencies on absent features, and to bound security and correctness assumptions.
 
-This document is normative. Any behavior, property, or guarantee not explicitly included in the system design or explicitly excluded here must be assumed to be unsupported.
+This document is normative for the repository. Implementations and reviews must treat excluded items as unsupported, even if they appear feasible.
 
-## 2. Non-goals
+## 2. Responsibilities, invariants, and guarantees
 
-### 2.1 Global identity verification
+### 2.1 Responsibilities
 
-The system does not attempt to prove real-world identity, legal identity, or uniqueness of human actors.
+- Define excluded behaviors and guarantees at the system and protocol boundary.
+- Define forbidden interactions that violate the manager, service, and app separation.
+- Define rejection expectations when excluded assumptions are relied upon.
 
-- There is no notion of government identity, biometric identity, or external KYC.
-- There is no global registry of identities.
-- There is no guarantee that one human corresponds to one identity.
+### 2.2 Invariants
 
-Identity in 2WAY is cryptographic and structural only, as defined elsewhere.
+- Any behavior not specified in the design documents must be treated as unsupported.
+- No component may assume properties that are excluded by this document.
+- Apps and app extension services must not change, bypass, or redefine backend invariants.
 
-### 2.2 Global Sybil prevention
+### 2.3 Guarantees
 
-The system does not attempt to eliminate Sybil identities at the protocol level.
+- The system provides no hidden functionality beyond what is specified in the PoC build guide and referenced design files.
+- Excluded behaviors are not relied upon by any manager or service.
+- Violations of exclusions are treated as non-compliance, not as optional extensions.
 
-- There is no proof-of-work, proof-of-stake, or proof-of-personhood.
-- There is no global reputation score.
-- There is no network-wide trust anchor.
+## 3. Non-goals
 
-Sybil resistance is achieved only through graph structure, local trust decisions, and app-defined rules. No stronger guarantee is claimed.
+### 3.1 Centralized trust anchors and external identity binding
 
-### 2.3 Consensus or global agreement
+The protocol does not define or require any centralized authority for identity verification.
 
-The system does not provide global consensus.
+- There is no requirement for KYC, biometric verification, or government identity binding.
+- There is no global identity registry.
+- Cryptographic identity is defined by keys represented in the graph, not by external attestations.
 
-- There is no single canonical global state.
-- There is no total ordering of operations across all nodes.
-- There is no guarantee that all nodes converge to identical graphs.
+### 3.2 Protocol-level Sybil prevention
 
-Each node is authoritative over its own graph and enforces its own validation rules.
+The protocol does not provide global Sybil prevention mechanisms.
 
-### 2.4 High availability guarantees
+- There is no proof-of-work, proof-of-stake, or proof-of-personhood mechanism in the protocol.
+- Sybil resistance is structural and local, based on graph relationships and app-defined rules.
+- The protocol does not claim to prevent creation of many identities by one actor.
 
-The system does not guarantee uptime, latency bounds, or availability.
+### 3.3 Global consensus and a single canonical state
 
-- Nodes may be offline indefinitely.
-- Sync is opportunistic and peer-dependent.
-- Message delivery is best-effort within allowed domains.
+The protocol does not define global consensus.
 
-Availability is a property of deployment, not of the protocol.
+- There is no global total order across all nodes.
+- There is no requirement that all nodes converge to identical state.
+- Correctness is enforced locally by each node according to validation and access control rules.
 
-### 2.5 Real-time guarantees
+### 3.4 Backend extensibility that modifies the kernel
 
-The system does not guarantee real-time delivery or ordering.
+The backend does not support arbitrary extension of core behavior.
 
-- There are no deadlines, timeouts, or real-time constraints.
-- Ordering guarantees apply only where explicitly defined, such as global_seq within a node.
-- Wall-clock time is not a trust input.
+- There is no concept of backend apps that can redefine core behavior.
+- There is no arbitrary module execution model in the backend.
+- App extension services do not define the protocol, do not modify core services, and do not alter backend invariants.
 
-### 2.6 Economic or incentive mechanisms
+### 3.5 Unmediated access to persistence or key material
 
-The system does not define economic incentives.
+The design does not permit direct access to persistent storage or private keys outside the defined manager interfaces.
 
-- There are no tokens, fees, rewards, or penalties.
-- There is no built-in marketplace or pricing mechanism.
-- There is no economic deterrent to misuse.
+- Apps and app extension services must not write to storage except through Graph Manager mediated flows.
+- Apps and app extension services must never access raw database connections.
+- Apps and app extension services must never access private keys through any interface that bypasses the Key Manager and authorization checks.
 
-Any economic layer must be implemented entirely at the app level.
+### 3.6 Transport-layer security as a dependency
 
-### 2.7 Content moderation or policy enforcement
+The protocol does not rely on transport security guarantees.
 
-The system does not enforce global content policies.
+- Confidentiality and integrity are defined at the protocol layer using signatures and encryption where required.
+- The protocol must remain valid on untrusted networks.
+- Use of Tor is a deployment choice for the PoC, not a protocol security dependency.
 
-- There is no censorship logic.
-- There is no moderation authority.
-- There is no definition of acceptable content.
+## 4. Out-of-scope behaviors and interactions
 
-Moderation, filtering, and policy enforcement are app responsibilities.
+### 4.1 Allowed behaviors
 
-### 2.8 User experience guarantees
+The following are explicitly allowed within the scope of the PoC design.
 
-The system does not guarantee usability, discoverability, or safety for end users.
+- Apps define UI and workflows on the frontend, and use backend HTTP and WebSocket APIs.
+- Apps may ship backend extension services to perform limited backend tasks.
+- Backend extension services may read and write graph state only through manager interfaces, and must pass through schema validation and ACL enforcement.
 
-- There are no UX constraints at the protocol level.
-- There is no protection against social engineering.
-- There is no prevention of user error.
+### 4.2 Forbidden behaviors
 
-Frontend behavior is explicitly out of scope.
+The following are explicitly forbidden.
 
-## 3. Out-of-scope behaviors
+- Any component bypassing Graph Manager for graph writes.
+- Any component bypassing ACL Manager for authorization decisions on reads or writes.
+- Any app or app extension service redefining schema semantics outside Schema Manager handling.
+- Any app or app extension service accessing raw database handles.
+- Any app or app extension service accessing or exporting private keys, or performing signing outside approved key usage paths.
+- Any implementation depending on implicit identity, implicit trust, or network-origin trust.
 
-### 3.1 Implicit trust
+## 5. Trust boundaries and dependencies
 
-The system forbids implicit trust.
+- This document defines design-time boundaries only.
+- Inputs are repository design assumptions and constraints.
+- Outputs are review constraints that apply to all components.
+- Trust boundaries are enforced through the managers and their interfaces, and through the validation pipeline described elsewhere.
+- This document does not define protocol formats or manager interfaces, and must not be used as a substitute for those specifications.
 
-- No operation is trusted based on network origin.
-- No operation is trusted based on connection state.
-- No operation is trusted based on historical behavior alone.
+## 6. Failure, rejection, and invalid assumptions
 
-Any component relying on implicit trust violates the design.
+### 6.1 Design-time failure
 
-### 3.2 Silent failure handling
+If a design, component, or review depends on an excluded feature or guarantee, the result is non-compliance with the repository design.
 
-The system forbids silent acceptance of invalid input.
+- The dependency must be removed.
+- The component must be redesigned to use only specified interfaces and guarantees.
+- The review must treat the dependency as a correctness and security defect.
 
-- Invalid envelopes must be rejected.
-- Unauthorized operations must not be applied partially.
-- Malformed data must not be coerced into valid state.
+### 6.2 Runtime rejection expectation
 
-Failure must be explicit at the validation boundary.
+Where an excluded assumption manifests as a runtime attempt, the system must reject the action at the appropriate validation boundary.
 
-### 3.3 Automatic conflict resolution across nodes
+- Unauthorized operations are denied by ACL evaluation.
+- Invalid structure and invariant violations are rejected by Graph and Schema validation.
+- Attempts to bypass managers are not permitted by design, and must not exist in compliant implementations.
 
-The system forbids automatic global conflict resolution.
+## 7. References
 
-- Conflicts are resolved locally or at the app level.
-- There is no forced merge strategy.
-- There is no authoritative peer.
+This document constrains, but does not restate, the following topics which are specified elsewhere.
 
-### 3.4 Cross-app interpretation
-
-The system forbids cross-app semantic interpretation.
-
-- Objects from one app must not be reinterpreted by another app.
-- Ratings, trust edges, and schemas are app-scoped.
-- System services do not reinterpret app-defined meaning.
-
-### 3.5 Backend extensibility without constraint
-
-The system forbids unrestricted backend modification.
-
-- Apps must not bypass managers.
-- Apps must not perform raw storage writes.
-- Apps must not override validation, ACLs, or sync rules.
-
-Backend isolation is mandatory.
-
-## 4. Explicit exclusions
-
-The following are explicitly excluded from the design and must not be assumed:
-
-- Distributed consensus algorithms.
-- Byzantine fault tolerance.
-- Global clocks or time synchronization.
-- Centralized identity providers.
-- Automatic data recovery without trusted history.
-- Guaranteed message delivery.
-- Global search or indexing.
-- Data mining or analytics across nodes.
-- Network anonymity guarantees beyond transport properties.
-
-## 5. Interactions with other components
-
-This document has no direct inputs or outputs.
-
-It defines constraints that apply to all components equally.
-
-Other components must not assume behaviors or guarantees excluded here. Any such assumption constitutes a design error.
-
-## 6. Behavior on violation
-
-If an implementation introduces behavior that contradicts this document:
-
-- The behavior is non-compliant.
-- Security assumptions elsewhere become invalid.
-- The implementation must be considered unsafe until corrected.
-
-There is no graceful degradation for violations of scope boundaries.
+- Manager, service, and app separation.
+- Graph write pipeline and validation ordering.
+- Key management, signing, and encryption requirements.
+- Sync integrity, sequencing, and domain scoping rules.
+- Security model and threat assumptions.
