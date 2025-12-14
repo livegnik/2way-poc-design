@@ -2,11 +2,11 @@
 
 
 
-# 2WAY System Design Repository
+# 2WAY System PoC Design Repository
 
 ## 1. Purpose and scope
 
-This repository defines the complete normative design of the 2WAY system. It specifies protocol rules, architectural constraints, security properties, data models, and component responsibilities required to implement and review a 2WAY proof of concept.
+This repository defines the complete normative design of the 2WAY system proof of concept (PoC). It specifies protocol rules, architectural constraints, security properties, data models, and component responsibilities required to implement and review a 2WAY proof of concept.
 
 This repository is a design specification. It does not contain implementation code, deployment artifacts, or operational tooling. All documents in this repository are intended to be read as binding design constraints.
 
