@@ -60,7 +60,7 @@ Documents are ordered by conceptual dependency.
 - Data layout and interfaces.
 - Security model.
 - End to end flows.
-- PoC definition, testing, and acceptance.
+- PoC definition, build plan, testing, and acceptance.
 - Architecture decisions.
 - Appendices and reference material.
 - Examples of apps.
