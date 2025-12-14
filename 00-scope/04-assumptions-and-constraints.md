@@ -2,174 +2,139 @@
 
 
 
-# 04 Assumptions and constraints
+# 01 Scope and goals
 
 ## 1. Purpose and scope
 
-This document defines the explicit assumptions and hard constraints under which the 2WAY system design is valid. These assumptions are treated as axioms for the rest of the design repository. Violating them invalidates security, correctness, or consistency guarantees described elsewhere. This document does not define behavior. It defines the conditions under which defined behavior is meaningful.
+This document defines the scope boundaries and goals of the 2WAY proof of concept design. It constrains what the PoC must implement and what is explicitly excluded. It defines repository level invariants that all components must honor. Detailed protocol, data model, APIs, and security properties are defined in their respective design files and are only referenced here.
 
-## 2. Assumptions
+## 2. Responsibilities
 
-### 2.1 Execution environment assumptions
+This file is responsible for:
 
-The system assumes the following properties of the local execution environment:
+- Defining what the PoC includes at the system boundary level.
+- Defining the goals that determine PoC completeness.
+- Defining repository wide invariants and constraints that other design files assume.
+- Defining what is allowed and forbidden at the scope level.
+- Defining failure handling in terms of design compliance, not runtime behavior.
 
-- The node has exclusive control over its local persistent storage.
-- The node can perform cryptographic operations correctly using standard primitives.
-- Local process isolation is enforced by the host operating system.
-- The backend process is not modified at runtime by untrusted code.
-- The local clock may be inaccurate but is monotonic within a single process lifetime.
+This file is not responsible for:
 
-No assumptions are made about network reliability, latency, ordering, or trustworthiness.
+- Protocol wire formats, message envelopes, or sync package schemas.
+- Database schemas or table layouts.
+- Detailed manager interfaces or internal flows.
+- Security mechanisms beyond scope level constraints.
 
-### 2.2 Cryptographic assumptions
+## 3. Scope definition
 
-The security model assumes:
+### 3.1 In scope
 
-- secp256k1 signatures are unforgeable under chosen-message attack.
-- ECIES provides confidentiality and integrity under standard threat models.
-- Hash functions used for object addressing and integrity are collision-resistant.
-- Private keys stored locally are not exfiltrated unless the local environment is compromised.
+The PoC design includes the following major elements:
+- A backend composed of managers and services only.
+- A frontend that hosts all apps.
+- A graph based persistence model using SQLite for backend storage.
+- A local API surface consisting of HTTP endpoints and a WebSocket channel for event pushes.
+- A network transport model that operates over Tor for peer connectivity.
+- A cryptographic model for signing and encryption using secp256k1 signatures and ECIES for confidentiality where required.
+- A sync model driven by monotonic global sequence ordering and explicit sequence ranges.
+- A security model rooted in graph anchored identities, schema validation, ACL enforcement, and domain scoping.
 
-The system does not attempt to remain secure under cryptographic primitive failure.
+### 3.2 Out of scope
 
-### 2.3 Identity assumptions
+Non goals and exclusions are specified in `/00-scope/02-non-goals-and-out-of-scope.md`. This file adds only the following hard exclusions because they materially affect PoC boundary correctness:
+- No direct database writes by apps or services.
+- No manager bypass through alternative persistence paths.
+- No reliance on transport level security as a correctness requirement.
+- No assumptions of peer trust beyond what the graph and ACLs encode.
 
-The system assumes:
+## 4. Goals
 
-- Each identity corresponds to at least one valid cryptographic keypair.
-- An identity controls its private keys at the time it issues an operation.
-- Identities do not share private keys unless explicitly modeled through delegation.
-- Loss of all keys for an identity without a valid recovery path results in permanent loss of control over that identity.
+### 4.1 Primary PoC goals
 
-No assumption is made that identities are unique, human, verified, or non-malicious.
+The PoC is complete only if it satisfies all of the following:
+- Enforces the manager and service separation and prevents raw persistence access outside Graph Manager controlled writes.
+- Enforces schema validation and ACL enforcement for every graph mutation.
+- Ensures all operations are bound to an explicit author identity and are verifiable against stored public keys.
+- Implements a working local API surface that exercises core graph mutations and read paths through the defined validation pipeline.
+- Implements peer sync over Tor with signature verification and sequence ordering constraints.
+- Preserves app isolation through app scoped types, schemas, and domain rules.
 
-### 2.4 Trust assumptions
+### 4.2 Secondary PoC goals
 
-The system assumes:
+The PoC should also satisfy the following where defined elsewhere in this repository:
+- Maintain deterministic rejection behavior for invalid, malformed, or unauthorized operations.
+- Maintain stable persistence guarantees under process restart and partial failure.
+- Support selective sync and scoping controls as defined by sync domains and ACL visibility rules.
 
-- Local validation logic is correct and uncompromised.
-- Remote peers may be malicious, faulty, or adversarial.
-- No remote peer is inherently trusted beyond what is expressed in the graph.
-- Applications interpret graph data according to their own schemas and rules.
+## 5. Repository wide invariants and guarantees
 
-There is no global trust anchor.
+### 5.1 Invariants
 
-## 3. Constraints
+The following invariants are mandatory across the PoC:
+- Backend code consists of managers and services only.
+- Frontend hosts all apps.
+- Apps may ship backend extensions, but all backend logic must still use manager interfaces.
+- All graph writes occur via Graph Manager.
+- All access control occurs via ACL Manager.
+- All schema definitions originate from the graph and are compiled and served by Schema Manager.
+- All sync state and sync application occur via State Manager.
+- All network traffic flows through Network Manager.
+- All WebSocket push events flow through Event Manager.
 
-### 3.1 Architectural constraints
+### 5.2 Scope level guarantees
 
-The design enforces the following constraints:
+Given adherence to the invariants in this file and the detailed specifications elsewhere, the PoC design guarantees the following at the scope level:
+- There is a single enforced write path to persistent state.
+- There is a single enforced authorization gate for mutations.
+- There is a single enforced schema validation gate for type and relation correctness.
+- No app can directly mutate or reinterpret another app’s objects through backend bypass.
+- Peer input is treated as untrusted and is subject to the same validation and authorization pipeline as local input.
 
-- All persistent state mutations occur through the Graph Manager.
-- All access control decisions occur through the ACL Manager.
-- All schema validation occurs through the Schema Manager.
-- All network input is treated as untrusted.
-- All backend managers operate as a closed internal kernel.
+## 6. Allowed behaviors
 
-By design, no component may bypass these constraints.
+The following behaviors are explicitly allowed within the PoC scope:
+- Nodes may operate offline indefinitely and remain internally consistent.
+- Peers may be malicious, unreliable, or non cooperative.
+- Sync relationships may be partial, asymmetric, and selective by domain.
+- Multiple apps may interpret the same underlying graph objects differently, provided they do not violate schema and app scoping rules.
+- A node may reject remote operations without providing a remote visible explanation.
 
-### 3.2 Data model constraints
+## 7. Forbidden behaviors
 
-The data model is constrained as follows:
+The following behaviors are explicitly forbidden within the PoC scope:
+- Any persistent write that does not pass through Graph Manager.
+- Any authorization decision made outside ACL Manager.
+- Any acceptance of graph mutations that skip Schema Manager validation.
+- Any implicit trust derived from transport properties, network location, or peer claims not anchored to graph identities.
+- Any cross app mutation or cross app semantic reinterpretation at the backend layer.
+- Any storage API that allows apps or services to write arbitrary tables or bypass graph invariants.
 
-- Parents are immutable once created.
-- Ownership of a Parent cannot be reassigned.
-- Attributes, Edges, and Ratings are always associated with a Parent.
-- All objects are typed and scoped to an application domain.
-- Global sequence numbers are strictly monotonic per node.
+## 8. Trust boundaries
 
-Objects that violate these constraints are rejected.
+### 8.1 Inputs
 
-### 3.3 Sync and ordering constraints
+The system treats the following as untrusted inputs:
+- All network delivered packages, envelopes, and payloads.
+- All frontend initiated requests and submitted objects.
+- All app provided data and app provided backend extension logic inputs.
 
-The sync model enforces:
+### 8.2 Trusted components
 
-- Operations are applied in global sequence order per node.
-- Sync packages must declare explicit sequence ranges.
-- Replayed or out-of-order operations are rejected.
-- A node never rewrites its own history.
+Within the PoC scope, the following are treated as trusted to enforce correctness, provided the local execution environment assumptions hold:
+- Backend managers.
+- Validation pipeline ordering across Graph Manager, Schema Manager, and ACL Manager.
+- Storage Manager as a persistence primitive accessible only through manager controlled paths.
 
-The system does not guarantee global total ordering across nodes.
+## 9. Failure and rejection handling
 
-### 3.4 Access control constraints
+### 9.1 Scope compliance failure
 
-Access control is constrained by:
+If an implementation violates any invariant or forbidden behavior in this file, the implementation is non compliant with this design repository. Non compliance is a correctness failure, not a degraded mode.
 
-- Explicit ACL evaluation for every write operation.
-- Default-deny behavior when no ACL rule applies.
-- No implicit privilege inheritance outside defined graph edges.
-- Device and delegated keys may only act within their declared authority.
+### 9.2 Operational rejection behavior
 
-ACL enforcement is mandatory and non-optional.
+When an operation, envelope, or request violates a constraint assumed by this scope, the system must reject it before any persistent mutation occurs. Detailed rejection rules are specified in the protocol, API, and security design files. This file requires that rejection be deterministic and that no partial writes occur.
 
-### 3.5 Application isolation constraints
+### 9.3 Assumption violation
 
-Application isolation is enforced by the following constraints:
-
-- Applications cannot mutate objects outside their declared schema.
-- Ratings, trust edges, and semantics are app-scoped.
-- Cross-app interpretation is forbidden unless explicitly implemented by an app.
-- Backend services cannot reinterpret app data.
-
-Violations result in operation rejection.
-
-## 4. Guarantees
-
-Given the stated assumptions and constraints, the system guarantees:
-
-- Authorship of all accepted operations is verifiable.
-- Unauthorized graph mutations are rejected deterministically.
-- History cannot be silently rewritten.
-- Compromise is locally containable through revocation and scoping.
-- Malformed or adversarial input does not corrupt persistent state.
-
-No guarantee is made about availability, global consistency, or fairness.
-
-## 5. Allowed behaviors
-
-The design explicitly allows:
-
-- Malicious identities to exist in the graph.
-- Nodes to operate offline indefinitely.
-- Partial, selective, and asymmetric sync relationships.
-- Multiple independent interpretations of the same graph structure by different apps.
-- Local rejection of remote data without explanation.
-
-These behaviors are considered normal and expected.
-
-## 6. Forbidden behaviors
-
-The design explicitly forbids:
-
-- Implicit trust based on network location or transport.
-- Direct database access by applications or services.
-- Cross-app mutation or reinterpretation of objects.
-- Silent acceptance of invalid, unauthorized, or malformed operations.
-- Automatic escalation of privileges.
-
-Any implementation permitting these behaviors is non-compliant.
-
-## 7. Failure and rejection behavior
-
-When assumptions are violated or inputs are invalid:
-
-- Operations are rejected before persistent state mutation.
-- Rejected operations do not affect sequence numbering.
-- No partial writes occur.
-- The node remains internally consistent.
-- Remote peers are not implicitly penalized beyond rate-limiting or disconnection.
-
-Failure handling is local, deterministic, and non-recovering unless explicitly defined elsewhere.
-
-## 8. Out-of-scope considerations
-
-This document does not define:
-
-- User experience implications.
-- Legal or regulatory compliance.
-- Performance optimization strategies.
-- Economic incentives or reputation weighting.
-- Human identity verification or uniqueness.
-
-These topics are intentionally excluded.
+If execution environment assumptions do not hold, including host compromise, key exfiltration, or backend modification, the security properties described in this repository do not apply. Recovery mechanisms and revocation semantics are defined in the security design files and are not redefined here.
