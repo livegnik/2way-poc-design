@@ -12,14 +12,14 @@ This document is normative for the PoC.
 
 ## 2. Responsibilities
 
-The access control model is responsible for the following:
+This specification defines:
 
 - Determining whether an authenticated identity is permitted to perform a specific operation on a specific graph object.
 - Enforcing ownership, schema rules, and explicit access control constraints.
 - Enforcing app and domain isolation during graph mutations and reads.
 - Producing deterministic authorization decisions based solely on local state.
 
-The access control model is not responsible for the following:
+This specification does not define:
 
 - Authenticate identities or verify cryptographic signatures.
 - Perform schema compilation or migration.
