@@ -19,7 +19,15 @@ The access control model is responsible for the following:
 - Enforcing app and domain isolation during graph mutations and reads.
 - Producing deterministic authorization decisions based solely on local state.
 
-The access control model is not responsible for identity verification, signature validation, schema compilation, transport security, or sync ordering.
+The access control model is not responsible for the following:
+
+- Authenticate identities or verify cryptographic signatures.
+- Perform schema compilation or migration.
+- Resolve conflicts during sync.
+- Enforce rate limits or denial of service protections.
+- Persist audit logs beyond standard error reporting.
+
+These concerns are defined in other documents.
 
 ## 3. Invariants and guarantees
 
@@ -157,19 +165,7 @@ On authorization failure:
 
 Authorization failures do not modify graph state or authorization rules.
 
-## 10. Non responsibilities
-
-The access control model does not:
-
-- Authenticate identities or verify cryptographic signatures.
-- Perform schema compilation or migration.
-- Resolve conflicts during sync.
-- Enforce rate limits or denial of service protections.
-- Persist audit logs beyond standard error reporting.
-
-These concerns are defined in other documents.
-
-## 11. Security properties
+## 10. Security properties
 
 The access control model ensures:
 
