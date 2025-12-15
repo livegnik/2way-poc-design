@@ -12,7 +12,7 @@ This document does not define serialization formats, envelope structures, schema
 
 ## 2. Responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 * The canonical graph object categories.
 * Required fields and reference structure for each object category.
@@ -20,7 +20,7 @@ This specification defines:
 * Cross object and cross category structural constraints.
 * Explicit rejection conditions for structurally invalid objects.
 
-This specification does not define:
+This specification does not cover the following:
 
 * Schema meaning, type validation, or value interpretation.
 * Authorization rules or ACL evaluation.

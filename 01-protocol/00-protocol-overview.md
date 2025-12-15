@@ -1,99 +1,121 @@
+
+
+
+
 # 00 Protocol overview
 
 ## 1. Purpose and scope
 
-This document introduces the 2WAY protocol, a graph-native, envelope-based replication system for distrustful peers. It explains how the protocol layers interact, the boundaries they enforce, and the guarantees they collectively provide. The goal is to help implementers understand the intent of the detailed specifications in this folder before consulting each specialty document.
+This document defines the role and posture of the 2WAY protocol within the PoC design repository. It is a graph-native, envelope-based mutation and replication protocol intended for distrustful peers. It explains protocol boundaries, mandatory invariants, and how the protocol’s subsystems compose, without redefining details owned by other protocol files.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-- The high-level responsibilities of the protocol, including how identities author data, how that data is serialized, transported, validated, and synchronized.
-- The invariants that must hold across all protocol layers so that downstream documents can focus on their own scopes without redefining the whole system.
-- How failures propagate and which components own recovery or rejection decisions.
+* The protocol’s externally observable responsibilities, identity binding, envelope submission, validation ordering, and sync sequencing posture.
+* Mandatory invariants that all implementations must preserve across local writes and remote synchronization.
+* The lifecycle of an operation from authoring through persistence, including where rejection must occur.
 
 This specification does not cover the following:
 
-- Concrete storage formats, database schemas, deployment topologies, or network routing strategies.
-- User interfaces, operational tooling, peer discovery, or policy decisions beyond the protocol boundary.
-- Transport-specific encodings, API payloads, or implementation-specific optimizations.
+* Database schema details, table layouts, index choices, or persistence optimizations.
+* Concrete transport encodings, routing, peer discovery, or deployment topology.
+* UI behavior, app workflows, or domain-specific application semantics beyond protocol constraints.
 
 ## 3. Protocol posture and guiding principles
 
-- Identities are explicit graph objects anchored in `app_0` and bound to keys; nothing is inferred from transport metadata (`01-identifiers-and-namespaces.md`, `05-keys-and-identity.md`).
-- All persistent data is represented using the canonical object model and accessed through supervised operations (`02-object-model.md`, `03-serialization-and-envelopes.md`).
-- The network and peers are untrusted; only cryptographic verification and local policy create trust (`04-cryptography.md`, `08-network-transport-requirements.md`).
-- Envelopes are the atomic unit of mutation and sync; they are accepted or rejected as a whole (`03-serialization-and-envelopes.md`, `07-sync-and-consistency.md`).
-- Authorization, schema rules, and sync ordering are enforced deterministically and locally before state changes occur (`06-access-control-model.md`, `07-sync-and-consistency.md`, `09-errors-and-failure-modes.md`).
-- Version negotiation is explicit and conservative; major mismatches are fatal (`10-versioning-and-compatibility.md`).
+* All graph mutations use graph message envelopes, including local writes, so local and remote paths share the same validation and persistence pipeline.
+* Graph Manager is the only write path. Storage Manager is the only raw database path. No component may bypass these boundaries.
+* The network is untrusted. Trust is established only via cryptographic verification and local policy enforcement.
+* Authorization is deterministic and local. It is enforced before persistence and before advancing sync state.
+* Synchronization is incremental and sequence-anchored. A receiver must reject replayed, out-of-order, malformed, or policy-violating packages without side effects.
+* App namespaces are isolated. Each app defines its own types, ratings, and domain semantics, and those semantics cannot spill into other apps without explicit interpretation by a consuming app.
 
 ## 4. Protocol layers and companion specifications
 
-The protocol stack is partitioned so that each layer owns a narrow set of invariants. The detailed behavior of each layer is defined by the documents in this folder:
+The protocol is intentionally partitioned so each layer owns a narrow set of invariants. Detailed behavior lives in companion specifications within this folder:
 
-- `01-identifiers-and-namespaces.md` defines identifier classes, namespace isolation, and rejection rules for ambiguous or unauthorized identifiers.
-- `02-object-model.md` defines the canonical Parent, Attribute, Edge, Rating, and ACL record structures plus immutable metadata constraints.
-- `03-serialization-and-envelopes.md` defines the envelope format, supervised operation identifiers, signed portions, and structural validation rules.
-- `04-cryptography.md` defines signing, optional encryption, and the trust boundaries between Key Manager, Network Manager, and State Manager.
-- `05-keys-and-identity.md` defines how identities are represented, how keys bind to identities, and how authorship is proven.
-- `06-access-control-model.md` defines the authorization order, ownership semantics, and ACL evaluation rules.
-- `07-sync-and-consistency.md` defines the synchronization model, ordering constraints, and the unit of replication.
-- `08-network-transport-requirements.md` defines the minimal, adversarial network transport abstraction and its invariants.
-- `09-errors-and-failure-modes.md` defines canonical error classes, precedence rules, and failure handling guarantees.
-- `10-versioning-and-compatibility.md` defines protocol version tuples, compatibility checks, and mandatory rejection behavior for mismatches.
+* `01-identifiers-and-namespaces.md` defines identifier classes, namespace isolation, and rejection rules for ambiguous identifiers.
+* `02-object-model.md` defines Parent, Attribute, Edge, Rating, and ACL structures plus immutable metadata constraints.
+* `03-serialization-and-envelopes.md` defines graph message envelope structure, operation identifiers, signed portions, and structural validation rules.
+* `04-cryptography.md` defines secp256k1 signing, ECIES encryption usage, verification rules, and key handling boundaries.
+* `05-keys-and-identity.md` defines identity representation in `app_0`, key binding, authorship proof, and key lifecycle primitives.
+* `06-access-control-model.md` defines ownership semantics, ACL evaluation inputs, and authorization ordering.
+* `07-sync-and-consistency.md` defines sync domains, sequence tracking, package construction, package application, and monotonicity requirements.
+* `08-network-transport-requirements.md` defines the adversarial transport abstraction and mandatory signaling and delivery properties.
+* `09-errors-and-failure-modes.md` defines canonical error classes, precedence rules, and mandatory rejection behavior.
+* `10-versioning-and-compatibility.md` defines version tuples and compatibility checks.
 
 ## 5. Operation lifecycle
 
 ### 5.1 Authoring and local submission
 
-An identity resolves to a Parent with bound keys (05). The author chooses the application namespace and object types defined by the schema (01, 02) and prepares operations that respect ownership and ACL policies (06). All local writes, even internal services, must submit operations through graph message envelopes using the serialization rules in `03-serialization-and-envelopes.md`.
+* A local frontend request authenticates via a frontend session token.
+* Auth Manager resolves the session token to an `identity_id`.
+* The HTTP layer constructs an `OperationContext` containing, at minimum, requester identity, `app_id`, a remote or local flag, and a trace id.
+* The caller submits a graph message envelope for all writes, even locally.
 
-### 5.2 Envelope construction and validation
+### 5.2 Envelope construction and structural validation
 
-Operations are grouped into an envelope whose structure, field names, and allowable operations are defined in `03-serialization-and-envelopes.md`. Structural validation runs before any schema or ACL checks, preventing malformed data from crossing the Graph Manager boundary. The envelope establishes a single author context and target sync domain, which become inputs to downstream authorization and sequencing logic.
+* An envelope contains one or more operations with supervised operation identifiers, using lowercase snake_case naming conventions.
+* Structural validation runs before schema validation and before ACL evaluation.
+* Structural validation must reject malformed envelopes without allocating expensive resources or taking write locks.
 
-### 5.3 Secure transport preparation
+### 5.3 Schema validation and authorization
 
-For remote sync, State Manager wraps the graph envelope inside a sync package, adds sequence metadata, and requests Key Manager to sign (04). Network Manager is responsible for attaching the signature, optional ECIES payload encryption, and providing the opaque bytes to the transport abstraction (04, 08). Transport maintains byte integrity and signaling but does not perform validation or ordering (`08-network-transport-requirements.md`).
+* Schema Manager validates that referenced types belong to the declared app namespace, that values match their declared representation, and that relations respect allowed edge constraints.
+* ACL Manager evaluates permissions using `OperationContext`, schema defaults, object-level overrides, and ownership semantics.
+* If the envelope declares an author identity, the implementation must enforce that the author identity used for enforcement is explicit and consistent with the authenticated context, and must not be inferred from transport metadata.
 
-### 5.4 Reception, validation, and persistence
+### 5.4 Sequencing and persistence
 
-The receiving node reverses the process: Network Manager verifies signatures and decrypts payloads (04), State Manager enforces sync ordering per domain and peer (07), and Graph Manager executes structural validation, schema validation, ACL evaluation, and object model checks (02, 03, 06). Only when every stage succeeds is the envelope persisted and the sync state advanced (07). Any failure triggers the canonical rejection behavior defined in `09-errors-and-failure-modes.md`.
+* Graph Manager assigns a monotonic `global_seq` during successful application.
+* Envelope application is transactional. Either the entire envelope is applied or none of it is.
+* Persistence occurs only through Storage Manager after successful structural validation, schema validation, and authorization.
 
-### 5.5 Sync propagation and replay protection
+### 5.5 Remote synchronization
 
-Sync state is maintained per peer and domain and advances only after successful envelope application (`07-sync-and-consistency.md`). Peers exchange envelopes monotonically based on local global sequence numbers, and replays or gaps are rejected. Failure to meet version compatibility or sequence expectations aborts the interaction without side effects (07, 10).
+* State Manager is the only producer of outbound sync packages and the only consumer of inbound sync packages.
+* Remote sync uses the same graph message envelope format as local writes, wrapped with sync metadata, including sender identity, sync domain name, and a declared sequence range such as `from_seq` and `to_seq`.
+* Network Manager handles transport and cryptography, including signature creation and verification, and ECIES encryption where confidentiality is required.
+* The receiver enforces per-peer, per-domain ordering rules and must reject packages that are replayed, out of order, malformed, or inconsistent with known sync state.
 
 ## 6. Guarantees and invariants
 
-- Every accepted envelope has exactly one verified author identity and signature bound to the declared metadata (05).
-- All graph mutations use the canonical object categories and immutable metadata defined by the object model (02).
-- Authorization is deterministic, local, and enforced before persistence or sync state advancement (06).
-- Sync ordering is strictly monotonic per peer and domain; no partial acceptance or skipped ranges occur (07).
-- Transport-level anomalies cannot cause semantic changes because envelopes are signed end-to-end and validated locally (04, 08).
-- Version compatibility decisions are made before resource allocation, preventing downgrade attacks or undefined behavior (10).
+* Every accepted envelope is validated structurally, validated against schema rules, authorized via ACL evaluation, and applied transactionally.
+* Graph Manager is the only write path for Parents, Attributes, Edges, Ratings, and ACL-related mutations.
+* All accepted writes receive a monotonic `global_seq`.
+* Sync ordering is monotonic per peer and per domain. Sync state advances only after successful envelope application.
+* Cryptographic verification precedes semantic processing for remote input. Unsigned or invalidly signed packages are rejected.
+* Private keys are not serialized into the graph and are not emitted inside sync packages.
 
 ## 7. Allowed and forbidden behaviors
 
 ### 7.1 Allowed
 
-- Independent creation of identifiers and objects within declared namespaces, provided they satisfy structural, schema, and ACL rules (01, 02, 06).
-- Concurrent connections to multiple peers and domains, as long as each session honors ordering and sync boundaries (07, 08).
-- Use of multiple keys per identity and selective domain participation, as long as signatures and domain declarations remain consistent (05, 07).
-- Silent rejection of invalid remote input while continuing to process other peers (07, 09).
+* Local writes via HTTP using graph message envelopes, with authorization based on `OperationContext`.
+* Remote sync via State Manager using signed and optionally encrypted packages carrying graph envelopes and domain sequence metadata.
+* Multiple keys per identity and multi-device operation, provided authorization and key binding rules are enforced per the key and identity specifications.
+* Silent rejection of invalid remote input while continuing to process other peers.
 
 ### 7.2 Forbidden
 
-- Bypassing envelopes to mutate graph state, or mutating data outside the canonical object model (02, 03).
-- Accepting unsigned or cryptographically invalid packages, or guessing at metadata to recover from failures (04, 08, 09).
-- Allowing schema, ACL, or authorization checks to depend on network metadata or remote assertions (06, 08).
-- Reassigning identifiers, weakening namespace isolation, or retroactively mutating ownership (01, 02, 05).
-- Performing partial application of an envelope or advancing sync state after a rejection (07, 09).
+* Any mutation path that bypasses graph message envelopes or bypasses Graph Manager.
+* Any direct database write outside Storage Manager.
+* Any authorization decision based on transport metadata or remote assertions not validated against local identity and ACL state.
+* Partial application of an envelope, or advancing sync state after a rejection.
+* Accepting remote packages without cryptographic verification, or attempting to “guess” missing metadata to recover from failures.
 
 ## 8. Failure posture
 
-Failures are classified by the earliest stage that detects them (structural, cryptographic, schema, authorization, sync, or resource) as defined in `09-errors-and-failure-modes.md`. Rejection at any stage is atomic: no state changes, no sequence advancement, and no retries implied. Structural errors take precedence, cryptographic errors supersede schema and authorization, and revocation decisions override freshness. Rejections may be silent to peers, while local callers receive symbolic error codes.
+* Rejection is atomic. A rejected envelope or package produces no state changes and does not advance sync state.
+* Failures are classified by the earliest stage that detects them, including structural, cryptographic, schema, authorization, sync ordering, and resource constraints.
+* Precedence is strict. Structural failures preempt schema and ACL checks. Cryptographic failures preempt semantic processing. Revocation decisions override freshness decisions and must be applied before processing additional envelopes where applicable.
+* Debugging and inspection surfaces are read-only and must remain behind administrative authorization.
 
 ## 9. Compatibility and evolution
 
-Protocol versions are expressed as `(major, minor, patch)` tuples (`10-versioning-and-compatibility.md`). Nodes must negotiate versions before trust or state exchange; mismatched major versions or unsupported minor features force deterministic rejection. When peers share a major version and the receiver's minor version is equal or higher, the interaction proceeds using the remote minor version as the effective feature ceiling. No implicit downgrade, feature guessing, or fallback mode is permitted, ensuring that the guarantees in the preceding sections remain valid over time.
+* Protocol versions use `(major, minor, patch)` tuples.
+* Major mismatches are fatal. Version negotiation occurs before trust or state exchange.
+* No implicit downgrade, feature guessing, or fallback mode is permitted.
+* Naming conventions for envelopes, domains, and events are normative and must remain consistent to preserve compatibility across nodes and tools.

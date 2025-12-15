@@ -10,7 +10,7 @@ This document defines the errors and failure modes of the 2WAY protocol at the p
 
 ### 2. Responsibilities
 
-This specification is responsible for:
+This specification is responsible for the following:
 
 * Defining the canonical set of protocol-level error classes and symbolic error codes.
 * Defining when an operation, envelope, or sync package must be rejected.
@@ -18,7 +18,7 @@ This specification is responsible for:
 * Defining guarantees about side effects in the presence of failure.
 * Defining how failures are surfaced across trust boundaries.
 
-This specification is not responsible for:
+This specification does not cover the following:
 
 * UI error messages or localization.
 * HTTP status codes or transport-specific representations.

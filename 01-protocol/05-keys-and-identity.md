@@ -12,7 +12,7 @@ This document is normative for all 2WAY-compliant implementations.
 
 ## 2. Responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 - The definition of an identity at the protocol level.
 - The binding between identities and public keys.
@@ -20,7 +20,7 @@ This specification defines:
 - The requirements for identity references and signatures in envelopes.
 - Mandatory invariants and rejection conditions related to identity and keys.
 
-This specification does not define:
+This specification does not cover the following:
 
 - Key generation or entropy requirements.
 - Private key storage or protection.

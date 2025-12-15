@@ -10,7 +10,7 @@ This document defines the protocol-level synchronization and consistency rules f
 
 ## 2. Responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 - The unit of synchronization.
 - The ordering model used during replication.
@@ -19,7 +19,7 @@ This specification defines:
 - Consistency and replay protection guarantees.
 - Failure and rejection behavior during sync.
 
-This specification does not define:
+This specification does not cover the following:
 
 - Network transport selection or peer discovery.
 - Encryption algorithms or key derivation.

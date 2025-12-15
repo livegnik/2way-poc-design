@@ -21,7 +21,7 @@ The transport layer is not a trust boundary and must be treated as adversarial b
 
 ## 3. Responsibilities and non-responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 - Sending opaque envelopes to a specified peer endpoint.
 - Receiving opaque envelopes attributed to a peer endpoint.
@@ -32,7 +32,7 @@ This specification defines:
 - Supporting multiple concurrent peer connections.
 - Operating over untrusted and potentially anonymous networks as required by the PoC.
 
-This specification does not define:
+This specification does not cover the following:
 
 - Authenticating peer identity.
 - Authorizing operations.

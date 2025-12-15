@@ -12,14 +12,14 @@ This document is normative for the PoC.
 
 ## 2. Responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 - Determining whether an authenticated identity is permitted to perform a specific operation on a specific graph object.
 - Enforcing ownership, schema rules, and explicit access control constraints.
 - Enforcing app and domain isolation during graph mutations and reads.
 - Producing deterministic authorization decisions based solely on local state.
 
-This specification does not define:
+This specification does not cover the following:
 
 - Authenticate identities or verify cryptographic signatures.
 - Perform schema compilation or migration.

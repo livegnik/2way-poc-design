@@ -12,7 +12,7 @@ Key lifecycle, key storage layout, identity creation, key rotation, revocation, 
 
 ## 2. Responsibilities
 
-This specification defines:
+This specification is responsible for the following:
 
 - The required signing algorithm for protocol messages and envelopes.
 - The required asymmetric encryption algorithm for confidential payloads.
@@ -20,7 +20,7 @@ This specification defines:
 - Verification and decryption failure behavior at protocol boundaries.
 - Cryptographic trust boundaries between Network Manager, State Manager, Key Manager, and Graph Manager.
 
-This specification does not define:
+This specification does not cover the following:
 
 - How keys are generated, stored, rotated, revoked, or delegated.
 - How identities are represented in the graph.
