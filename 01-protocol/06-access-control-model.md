@@ -6,54 +6,53 @@
 
 ## 1. Purpose and scope
 
-This document defines the access control model of the 2WAY protocol as implemented in the PoC. It specifies how authorization decisions are derived and enforced for graph operations. It covers permission evaluation semantics only. Authentication, identity construction, schema definition, sync behavior, and storage mechanics are defined elsewhere and are referenced but not restated.
+This document defines the access control model of the 2WAY protocol as implemented in the PoC. It specifies how permissions are expressed, evaluated, and enforced at the protocol level. It covers authorization semantics only. Authentication, identity representation, cryptographic verification, schema definition, sync behavior, and storage mechanics are defined elsewhere and are referenced but not restated.
 
 This document is normative for the PoC.
 
 ## 2. Responsibilities
 
-The access control model is responsible for:
+The access control model is responsible for the following:
 
 - Determining whether an authenticated identity is permitted to perform a specific operation on a specific graph object.
-- Enforcing ownership and explicit permission boundaries.
-- Enforcing app and domain isolation during read and write operations.
-- Producing a deterministic allow or reject decision for each operation.
+- Enforcing ownership, schema rules, and explicit access control constraints.
+- Enforcing app and domain isolation during graph mutations and reads.
+- Producing deterministic authorization decisions based solely on local state.
 
-The access control model is not responsible for identity verification, signature validation, schema validation, sync conflict resolution, or persistence.
+The access control model is not responsible for identity verification, signature validation, schema compilation, transport security, or sync ordering.
 
 ## 3. Invariants and guarantees
 
-The following invariants are enforced:
+The access control model enforces the following invariants:
 
-- No graph write operation may succeed without passing access control evaluation.
-- Authorization decisions are based solely on local state and declared rules.
+- No operation may mutate graph state unless explicitly authorized.
+- Authorization decisions are derived solely from local graph state and compiled schemas.
 - Authorization evaluation has no side effects.
-- Authorization is evaluated per operation and is not cached across operations.
+- Authorization is evaluated before any persistent write occurs.
 
 The following guarantees are provided:
 
-- Unauthorized graph mutations are rejected before persistence.
-- Operations cannot bypass access control by using alternative execution paths.
-- Authorization behavior is deterministic for a given graph state and operation.
+- Unauthorized operations are rejected before reaching storage.
+- Schema defined prohibitions cannot be overridden by object level access rules.
+- App and domain boundaries are strictly enforced.
 
-## 4. Authorization inputs
+## 4. Access control inputs
 
 Authorization evaluation operates on the following inputs:
 
 - Authenticated identity identifier.
-- Operation type, including create, update, or delete.
+- Device or delegated key identifier, if present in the OperationContext.
+- Operation type, including create, update, delete, or read.
 - Target object identifiers and object types.
-- App identifier and domain identifier associated with the operation.
-- Local graph state required to evaluate ownership and ACLs.
-- Applicable schema rules.
+- App identifier and domain identifier.
+- Local graph state, including Parents, Attributes, Edges, Ratings, and ACL objects.
+- Compiled schema definitions applicable to the operation.
 
-No implicit context, network metadata, or transport level attributes are used.
+No implicit context, network metadata, or transport level information is used.
 
-## 5. Authorization evaluation model
+## 5. Authorization layers
 
-Authorization is evaluated as a strict gating step after structural and schema validation and before any persistence.
-
-Failure at this stage results in immediate rejection.
+Authorization is evaluated as a strict sequence of checks. Failure at any step results in rejection.
 
 ### 5.1 Ownership rules
 
@@ -61,80 +60,91 @@ Ownership is derived from Parent authorship.
 
 Rules:
 
-- The identity that creates a Parent is its permanent owner.
-- Ownership of a Parent and its owned objects cannot be reassigned.
-- Only the owning identity may mutate owned objects unless explicitly permitted by an ACL.
+- The creator of a Parent is its permanent owner.
+- Owned objects cannot be reassigned to another owner.
+- Only the owner may mutate owned objects unless an explicit ACL permits otherwise.
+- Remote operations attempting to mutate objects owned by another identity are rejected.
 
-Operations that attempt to mutate objects owned by another identity without permission are rejected.
+### 5.2 Schema level permissions
 
-### 5.2 Schema enforced access constraints
-
-Schemas define baseline access constraints.
-
-Rules:
-
-- Schemas may restrict which identities may create objects of a given type.
-- Schemas may declare object types as immutable or append only.
-- Schema constraints cannot be overridden by ACLs.
-
-Schema violations result in rejection prior to ACL evaluation.
-
-### 5.3 App and domain isolation
-
-Access control enforces isolation between apps and domains.
+Schemas define default access semantics for object types.
 
 Rules:
 
-- Operations are authorized only within the app and domain in which they are defined.
-- Objects from different apps are not writable across app boundaries.
-- Cross app access is permitted only where explicitly allowed by schema.
+- Each object type declares whether it is mutable, append only, or immutable.
+- Each object type declares which identities may create instances of that type.
+- Allowed relations between object types are fixed by schema.
+- Cross app object access is forbidden unless explicitly permitted by schema.
 
-Operations that cross app or domain boundaries without explicit allowance are rejected.
+Schema validation occurs before ACL evaluation.
+
+### 5.3 App and domain boundaries
+
+Apps and domains define isolation scopes.
+
+Rules:
+
+- Operations are evaluated only within the app and domain they target.
+- Objects from other apps are not visible unless schema rules explicitly allow it.
+- Domains may restrict mutation and visibility, including participation in sync.
+
+Operations that cross app or domain boundaries without explicit authorization are rejected.
 
 ### 5.4 Object level ACLs
 
-ACLs provide explicit permission grants.
+ACLs provide explicit permission rules bound to specific objects or object sets.
 
 Rules:
 
-- ACLs are graph objects associated with specific targets.
-- ACLs may grant read or write permissions to specific identities.
-- ACLs cannot grant permissions that violate schema constraints or ownership invariants.
+- ACLs are graph objects evaluated as part of authorization.
+- ACLs may grant or deny read or write permissions.
+- ACLs cannot override schema level prohibitions.
+- Explicit deny rules take precedence over grant rules.
 
-Absence of an ACL implies denial unless ownership or schema rules permit the operation.
+### 5.5 Graph derived constraints
+
+Authorization may depend on graph structure when explicitly defined by schema.
+
+Rules:
+
+- Membership edges may gate access to group scoped objects.
+- Degrees of separation may restrict visibility or interaction.
+- Rating or trust based thresholds may gate participation.
+
+All such constraints must be explicitly declared by schema and evaluated deterministically.
 
 ## 6. Allowed behaviors
 
-The following behaviors are allowed when all authorization checks pass:
+The following behaviors are allowed when all authorization layers succeed:
 
-- Creation of objects by an identity within its permitted scope.
-- Mutation of owned objects when schema permits mutation.
-- Access to non owned objects when explicitly permitted by ACLs.
-
-All other behaviors are disallowed.
+- Creation of new objects within the identity’s authorized scope.
+- Mutation of owned objects when schema and ACL rules permit mutation.
+- Read access to objects permitted by visibility rules.
+- Limited interaction with non owned objects when explicitly authorized.
 
 ## 7. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
 - Mutating objects owned by another identity without explicit permission.
-- Overriding schema constraints using ACLs.
-- Writing objects outside the declared app or domain.
-- Deriving authorization from transport, peer identity, or network context.
-- Partial authorization. Operations are either fully authorized or rejected.
+- Bypassing schema restrictions through ACLs.
+- Reading or writing objects outside the authorized app or domain.
+- Inferring permissions from peer identity, network origin, or transport context.
+- Partial authorization of an operation. Authorization is atomic per operation.
 
 ## 8. Interaction with other components
 
 The access control model interacts with other components as follows:
 
-- Input is received from the validation pipeline after authentication and schema validation.
-- Output is a binary authorization decision.
-- No direct access to storage or network layers exists.
+- Inputs are received after authentication, signature verification, and schema validation.
+- Outputs are allow or reject decisions.
+- No direct access to storage is permitted.
+- No graph mutations occur during authorization evaluation.
 
 Trust boundaries:
 
 - All inputs are treated as untrusted until validated.
-- Only local graph state and schema definitions are trusted for authorization decisions.
+- Authorization logic relies only on local graph state and compiled schemas.
 
 ## 9. Failure and rejection behavior
 
@@ -142,30 +152,28 @@ On authorization failure:
 
 - The operation is rejected.
 - No state is mutated.
-- No partial effects occur.
-- A deterministic rejection result is returned.
+- No partial writes occur.
+- A deterministic error result is returned to the caller.
 
-Authorization failures do not alter system state.
+Authorization failures do not modify graph state or authorization rules.
 
 ## 10. Non responsibilities
 
 The access control model does not:
 
 - Authenticate identities or verify cryptographic signatures.
-- Validate object structure or schema correctness.
-- Resolve sync conflicts or ordering.
+- Perform schema compilation or migration.
+- Resolve conflicts during sync.
 - Enforce rate limits or denial of service protections.
-- Persist audit logs beyond signaling rejection.
+- Persist audit logs beyond standard error reporting.
 
-These concerns are addressed by other components.
+These concerns are defined in other documents.
 
 ## 11. Security properties
 
-The access control model enforces:
+The access control model ensures:
 
-- Explicit permission boundaries.
-- Least privilege by default.
-- Deterministic authorization.
-- Structural resistance to privilege escalation.
-
-No heuristic or probabilistic mechanisms are used.
+- Least privilege enforcement.
+- Explicit and auditable permission boundaries.
+- Deterministic authorization behavior.
+- Structural resistance to privilege escalation within the PoC design.
