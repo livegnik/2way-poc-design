@@ -12,21 +12,21 @@ This document does not define serialization formats, envelope structures, schema
 
 ## 2. Responsibilities
 
-This specification is responsible for:
+This specification defines:
 
-* Defining the canonical graph object categories.
-* Defining required fields and reference structure for each object category.
-* Defining object level invariants that are enforced independently of schema or ACL logic.
-* Defining cross object and cross category structural constraints.
-* Defining explicit rejection conditions for structurally invalid objects.
+* The canonical graph object categories.
+* Required fields and reference structure for each object category.
+* Object level invariants that are enforced independently of schema or ACL logic.
+* Cross object and cross category structural constraints.
+* Explicit rejection conditions for structurally invalid objects.
 
-This specification is not responsible for:
+This specification does not define:
 
-* Defining schema meaning, type validation, or value interpretation.
-* Defining authorization rules or ACL evaluation.
-* Defining envelope formats or wire serialization.
-* Defining persistence schemas, indexes, or query behavior.
-* Defining sync ordering, conflict resolution, or domain selection.
+* Schema meaning, type validation, or value interpretation.
+* Authorization rules or ACL evaluation.
+* Envelope formats or wire serialization.
+* Persistence schemas, indexes, or query behavior.
+* Sync ordering, conflict resolution, or domain selection.
 
 ## 3. Invariants and guarantees
 

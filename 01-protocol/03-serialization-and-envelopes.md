@@ -12,15 +12,15 @@ This document does not define object semantics, schema content, ACL logic, sync 
 
 ## 2. Responsibilities
 
-This specification is responsible for:
+This specification defines:
 
-* Defining envelope types and their required fields.
-* Defining operation identifiers and operation record shapes for Parent, Attribute, Edge, Rating.
-* Defining serialization constraints for interoperability, including field naming conventions.
-* Defining the signed portion of envelopes that carry signatures.
-* Defining structural validation and rejection conditions for malformed envelopes.
+* Envelope types and their required fields.
+* Operation identifiers and operation record shapes for Parent, Attribute, Edge, Rating.
+* Serialization constraints for interoperability, including field naming conventions.
+* The signed portion of envelopes that carry signatures.
+* Structural validation and rejection conditions for malformed envelopes.
 
-This specification is not responsible for:
+This specification does not define:
 
 * Mapping `type_key` to `type_id`, or validating schema semantics.
 * Evaluating authorization and ACL rules.

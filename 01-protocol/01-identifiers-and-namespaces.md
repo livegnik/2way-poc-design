@@ -12,7 +12,7 @@ This document is authoritative only for identifier semantics and namespace isola
 
 ## 2. Responsibilities and non-responsibilities
 
-This specification is responsible for:
+This specification defines:
 
 * Defining all identifier classes used by the protocol.
 * Defining namespace boundaries and isolation rules.
@@ -20,7 +20,7 @@ This specification is responsible for:
 * Defining how identifiers are interpreted across trust boundaries.
 * Defining rejection behavior for invalid, ambiguous, or unauthorized identifier usage.
 
-This specification is not responsible for:
+This specification does not define:
 
 * Key generation, signing algorithms, or encryption algorithms.
 * Graph object schemas or attribute semantics.

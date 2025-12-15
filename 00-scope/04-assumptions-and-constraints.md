@@ -10,15 +10,15 @@ This document defines the scope boundaries and goals of the 2WAY proof of concep
 
 ## 2. Responsibilities
 
-This file is responsible for:
+This specification defines:
 
-- Defining what the PoC includes at the system boundary level.
-- Defining the goals that determine PoC completeness.
-- Defining repository wide invariants and constraints that other design files assume.
-- Defining what is allowed and forbidden at the scope level.
-- Defining failure handling in terms of design compliance, not runtime behavior.
+- What the PoC includes at the system boundary level.
+- The goals that determine PoC completeness.
+- Repository wide invariants and constraints that other design files assume.
+- What is allowed and forbidden at the scope level.
+- Failure handling in terms of design compliance, not runtime behavior.
 
-This file is not responsible for:
+This specification does not define:
 
 - Protocol wire formats, message envelopes, or sync package schemas.
 - Database schemas or table layouts.

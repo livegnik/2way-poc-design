@@ -12,23 +12,19 @@ This file does not define APIs, wire formats, database schemas, or protocol flow
 
 ## 2. Responsibilities
 
-### 2.1 Responsibilities
+This specification defines:
 
-This file is responsible for:
-
-- Defining canonical meanings for repository level terms.
+- Canonical meanings for repository level terms.
 - Fixing canonical names for the fundamental graph object types and related concepts.
-- Defining naming and scoping terms used for apps, types, and domains.
-- Defining security vocabulary needed to interpret authorization, signing, rotation, and revocation rules.
+- Naming and scoping terms used for apps, types, and domains.
+- Security vocabulary needed to interpret authorization, signing, rotation, and revocation rules.
 
-### 2.2 Non responsibilities
+This specification does not define:
 
-This file is not responsible for:
-
-- Describing how managers execute validation, enforcement, or persistence.
-- Defining database schema, table layouts, or indexes.
-- Defining envelope fields, request formats, or network message layouts.
-- Defining app specific schemas or app specific type catalogs.
+- How managers execute validation, enforcement, or persistence.
+- Database schema, table layouts, or indexes.
+- Envelope fields, request formats, or network message layouts.
+- App specific schemas or app specific type catalogs.
 
 ## 3. Invariants and guarantees
 
