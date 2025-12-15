@@ -50,7 +50,7 @@ Authorization evaluation operates on the following inputs:
 
 - Authenticated identity identifier.
 - Device or delegated key identifier, if present in the OperationContext.
-- Operation type, including create, update, delete, or read.
+- Operation type, including create, update, or read.
 - Target object identifiers and object types.
 - App identifier and domain identifier.
 - Local graph state, including Parents, Attributes, Edges, Ratings, and ACL objects.
