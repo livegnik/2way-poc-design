@@ -86,88 +86,93 @@ Each directory is self contained. Cross references are explicit and normative.
 
 ## 6. Design responsibilities
 
-This repository defines:
+This repository defines the normative behavior of the 2WAY system, including:
 
-- The protocol governing identity, authorship, validation, and synchronization.
-- The architectural separation between managers, services, apps, and frontends.
-- The security invariants enforced under adversarial conditions.
-- The graph based data model and persistence rules.
-- Allowed and forbidden component interactions.
-- Failure handling and rejection semantics.
+- The protocol governing identity, authorship, validation, authorization, and synchronization.
+- The architectural separation and trust boundaries between managers, services, applications, and frontends.
+- The security invariants enforced under adversarial and partially compromised conditions.
+- The graph based data model, including object types, ownership rules, and persistence guarantees.
+- The allowed and forbidden interactions between system components.
+- Failure handling, rejection semantics, and error containment behavior.
 
-This repository does not define:
+This repository explicitly does not define:
 
-- User interface behavior.
-- Performance optimizations beyond stated constraints.
-- Deployment or infrastructure automation.
-- Operational monitoring beyond logging semantics.
+- User interface behavior or presentation logic.
+- Performance optimizations beyond stated resource and correctness constraints.
+- Deployment, orchestration, or infrastructure automation.
+- Operational monitoring or observability beyond logging semantics.
 
 ## 7. Global invariants
 
-The following invariants apply system wide unless explicitly overridden:
+The following invariants apply system wide unless explicitly overridden by a more specific rule:
 
 - Every operation is bound to a verifiable cryptographic identity.
-- No graph mutation bypasses Graph Manager, Schema Manager, and ACL Manager.
-- Ownership of Parents is immutable.
-- Persistent ordering derives solely from monotonically increasing sequence numbers.
-- Accepted history is never rewritten.
-- Apps are isolated by schema and domain boundaries.
-- Backend managers form a trusted kernel and are not extensible by apps.
+- All graph mutations pass through Graph Manager, Schema Manager, and ACL Manager.
+- Ownership of Parents is immutable for the lifetime of the object.
+- Persistent ordering derives exclusively from monotonically increasing sequence numbers.
+- Accepted history is never rewritten or retroactively altered.
+- Applications are isolated through schema and domain boundaries.
+- Backend managers form a trusted kernel and are not extensible or bypassable by applications.
 
-Violation of any invariant constitutes a correctness failure.
+Violation of any invariant constitutes a correctness failure and results in rejection of the violating operation.
 
 ## 8. Allowed and forbidden behaviors
 
+This section defines behaviors that are explicitly permitted or prohibited by the design. Any behavior not listed as allowed is forbidden unless explicitly specified elsewhere.
+
 ### 8.1 Allowed behaviors
 
-- Nodes validate, reject, and store operations independently.
-- Peers exchange signed and optionally encrypted sync envelopes.
-- Apps define domain specific semantics through schemas.
-- Identities delegate scoped authority through explicit graph structure.
-- Nodes operate offline and resume synchronization incrementally.
+- Nodes validate, reject, and persist operations independently based on local state.
+- Peers exchange signed and optionally encrypted synchronization envelopes.
+- Applications define domain specific semantics exclusively through schemas and domain rules.
+- Identities delegate scoped authority through explicit graph relationships.
+- Nodes operate offline with full local authority and resume synchronization incrementally.
+- Nodes selectively synchronize data according to domain and access control rules.
 
 ### 8.2 Forbidden behaviors
 
-- Implicit trust based on network location or transport.
-- Direct persistent storage access outside Graph Manager.
-- Cross app reinterpretation of objects.
-- Retroactive modification of owned objects.
-- Global trust or reputation assumptions.
-- Privilege escalation through synchronization.
+- Implicit trust based on network location, transport layer, or peer identity.
+- Direct access to persistent storage outside Storage Manager.
+- Direct acces to graph mutation outside Graph Manager.
+- Cross application reinterpretation or mutation of objects.
+- Retroactive modification or deletion of owned objects.
+- Global trust, reputation, or authority assumptions.
+- Privilege escalation through synchronization or envelope replay.
 
-Any forbidden behavior is a protocol violation.
+Any forbidden behavior constitutes a protocol violation and must be rejected.
 
 ## 9. Component interaction model
 
-Components interact only through defined inputs and outputs.
+Components interact only through explicitly defined interfaces and trust boundaries.
 
-- Frontend apps submit operations through documented APIs.
-- Services operate with explicit, limited manager references.
-- Managers communicate through internal interfaces only.
-- Network input always crosses a trust boundary and is treated as untrusted.
-- Persistent storage is reachable only through Graph Manager.
+- Frontend applications submit operations exclusively through documented APIs.
+- Backend services operate with explicit and minimal manager references.
+- Managers communicate only through internal interfaces and never bypass validation layers.
+- All network input crosses a trust boundary and is treated as untrusted.
+- Persistent storage is reachable exclusively through Storage Manager.
+- All graph mutations occur exclusively through Graph Manager.
 
-Trust boundaries are explicit and enforced at every interface.
+No component may infer authority or trust outside these interfaces. Trust boundaries are enforced structurally at every interaction point.
 
 ## 10. Failure and rejection behavior
 
-The system fails closed.
+The system fails closed under all error conditions.
 
-- Invalid input is rejected before persistence.
+- Invalid or malformed input is rejected before any persistent state change.
 - Unauthorized operations are rejected without side effects.
-- Malformed envelopes are discarded.
-- Replayed or out of order sync data is ignored.
-- Revoked keys invalidate subsequent operations immediately.
+- Malformed or unverifiable envelopes are discarded immediately.
+- Replayed, out of order, or inconsistent sync data is ignored.
+- Operations signed by revoked keys are rejected regardless of sequence order.
 
-Failures are logged. Partial state application is not permitted.
+Failures are logged for audit and recovery purposes. Partial state application is not permitted.
 
 ## 11. Conformance
 
 An implementation conforms to this design if and only if:
 
-- All invariants defined in this repository hold under all allowed operations.
-- All forbidden behaviors are structurally impossible.
+- All global and local invariants defined in this repository hold under all allowed operations.
+- All forbidden behaviors are structurally impossible to execute.
 - All security properties defined in the security documentation are enforced.
-- All protocol rules are implemented without deviation.
+- All protocol rules are implemented exactly as specified.
 
-Any deviation requires an explicit Architecture Decision Record.
+Any deviation from this design requires an explicit Architecture Decision Record.
