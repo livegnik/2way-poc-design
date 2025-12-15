@@ -144,7 +144,7 @@ Transport outputs may be consumed only by:
 
 - Network Manager.
 - State Manager for sync coordination.
-- DoS Guard Engine mechanisms for behavioral analysis.
+- DoS Guard Manager mechanisms for behavioral analysis.
 
 No other component may directly access the transport.
 
