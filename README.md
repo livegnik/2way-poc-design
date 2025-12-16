@@ -2,177 +2,273 @@
 
 
 
-# 2WAY System Design PoC Repository
+# 2WAY System PoC Design Repository
 
-## 1. Purpose and scope
+## What this repository is
 
-This repository defines the normative design for the 2WAY proof of concept (PoC) system. It specifies the protocol, architecture, security model, data structures, and component boundaries necessary to implement and evaluate the PoC.
+This repository contains the normative system design for the 2WAY proof of concept (PoC).
 
-This is a design specification, not an implementation. It outlines required behavior, invariants, and constraints. All documents are binding unless explicitly marked otherwise.
+2WAY is a local-first, peer-to-peer application substrate that provides identity, data ownership, access control, synchronization, and trust semantics as shared infrastructure rather than application-specific backend logic.
 
-The scope is limited to the elements necessary for building a correct, secure, and interoperable PoC.
+The design defined here is complete at the protocol and architecture level. All major data models, security properties, failure modes, operational flows, and implementation constraints required for a correct PoC are explicitly specified.
 
-## 2. System overview
+This repository defines what must exist and how it must behave.
+It is a design specification, not a production implementation.
 
-2WAY is a peer to peer application platform that provides identity, data ownership, access control, synchronization, and trust semantics as shared infrastructure rather than application specific logic.
+## What this repository is not
 
-Applications built on 2WAY do not operate on isolated databases or central backends. They operate on a shared, local first graph that represents users, devices, relationships, content, and app specific state under a single identity and permission model. This allows multiple independent apps to interoperate over the same data without sharing control or authority.
+* Not an SDK
+* Not a reference or demo implementation
+* Not a deployment, orchestration, or operations guide
+* Not a UI or product specification
+* Not a performance-optimized or horizontally scaled system
 
-The platform enables applications to:
+Anything not explicitly defined within the scope of this repository is out of bounds and must not be assumed.
 
-- Share user owned data across apps without central storage.
-- Compose multiple applications over a common identity, contact, and trust graph.
-- Enforce permissions and visibility structurally rather than through server side policy.
-- Synchronize state directly between peers without trusted intermediaries.
-- Operate offline with full local authority and reconcile state incrementally.
-- Limit the influence of unknown or untrusted identities through graph structure.
-- Provide verifiable authorship, provenance, and ordering for all application state.
-- Recover from compromise or corruption using cryptographically anchored history.
-- Delegate scoped authority to devices, services, or automated agents.
-- Isolate application logic while reusing common identity, trust, and sync primitives.
+## Who this repository is for
 
-All actors and data are represented as typed graph objects with immutable authorship and explicit ownership. Identity is the root of trust. Every operation may be cryptographically signed. Every mutation is validated. Access control is enforced through schema and graph boundaries rather than implicit context.
+* Systems engineers evaluating the protocol and architecture
+* Implementers building the PoC exactly as specified
+* Reviewers auditing correctness, isolation, and security properties
 
-Each node maintains its own authoritative state. Nodes exchange data using signed, ordered synchronization envelopes. No node is required to trust remote peers, transports, or infrastructure. Consistency emerges from deterministic validation, strict ordering, and explicit synchronization rules rather than global coordination.
+Suggested reading paths:
 
-The system is designed to operate under partial compromise. Individual applications, devices, peers, or identities may become hostile without compromising unrelated state or violating global invariants.
+* **Conceptual orientation:** start with `00-scope`, then `01-protocol`
+* **Security audit:** start with `05-security`, then `01-protocol` and `02-architecture`
+* **Implementation:** read in numeric order, prioritizing `07-poc`
+* **Operational behavior:** focus on `06-flows`
 
-## 3. Design principles
+The repository is designed to support all of these perspectives without reinterpretation.
 
-The design adheres to the following principles:
+## Design posture and threat framing
 
-- Identity is explicit, cryptographic, and first class.
-- All state transitions are verifiable.
-- Trust is minimized and distributed.
-- Authority is explicitly scoped and delegated.
-- History is append only and tamper evident.
-- Isolation is enforced between applications and domains.
-- Validation precedes persistence.
-- Failure modes are explicit and closed by default.
+2WAY is designed under the assumption of adversarial and unreliable environments.
 
-These principles are enforced structurally and are mandatory.
+The PoC explicitly considers and constrains:
 
-## 4. Document authority and interpretation
+* Untrusted or malicious peers
+* Sybil identity creation
+* Unauthorized graph mutation
+* Replay and reordering attacks
+* Denial-of-service through malformed or excessive input
+* Partial compromise of nodes, applications, or devices
 
-This repository is internally self consistent.
+Across the design, absence of permission, ambiguity, or incomplete context results in rejection rather than fallback behavior. The system fails closed by default.
 
-The following rules apply:
+All containment mechanisms are structural and enforced locally. No global coordination or external trust is assumed.
 
-- All documents are normative unless explicitly marked as informational.
-- Lower numbered sections override higher numbered sections within the same file.
-- More specific documents override more general documents where conflicts exist.
-- Architecture Decision Records override prior design text for the decisions they cover.
+## Core idea
 
-No external documents are required to interpret or implement this design.
+Applications built on 2WAY do not own isolated databases or central backends. They operate on a shared, local-first graph representing identities, devices, relationships, content, and app-specific state under a single authorship and permission model.
 
-## 5. Repository organization
+Each node maintains its own authoritative state. Nodes synchronize directly with peers using signed, ordered envelopes. Incoming data is always treated as untrusted and validated locally. Consistency emerges from deterministic validation, explicit ownership, strict ordering, and scoped synchronization rather than global consensus.
 
-Documents are organized by conceptual dependency. Earlier sections define constraints and rules that later sections rely on. Readers are expected to progress in this order when approaching the system for the first time.
+## Design guarantees
 
-The repository is structured as follows:
+The following properties are guaranteed by design and enforced structurally.
 
-- Scope, assumptions, and system constraints.
-- Protocol definition, including identity, object model, and synchronization rules.
-- Architecture and component model, including managers, services, and trust boundaries.
-- Data layout and interfaces, including persistence, APIs, and ordering guarantees.
-- Security model, including threat assumptions, enforcement layers, and recovery mechanisms.
-- End to end flows describing normative system behavior.
-- PoC definition, build plan, testing strategy, and acceptance criteria.
-- Architecture decisions that record resolved tradeoffs and deviations.
-- Appendices and reference material.
-- Examples of applications and platform usage.
+### Identity-bound authorship
 
-Each directory is self contained. Cross references are explicit and normative.
+Every operation is bound to a cryptographic identity.
+Ownership is explicit and immutable for the lifetime of an object.
 
-## 6. Design responsibilities
+### Append-only, tamper-evident history
 
-This repository defines the normative behavior of the 2WAY system, including:
+Accepted history is never rewritten or retroactively altered.
+Ordering is explicit, monotonic, and locally authoritative.
 
-- The protocol governing identity, authorship, validation, authorization, and synchronization.
-- The architectural separation and trust boundaries between managers, services, applications, and frontends.
-- The security invariants enforced under adversarial and partially compromised conditions.
-- The graph based data model, including object types, ownership rules, and persistence guarantees.
-- The allowed and forbidden interactions between system components.
-- Failure handling, rejection semantics, and error containment behavior.
+### Structural application isolation
 
-This repository explicitly does not define:
+Applications are isolated by schema and domain boundaries.
+Cross-application reinterpretation or mutation is structurally impossible, not merely disallowed by policy.
 
-- User interface behavior or presentation logic.
-- Performance optimizations beyond stated resource and correctness constraints.
-- Deployment, orchestration, or infrastructure automation.
-- Operational monitoring or observability beyond logging semantics.
+### Offline-first correctness
 
-## 7. Global invariants
+Nodes operate with full local authority and reconcile incrementally.
+Remote coordination is never required for correctness.
 
-The following invariants apply system wide unless explicitly overridden by a more specific rule:
+### No implicit trust
 
-- Every operation is bound to a verifiable cryptographic identity.
-- All graph mutations pass through Graph Manager, Schema Manager, and ACL Manager.
-- Ownership of Parents is immutable for the lifetime of the object.
-- Persistent ordering derives exclusively from monotonically increasing sequence numbers.
-- Accepted history is never rewritten or retroactively altered.
-- Applications are isolated through schema and domain boundaries.
-- Backend managers form a trusted kernel and are not extensible or bypassable by applications.
+Synchronization does not imply trust.
+All network input is untrusted and validated against local state, schema, and authorization rules.
 
-Violation of any invariant constitutes a correctness failure and results in rejection of the violating operation.
+## Degrees of separation and influence limits
 
-## 8. Allowed and forbidden behaviors
+Visibility and influence are constrained through explicit graph distance.
 
-This section defines behaviors that are explicitly permitted or prohibited by the design. Any behavior not listed as allowed is forbidden unless explicitly specified elsewhere.
+* Relationships define degrees of separation between identities.
+* Services and applications may restrict reads, writes, and broadcasts based on maximum allowed distance.
+* Identities outside the permitted radius are structurally ignored.
 
-### 8.1 Allowed behaviors
+This bounds unsolicited reach and limits the impact of unknown or weakly anchored peers.
 
-- Nodes validate, reject, and persist operations independently based on local state.
-- Peers exchange signed and optionally encrypted synchronization envelopes.
-- Applications define domain specific semantics exclusively through schemas and domain rules.
-- Identities delegate scoped authority through explicit graph relationships.
-- Nodes operate offline with full local authority and resume synchronization incrementally.
-- Nodes selectively synchronize data according to domain and access control rules.
+## Sybil resistance model
 
-### 8.2 Forbidden behaviors
+2WAY does not attempt global Sybil prevention.
 
-- Implicit trust based on network location, transport layer, or peer identity.
-- Direct access to persistent storage outside Storage Manager.
-- Direct acces to graph mutation outside Graph Manager.
-- Cross application reinterpretation or mutation of objects.
-- Retroactive modification or deletion of owned objects.
-- Global trust, reputation, or authority assumptions.
-- Privilege escalation through synchronization or envelope replay.
+Instead, it limits Sybil impact through graph structure:
 
-Any forbidden behavior constitutes a protocol violation and must be rejected.
+* Identities have no influence without meaningful graph anchoring.
+* Trust, ratings, and membership are app-scoped and typed.
+* Influence does not propagate across applications or domains by default.
+* Degrees of separation restrict unsolicited interaction.
 
-## 9. Component interaction model
+Large numbers of unanchored identities therefore remain inert.
 
-Components interact only through explicitly defined interfaces and trust boundaries.
+The graph encodes relationships and constraints, not social truth or moral trust.
 
-- Frontend applications submit operations exclusively through documented APIs.
-- Backend services operate with explicit and minimal manager references.
-- Managers communicate only through internal interfaces and never bypass validation layers.
-- All network input crosses a trust boundary and is treated as untrusted.
-- Persistent storage is reachable exclusively through Storage Manager.
-- All graph mutations occur exclusively through Graph Manager.
+## Denial-of-service containment
 
-No component may infer authority or trust outside these interfaces. Trust boundaries are enforced structurally at every interaction point.
+The PoC is designed to degrade predictably and fail closed under load or attack.
 
-## 10. Failure and rejection behavior
+Structural mechanisms include:
 
-The system fails closed under all error conditions.
+* Early rejection of malformed or unverifiable input
+* Schema validation before authorization
+* Authorization before any state mutation
+* A single serialized write path for ordered state
+* Scoped synchronization to avoid unbounded scans
+* Peer-level throttling and rate limiting
 
-- Invalid or malformed input is rejected before any persistent state change.
-- Unauthorized operations are rejected without side effects.
-- Malformed or unverifiable envelopes are discarded immediately.
-- Replayed, out of order, or inconsistent sync data is ignored.
-- Operations signed by revoked keys are rejected regardless of sequence order.
+These guarantees hold regardless of peer behavior.
 
-Failures are logged for audit and recovery purposes. Partial state application is not permitted.
+## Guarantees vs emergent properties
 
-## 11. Conformance
+Guaranteed by design:
 
-An implementation conforms to this design if and only if:
+* Identity-bound authorship
+* Append-only local history
+* Structural application isolation
+* Deterministic validation and ordering
+* Explicit authority delegation
+* Fail-closed behavior
 
-- All global and local invariants defined in this repository hold under all allowed operations.
-- All forbidden behaviors are structurally impossible to execute.
-- All security properties defined in the security documentation are enforced.
-- All protocol rules are implemented exactly as specified.
+Emergent from usage:
 
-Any deviation from this design requires an explicit Architecture Decision Record.
+* Trust graphs
+* Reputation signals
+* Social or economic meaning
+* Resistance to large-scale Sybil influence
+
+The system enforces structure, not meaning.
+
+## What this repository deliberately does not decide
+
+The following are intentionally left undefined or application-specific:
+
+* User interface and experience models
+* Social interpretation of trust or reputation
+* Economic incentives or token systems
+* Moderation, governance, or content policy
+* Peer discovery and bootstrap strategy
+
+The protocol constrains behavior. It does not impose policy.
+
+## Repository authority model
+
+This repository is internally self-consistent.
+
+Authority rules:
+
+* Documents marked as normative define required behavior.
+* More specific material overrides more general material.
+* Architecture Decision Records override prior text within their scope.
+* In case of ambiguity or omission, behavior is considered undefined and must not be assumed.
+
+The PoC definition is authoritative for what must be implemented.
+
+## Repository structure
+
+The repository is organized by conceptual dependency and authority level.
+Lower-numbered folders define constraints that higher-numbered folders must not bypass or contradict.
+
+The numbering is intentional and normative.
+
+```
+00-scope/
+  Defines the scope boundary of the system.
+  Goals, non-goals, terminology, assumptions, and hard constraints.
+  All other material is interpreted relative to this folder.
+
+01-protocol/
+  Normative protocol definition.
+  Identity, object model, serialization, cryptography, access control,
+  synchronization semantics, network assumptions, error handling,
+  and compatibility rules.
+  This folder defines what the protocol is.
+
+02-architecture/
+  Normative architectural design.
+  Component model, runtime topologies, trust boundaries, and data flow.
+  Includes the backend kernel, managers, services, and app boundaries,
+  as well as explicit denial-of-service guards.
+
+03-data/
+  Normative persistence and data model.
+  Storage layout, system and per-application structures,
+  indexing strategy, migrations, and explicit storage budgets.
+
+04-interfaces/
+  Normative interface definitions.
+  Local APIs, event surfaces, internal component interfaces,
+  and the system-wide error model.
+
+05-security/
+  Normative security model.
+  Threat assumptions, identity and key handling, authentication and authorization,
+  signed transport and sync integrity, encryption, rotation and recovery,
+  privacy, selective synchronization, abuse controls, and auditability.
+
+06-flows/
+  Normative end-to-end operational flows.
+  Includes success and failure paths for bootstrap, app installation,
+  graph mutation, messaging, synchronization, conflict handling,
+  key rotation, device lifecycle, and backup and restore.
+
+07-poc/
+  Proof of Concept definition and execution criteria.
+  Feature coverage, build and run expectations, testing strategy,
+  demo scenarios, known limitations, and acceptance criteria.
+  This folder is authoritative for implementation scope.
+
+08-decisions/
+  Architecture Decision Records.
+  Explicitly recorded tradeoffs, reversals, and resolved questions.
+  Decisions here override earlier design text within their scope.
+
+09-appendix/
+  Reference material.
+  Glossary, reference configurations, open questions, and diagrams.
+  Informational unless explicitly stated otherwise.
+
+10-examples/
+  Illustrative examples.
+  Non-normative demonstrations of how the protocol and architecture
+  may be used. Examples never define required behavior.
+```
+
+Later folders must not introduce concepts that violate constraints defined earlier.
+
+## Conformance
+
+An implementation conforms to the 2WAY PoC design if and only if:
+
+* All defined invariants hold under all allowed operations
+* Forbidden behaviors are structurally impossible
+* Validation, authorization, and ordering rules are enforced exactly
+* No state mutation bypasses defined architectural boundaries
+
+Any deviation requires an explicit Architecture Decision Record.
+
+## Scope boundary
+
+Only properties explicitly defined within this repository are claimed by the design.
+
+No additional guarantees should be inferred from terminology, naming, or examples.
+
+## Status
+
+This repository describes a Proof of Concept.
+
+The design prioritizes correctness, clarity, and auditability over performance or scale.
+The PoC exists to validate the protocol model and architectural boundaries before any production implementation.
