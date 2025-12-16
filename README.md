@@ -158,6 +158,32 @@ Emergent from usage:
 
 The system enforces structure, not meaning.
 
+## Application domains
+
+The 2WAY design applies to systems that require local authority, explicit trust boundaries, and bounded failure under untrusted conditions, including but not limited to:
+
+* Web and multi-application platforms
+* Mobile and desktop applications
+* Peer-to-peer and federated systems
+* Messaging, contact, and social systems
+* Collaborative and shared-workspace tools
+* Enterprise and inter-organizational platforms
+* Identity, credential, and access management systems
+* Supply chain and inter-vendor coordination systems
+* Financial, accounting, and audit-focused systems
+* Regulated and compliance-driven environments
+* Critical infrastructure and operational technology
+* Industrial control and automation systems
+* Internet of Things and edge device networks
+* Embedded systems and firmware-managed devices
+* Offline-first and intermittently connected systems
+* Mesh networks and ad-hoc communication systems
+* Defense, aerospace, and satellite-based systems
+* Research, scientific, and field-deployed platforms
+* Data-sharing platforms with strict isolation requirements
+
+Each domain reflects environments where centralized trust, implicit coordination, or silent failure are unacceptable.
+
 ## What this repository deliberately does not decide
 
 The following are intentionally left undefined or application-specific:
