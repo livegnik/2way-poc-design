@@ -6,61 +6,49 @@
 
 ## 2WAY at a glance
 
-A P2P platform replacing central backends with locally enforced cryptographic data control.
+A P2P platform that replaces central backends with locally enforced control over data and security.
 
-* Each device keeps its own data and decides what is valid
-* Decisions are based on local rules and cryptographic keys
-* All changes are signed, recorded, and never silently rewritten
-* Network data is always treated as untrusted
-* Apps and unknown users are strictly limited by default
-* Trust does not spread automatically
-* Damage from compromise stays contained
-* Security rules are enforced by structure, not by convention
-* Missing permission means rejection, not fallback behavior
-* No central backend or global coordination
-* Unclear or invalid actions are rejected
+* Each device keeps its own data and decides what it accepts
+* Decisions are made using local rules and cryptographic keys
+* All changes are signed, recorded, and cannot be silently altered
+* Data from the network is never trusted by default
+* Apps and unknown users are limited unless explicitly allowed
+* Trust does not automatically spread through the system
+* Compromise is contained instead of spreading
+* Security is enforced by how the system is built, not by convention
+* If permission is missing, the action is rejected
+* There is no central backend or global coordination
+* Invalid or unclear actions are refused
 
-2WAY is designed to remain correct under compromise.
+2WAY is designed to keep working correctly even when parts of the system fail or are compromised.
 
 ## What 2WAY is
 
-2WAY is a local-first, peer-to-peer application substrate designed to operate correctly in hostile and unreliable environments.
+2WAY replaces the traditional application backend with a shared, local data and security layer that runs on every device.
 
-It provides identity, data ownership, access control, synchronization, and trust semantics as shared infrastructure, enforced structurally rather than through centralized backends, implicit trust, or application-level convention.
+Applications run on a common graph where identity, permissions, ordering, and history are enforced by the platform, not rebuilt per app. Each node is authoritative for its own state, synchronizes directly with peers, and treats all network data as untrusted.
 
-Applications built on 2WAY do not own isolated databases or central servers. They operate on a shared, local-first graph where authorship is explicit, permissions are enforced before mutation, and history is append-only and verifiable.
-
-Each node maintains its own authoritative state. Nodes synchronize directly with peers using signed, ordered envelopes. All incoming data is treated as untrusted and validated locally.
-
-This repository contains the normative system design for the 2WAY proof of concept (PoC).
-The design is complete at the protocol and architecture level [WIP].
-
-It defines what must exist and how it must behave for a correct PoC.
-It is a design specification, not a production implementation.
+This repository defines the normative design for the 2WAY proof of concept (PoC). It specifies required behavior at the protocol and architecture level and is not a production implementation.
 
 ## Why it exists
 
-Modern application architectures fail predictably under compromise.
+Modern application architectures fail when trust is concentrated. Identity, permissions, data ownership, and synchronization are rebuilt by each application on top of centralized backends that assume networks and peers are trustworthy. When those assumptions fail, small bugs or breaches can silently escalate into broad access, corrupted data, or loss of control. The primary failure 2WAY is designed to prevent is silent escalation from local compromise to system-wide damage.
 
-Identity, authorization, ordering, synchronization, and abuse handling are repeatedly reimplemented as application-specific logic, often layered on top of centralized backends that implicitly trust infrastructure, networks, and peers. When those assumptions break, failure is silent, escalatory, and systemic.
+At the same time, existing systems connect poorly at scale. As users, devices, and applications grow, systems become either globally reachable or heavily siloed, with no structural way to limit reach based on real relationships. Every new connection increases the blast radius. 2WAY uses an explicit graph to connect identities, devices, applications, and data, where distance matters. Reach and influence can be bounded by degrees of separation rather than global rules or central coordination.
 
-The primary failure mode 2WAY is designed to prevent is silent escalation from local compromise to global control.
-
-2WAY exists to make these properties non-optional by design. Identity, authorship, access control, and ordering are enforced structurally at the graph level. Local authority is treated as a security primitive, not a convenience. Synchronization does not imply trust. Absence of permission results in rejection, not fallback behavior.
-
-The result is a system where compromise, abuse, and partial failure remain contained rather than systemic.
+Finally, most systems do not age well. Data outlives applications, applications outlive teams, and access logic becomes tied to specific implementations. This makes reuse, migration, and interoperability fragile over time. 2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, while applications evolve or disappear, allowing systems to remain usable and interoperable across long time spans.
 
 ## Core idea
 
-The core abstraction in 2WAY is a shared, local-first graph.
+At the center of 2WAY is a shared, local-first graph.
 
-The graph represents identities, devices, relationships, content, and application-specific state. Ownership is explicit. History is append-only. All mutations are validated, authorized, and ordered before persistence.
+The graph holds identities, devices, relationships, content, and application state. Ownership is explicit. History is never rewritten. Every change is checked, authorized, and ordered before it becomes part of the state.
 
-Nodes operate independently and offline. Synchronization is incremental and explicit. Consistency emerges from deterministic validation, explicit ownership, strict ordering, and scoped synchronization rather than global consensus or coordination.
+Each node works on its own and can operate offline. Synchronization happens explicitly and in small steps. Consistency comes from clear ownership, strict ordering, and local validation, not from global agreement or central coordination.
 
-The graph is not merely a data structure. It is the primary enforcement surface for security, isolation, and authority.
+The graph is more than a way to store data. It is where security, isolation, and authority are enforced. What an application can see or change is determined by the graph, not by application code or network trust.
 
-Local-first operation is a security property, ensuring correctness and authority do not depend on network availability or remote honesty.
+Running locally is a security property. Correctness and control do not depend on being online or on trusting other nodes.
 
 ## Security model and threat framing
 
@@ -208,14 +196,6 @@ Applications do not:
 * Accept network input without validation
 
 These concerns are handled once, consistently, by the platform.
-
-### Why this model exists
-
-Modern application architectures fail because trust is concentrated. Identity, permissions, data ownership, synchronization, and abuse handling are rebuilt by each application, usually on top of centralized backends that assume networks, infrastructure, and peers are mostly trustworthy. When those assumptions break, small bugs or breaches can quietly turn into broad access, corrupted data, or loss of control. The main failure 2WAY is designed to prevent is silent escalation, where local problems grow into system-wide damage.
-
-Existing systems also connect poorly at scale. As more users, devices, and applications are added, systems become either fully open or heavily siloed. There is no built-in way to limit reach or influence based on real relationships. Every connection increases the blast radius. 2WAY uses an explicit graph to connect identities, devices, applications, and data. Distance in that graph matters. Reach, influence, and coordination can be limited by degrees of separation instead of global rules or central control, allowing systems to grow while keeping interaction efficient and bounded.
-
-Finally, most systems do not age well. Data outlives applications, applications outlive teams, and teams outlive organizations. Security rules, meaning, and access logic become tied to specific implementations, making reuse, migration, and interoperability brittle over time. 2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, while applications evolve or disappear. This allows systems to remain usable, secure, and interoperable across long time spans and changing environments.
 
 ## Application domains and environments
 
