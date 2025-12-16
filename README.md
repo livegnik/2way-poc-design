@@ -211,14 +211,11 @@ These concerns are handled once, consistently, by the platform.
 
 ### Why this model exists
 
-By moving security, identity, and data integrity below the application layer, 2WAY ensures that:
+Modern application architectures fail because trust is concentrated. Identity, permissions, data ownership, synchronization, and abuse handling are rebuilt by each application, usually on top of centralized backends that assume networks, infrastructure, and peers are mostly trustworthy. When those assumptions break, small bugs or breaches can quietly turn into broad access, corrupted data, or loss of control. The main failure 2WAY is designed to prevent is silent escalation, where local problems grow into system-wide damage.
 
-* Applications cannot accidentally bypass critical guarantees
-* Compromise of one application does not compromise others
-* Application logic remains portable across environments
-* The same application can run on a single device, across peers, or in large deployments without changing its trust model
+Existing systems also connect poorly at scale. As more users, devices, and applications are added, systems become either fully open or heavily siloed. There is no built-in way to limit reach or influence based on real relationships. Every connection increases the blast radius. 2WAY uses an explicit graph to connect identities, devices, applications, and data. Distance in that graph matters. Reach, influence, and coordination can be limited by degrees of separation instead of global rules or central control, allowing systems to grow while keeping interaction efficient and bounded.
 
-This makes the application model stable across vastly different environments, from embedded systems and edge devices to desktops, servers, and distributed deployments.
+Finally, most systems do not age well. Data outlives applications, applications outlive teams, and teams outlive organizations. Security rules, meaning, and access logic become tied to specific implementations, making reuse, migration, and interoperability brittle over time. 2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, while applications evolve or disappear. This allows systems to remain usable, secure, and interoperable across long time spans and changing environments.
 
 ## Application domains and environments
 
