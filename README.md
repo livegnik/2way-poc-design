@@ -8,17 +8,17 @@
 
 A P2P platform replacing central backends with locally enforced cryptographic data control.
 
-* Each device keeps its own data and decides what is valid.
-* Decisions are based on local rules and cryptographic keys.
-* All changes are signed, recorded, and never silently rewritten.
-* Network data is always treated as untrusted.
-* Apps and unknown users are strictly limited by default.
-* Trust does not spread automatically.
-* Damage from compromise stays contained.
-* Security rules are enforced by structure, not by convention.
-* Missing permission means rejection, not fallback behavior.
-* No central backend or global coordination.
-* Unclear or invalid actions are rejected.
+* Each device keeps its own data and decides what is valid
+* Decisions are based on local rules and cryptographic keys
+* All changes are signed, recorded, and never silently rewritten
+* Network data is always treated as untrusted
+* Apps and unknown users are strictly limited by default
+* Trust does not spread automatically
+* Damage from compromise stays contained
+* Security rules are enforced by structure, not by convention
+* Missing permission means rejection, not fallback behavior
+* No central backend or global coordination
+* Unclear or invalid actions are rejected
 
 2WAY is designed to remain correct under compromise.
 
@@ -149,14 +149,24 @@ These properties are enforced structurally, not by convention or policy.
 
 ## What the system enables but does not define
 
-Emergent from usage:
+The 2WAY platform enforces structure and limits.
+What that structure means is decided by applications and users.
 
-* Trust graphs
-* Reputation signals
-* Social or economic meaning
-* Resistance to large-scale Sybil influence
+What can emerge from use, but is not defined by the system:
 
-The system enforces structure, not meaning.
+* Trust relationships that grow from direct connections, past interactions, and closeness in the graph, without the system deciding who to trust
+* Reputation or credibility signals based on recorded actions, where each application decides how to interpret them
+* Social, economic, or organizational meaning built on top of neutral, verifiable data
+* Resistance to large-scale fake identities because reach is limited and relationships must be explicit
+* Rules, moderation, and governance created by applications or communities, not baked into the platform
+* Incentives, rewards, penalties, or markets that use stored data, but are not required by the system
+* User interfaces and ways of interacting that differ by device, environment, and use case
+* Ways of coordinating and working together that rely on shared state and clear authority, without a fixed process
+
+The system decides what is allowed and what is not.
+It does not decide what actions mean or why they matter.
+
+Structure is guaranteed. Meaning is not.
 
 ## Application model for developers
 
@@ -167,11 +177,11 @@ Applications built on 2WAY do not manage their own backends, databases, or trust
 
 From a developer's perspective:
 
-* An application defines its own data types, schemas, and logic.
-* All application state is stored in the shared graph, under explicit ownership and access rules.
-* Reads and writes are validated, authorized, ordered, and persisted by the platform before the application observes them.
-* Synchronization with other devices or peers happens through the platform, not through application-managed networking.
-* Applications never receive raw, implicit trust over external input.
+* An application defines its own data types, schemas, and logic
+* All application state is stored in the shared graph, under explicit ownership and access rules
+* Reads and writes are validated, authorized, ordered, and persisted by the platform before the application observes them
+* Synchronization with other devices or peers happens through the platform, not through application-managed networking
+* Applications never receive raw, implicit trust over external input
 
 This applies equally to backend services, frontend applications, background agents, embedded software, and headless systems.
 
@@ -210,23 +220,17 @@ By moving security, identity, and data integrity below the application layer, 2W
 
 This makes the application model stable across vastly different environments, from embedded systems and edge devices to desktops, servers, and distributed deployments.
 
-### Applicability across domains
+## Application domains and environments
 
-Because applications rely on the same substrate regardless of environment, the model applies uniformly to:
+2WAY applies to systems where local authority, explicit trust boundaries, and bounded failure matter, regardless of environment or scale.
 
-* Web and non-web applications
-* User-facing and headless systems
-* Resource-constrained devices and data centers
-* Online, offline, and intermittently connected environments
+Applications built on the platform rely on the same substrate everywhere. The same rules apply across online and offline operation, constrained and unconstrained hardware, and human-facing or autonomous systems. Applications inherit these guarantees automatically.
 
-The platform enforces the same rules everywhere. Applications inherit those guarantees automatically.
-
-## Application domains
-
-The 2WAY design applies to systems that require local authority, explicit trust boundaries, and bounded failure under untrusted conditions, including but not limited to:
+Applicable domains include:
 
 * Web and multi-application platforms
-* Mobile and desktop applications
+* Mobile, desktop, and non-web applications
+* User-facing and headless systems
 * Peer-to-peer and federated systems
 * Messaging, contact, and social systems
 * Collaborative and shared-workspace tools
@@ -239,13 +243,14 @@ The 2WAY design applies to systems that require local authority, explicit trust 
 * Industrial control and automation systems
 * Internet of Things and edge device networks
 * Embedded systems and firmware-managed devices
+* Resource-constrained devices and data centers
 * Offline-first and intermittently connected systems
 * Mesh networks and ad-hoc communication systems
 * Defense, aerospace, and satellite-based systems
 * Research, scientific, and field-deployed platforms
 * Data-sharing platforms with strict isolation requirements
 
-Each domain reflects environments where centralized trust, implicit coordination, or silent failure are unacceptable.
+These domains share a common requirement: centralized trust, implicit coordination, and silent failure are unacceptable.
 
 ## What this repository deliberately does not decide
 
