@@ -226,7 +226,7 @@ The numbering is intentional and normative.
     key rotation, device lifecycle, and backup and restore.
 
 07-poc/
-  - Proof of Concept definition and execution criteria.
+  - Proof of concept definition and execution criteria.
   - Feature coverage, build and run expectations, testing strategy,
     demo scenarios, known limitations, and acceptance criteria.
   - This folder is authoritative for implementation scope.
@@ -268,7 +268,7 @@ No additional guarantees should be inferred from terminology, naming, or example
 
 ## Status
 
-This repository describes a Proof of Concept.
+This repository describes a proof of concept.
 
 The design prioritizes correctness, clarity, and auditability over performance or scale.
 The PoC exists to validate the protocol model and architectural boundaries before any production implementation.
