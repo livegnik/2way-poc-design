@@ -158,6 +158,69 @@ Emergent from usage:
 
 The system enforces structure, not meaning.
 
+## Application model for developers
+
+2WAY is not an application framework and not a runtime in the traditional sense.
+It is a shared execution substrate that applications run on top of.
+
+Applications built on 2WAY do not manage their own backends, databases, or trust models. Instead, they execute within an environment where identity, data ownership, permissions, synchronization, and auditability are already enforced by the platform.
+
+From a developer's perspective:
+
+* An application defines its own data types, schemas, and logic.
+* All application state is stored in the shared graph, under explicit ownership and access rules.
+* Reads and writes are validated, authorized, ordered, and persisted by the platform before the application observes them.
+* Synchronization with other devices or peers happens through the platform, not through application-managed networking.
+* Applications never receive raw, implicit trust over external input.
+
+This applies equally to backend services, frontend applications, background agents, embedded software, and headless systems.
+
+### What applications do
+
+Applications focus on domain logic:
+
+* Defining what data exists and how it relates
+* Defining who may read or modify that data
+* Reacting to state changes and events
+* Presenting, processing, or acting on data locally
+
+Applications may expose user interfaces, provide services to other applications, control devices, or run autonomously. The platform does not assume a specific interaction model.
+
+### What applications do not do
+
+Applications do not:
+
+* Run or trust a central backend
+* Manage identity or key material directly
+* Implement custom synchronization protocols
+* Rebuild access control or trust logic
+* Resolve conflicts by overwriting state
+* Accept network input without validation
+
+These concerns are handled once, consistently, by the platform.
+
+### Why this model exists
+
+By moving security, identity, and data integrity below the application layer, 2WAY ensures that:
+
+* Applications cannot accidentally bypass critical guarantees
+* Compromise of one application does not compromise others
+* Application logic remains portable across environments
+* The same application can run on a single device, across peers, or in large deployments without changing its trust model
+
+This makes the application model stable across vastly different environments, from embedded systems and edge devices to desktops, servers, and distributed deployments.
+
+### Applicability across domains
+
+Because applications rely on the same substrate regardless of environment, the model applies uniformly to:
+
+* Web and non-web applications
+* User-facing and headless systems
+* Resource-constrained devices and data centers
+* Online, offline, and intermittently connected environments
+
+The platform enforces the same rules everywhere. Applications inherit those guarantees automatically.
+
 ## Application domains
 
 The 2WAY design applies to systems that require local authority, explicit trust boundaries, and bounded failure under untrusted conditions, including but not limited to:
