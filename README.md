@@ -33,7 +33,7 @@ Applications built on 2WAY do not own isolated databases or central servers. The
 Each node maintains its own authoritative state. Nodes synchronize directly with peers using signed, ordered envelopes. All incoming data is treated as untrusted and validated locally.
 
 This repository contains the normative system design for the 2WAY proof of concept (PoC).
-The design is complete at the protocol and architecture level.
+The design is complete at the protocol and architecture level [WIP].
 
 It defines what must exist and how it must behave for a correct PoC.
 It is a design specification, not a production implementation.
