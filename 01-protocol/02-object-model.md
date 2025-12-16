@@ -10,7 +10,7 @@ This document defines the normative graph object model used by 2WAY. It specifie
 
 This document does not define serialization formats, envelope structures, schema semantics, ACL evaluation logic, persistence layout, or synchronization behavior. Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

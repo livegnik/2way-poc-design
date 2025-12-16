@@ -10,7 +10,7 @@ This file specifies the cryptographic algorithms and protocol level rules for si
 
 Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in other documents and are out of scope here.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

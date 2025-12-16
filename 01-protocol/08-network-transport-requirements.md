@@ -19,7 +19,7 @@ It operates:
 
 The transport layer is not a trust boundary and must be treated as adversarial by all consuming components.
 
-## 3. Responsibilities and non-responsibilities
+## 3. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

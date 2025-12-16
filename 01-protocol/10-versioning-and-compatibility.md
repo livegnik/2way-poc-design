@@ -8,7 +8,7 @@
 
 This document defines protocol versioning and compatibility rules for 2WAY. It specifies how protocol versions are represented, how peers determine compatibility, and how version mismatches are handled. This file applies strictly to the protocol layer. It does not define application versioning, schema evolution, storage migrations, API versioning, or deployment concerns.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

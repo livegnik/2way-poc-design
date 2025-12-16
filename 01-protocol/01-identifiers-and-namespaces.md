@@ -10,7 +10,7 @@ This document defines the identifier classes and namespace rules used by the 2WA
 
 This document is authoritative only for identifier semantics and namespace isolation. It does not define cryptographic primitives, schema content, ACL logic, sync mechanics, storage layout, or network transport, except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
 
-## 2. Responsibilities and non-responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

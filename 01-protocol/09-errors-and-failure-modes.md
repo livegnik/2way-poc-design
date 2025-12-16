@@ -8,7 +8,7 @@
 
 This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define transport formats, API payloads, logging, or user-facing presentation.
 
-### 2. Responsibilities
+### 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

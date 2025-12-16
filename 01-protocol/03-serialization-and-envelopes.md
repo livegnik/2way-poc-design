@@ -10,7 +10,7 @@ This document defines the normative envelope structures and serialization rules 
 
 This document does not define object semantics, schema content, ACL logic, sync selection rules, or storage layout. Those are defined elsewhere.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

@@ -10,7 +10,7 @@ This document defines the access control model of the 2WAY protocol as implement
 
 This document is normative for the PoC.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

@@ -10,7 +10,7 @@ This document defines the protocol-level model for identities and cryptographic 
 
 This document is normative for all 2WAY-compliant implementations.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 

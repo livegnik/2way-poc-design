@@ -8,7 +8,7 @@
 
 This document defines the protocol-level synchronization and consistency rules for 2WAY. It specifies how graph state is exchanged between peers, how ordering and integrity are enforced, and which guarantees are provided. It is limited to protocol semantics. It does not define transport mechanisms, cryptographic primitives, access control rules, or storage internals beyond what is required for correctness of sync.
 
-## 2. Responsibilities
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
