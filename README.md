@@ -186,65 +186,65 @@ The numbering is intentional and normative.
 
 ```
 00-scope/
-  Defines the scope boundary of the system.
-  Goals, non-goals, terminology, assumptions, and hard constraints.
-  All other material is interpreted relative to this folder.
+  - Defines the scope boundary of the system.
+  - Goals, non-goals, terminology, assumptions, and hard constraints.
+  - All other material is interpreted relative to this folder.
 
 01-protocol/
-  Normative protocol definition.
-  Identity, object model, serialization, cryptography, access control,
-  synchronization semantics, network assumptions, error handling,
-  and compatibility rules.
-  This folder defines what the protocol is.
+  - Normative protocol definition.
+  - Identity, object model, serialization, cryptography, access control,
+    synchronization semantics, network assumptions, error handling,
+    and compatibility rules.
+  - This folder defines what the protocol is.
 
 02-architecture/
-  Normative architectural design.
-  Component model, runtime topologies, trust boundaries, and data flow.
-  Includes the backend kernel, managers, services, and app boundaries,
-  as well as explicit denial-of-service guards.
+  - Normative architectural design.
+  - Component model, runtime topologies, trust boundaries, and data flow.
+  - Includes the backend kernel, managers, services, and app boundaries,
+    as well as explicit denial-of-service guards.
 
 03-data/
-  Normative persistence and data model.
-  Storage layout, system and per-application structures,
-  indexing strategy, migrations, and explicit storage budgets.
+  - Normative persistence and data model.
+  - Storage layout, system and per-application structures,
+    indexing strategy, migrations, and explicit storage budgets.
 
 04-interfaces/
-  Normative interface definitions.
-  Local APIs, event surfaces, internal component interfaces,
-  and the system-wide error model.
+  - Normative interface definitions.
+  - Local APIs, event surfaces, internal component interfaces,
+    and the system-wide error model.
 
 05-security/
-  Normative security model.
-  Threat assumptions, identity and key handling, authentication and authorization,
-  signed transport and sync integrity, encryption, rotation and recovery,
-  privacy, selective synchronization, abuse controls, and auditability.
+  - Normative security model.
+  - Threat assumptions, identity and key handling, authentication and authorization,
+    signed transport and sync integrity, encryption, rotation and recovery,
+    privacy, selective synchronization, abuse controls, and auditability.
 
 06-flows/
-  Normative end-to-end operational flows.
-  Includes success and failure paths for bootstrap, app installation,
-  graph mutation, messaging, synchronization, conflict handling,
-  key rotation, device lifecycle, and backup and restore.
+  - Normative end-to-end operational flows.
+  - Includes success and failure paths for bootstrap, app installation,
+    graph mutation, messaging, synchronization, conflict handling,
+    key rotation, device lifecycle, and backup and restore.
 
 07-poc/
-  Proof of Concept definition and execution criteria.
-  Feature coverage, build and run expectations, testing strategy,
-  demo scenarios, known limitations, and acceptance criteria.
-  This folder is authoritative for implementation scope.
+  - Proof of Concept definition and execution criteria.
+  - Feature coverage, build and run expectations, testing strategy,
+    demo scenarios, known limitations, and acceptance criteria.
+  - This folder is authoritative for implementation scope.
 
 08-decisions/
-  Architecture Decision Records.
-  Explicitly recorded tradeoffs, reversals, and resolved questions.
-  Decisions here override earlier design text within their scope.
+  - Architecture Decision Records.
+  - Explicitly recorded tradeoffs, reversals, and resolved questions.
+  - Decisions here override earlier design text within their scope.
 
 09-appendix/
-  Reference material.
-  Glossary, reference configurations, open questions, and diagrams.
-  Informational unless explicitly stated otherwise.
+  - Reference material.
+  - Glossary, reference configurations, open questions, and diagrams.
+  - Informational unless explicitly stated otherwise.
 
 10-examples/
-  Illustrative examples.
-  Non-normative demonstrations of how the protocol and architecture
-  may be used. Examples never define required behavior.
+  - Illustrative examples.
+  - Non-normative demonstrations of how the protocol and architecture
+    may be used. Examples never define required behavior.
 ```
 
 Later folders must not introduce concepts that violate constraints defined earlier.
