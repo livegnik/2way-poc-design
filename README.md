@@ -367,7 +367,7 @@ No additional guarantees should be inferred from terminology, naming, or example
 
 ## Status
 
-This repository describes a proof of concept.
+This repository describes a proof of concept [WIP].
 
 The design prioritizes correctness, clarity, and auditability over performance or scale.
 The PoC exists to validate the protocol model and architectural boundaries before any production implementation.
