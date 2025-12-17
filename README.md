@@ -4,7 +4,32 @@
 
 # 2WAY System PoC Design Repository
 
-## 2WAY at a glance
+## Table of contents
+
+- [1. 2WAY at a glance](#1-2way-at-a-glance)
+- [2. What 2WAY is](#2-what-2way-is)
+- [3. Why it exists](#3-why-it-exists)
+- [4. Core idea](#4-core-idea)
+- [5. Security model and threat framing](#5-security-model-and-threat-framing)
+- [6. Structural impossibility](#6-structural-impossibility)
+- [7. Degrees of separation and influence limits](#7-degrees-of-separation-and-influence-limits)
+- [8. Sybil resistance through structure](#8-sybil-resistance-through-structure)
+- [9. Denial-of-service containment](#9-denial-of-service-containment)
+- [10. Failure behavior](#10-failure-behavior)
+- [11. What the system guarantees](#11-what-the-system-guarantees)
+- [12. What the system enables but does not define](#12-what-the-system-enables-but-does-not-define)
+- [13. Application model for developers](#13-application-model-for-developers)
+  - [13.1 What applications do](#131-what-applications-do)
+  - [13.2 What applications do not do](#132-what-applications-do-not-do)
+- [14. Application domains and environments](#14-application-domains-and-environments)
+- [15. What this repository deliberately does not decide](#15-what-this-repository-deliberately-does-not-decide)
+- [16. Who this repository is for](#16-who-this-repository-is-for)
+- [17. Repository structure and authority](#17-repository-structure-and-authority)
+- [18. Conformance](#18-conformance)
+- [19. Scope boundary](#19-scope-boundary)
+- [20. Status](#20-status)
+
+## 1. 2WAY at a glance
 
 A P2P platform that replaces central backends with locally enforced control over data and security.
 
@@ -22,7 +47,7 @@ A P2P platform that replaces central backends with locally enforced control over
 
 2WAY is designed to keep working correctly even when parts of the system fail or are compromised.
 
-## What 2WAY is
+## 2. What 2WAY is
 
 2WAY replaces the traditional application backend with a shared, local data and security layer that runs on every device.
 
@@ -30,7 +55,7 @@ Applications run on a common graph where identity, permissions, ordering, and hi
 
 This repository defines the normative design for the 2WAY proof of concept (PoC). It specifies required behavior at the protocol and architecture level and is not a production implementation.
 
-## Why it exists
+## 3. Why it exists
 
 Modern application architectures fail when trust is concentrated. Identity, permissions, data ownership, and synchronization are rebuilt by each application on top of centralized backends that assume networks and peers are trustworthy. When those assumptions fail, small bugs or breaches can silently escalate into broad access, corrupted data, or loss of control. The primary failure 2WAY is designed to prevent is silent escalation from local compromise to system-wide damage.
 
@@ -38,7 +63,7 @@ At the same time, existing systems connect poorly at scale. As users, devices, a
 
 Finally, most systems do not age well. Data outlives applications, applications outlive teams, and access logic becomes tied to specific implementations. This makes reuse, migration, and interoperability fragile over time. 2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, while applications evolve or disappear, allowing systems to remain usable and interoperable across long time spans.
 
-## Core idea
+## 4. Core idea
 
 At the center of 2WAY is a shared, local-first graph.
 
@@ -50,7 +75,7 @@ The graph is more than a way to store data. It is where security, isolation, and
 
 Running locally is a security property. Correctness and control do not depend on being online or on trusting other nodes.
 
-## Security model and threat framing
+## 5. Security model and threat framing
 
 2WAY is designed under adversarial assumptions.
 
@@ -67,7 +92,7 @@ Across the design, absence of permission, ambiguity, or incomplete context resul
 
 Security properties are enforced structurally and locally. No global trust, centralized authority, or trusted transport is assumed.
 
-## Structural impossibility
+## 6. Structural impossibility
 
 Many prohibited behaviors in 2WAY are not merely disallowed by policy, but structurally impossible.
 
@@ -75,7 +100,7 @@ Structural impossibility means that no valid execution path exists that would al
 
 This principle underlies application isolation, access control enforcement, graph mutation rules, and state ordering throughout the system.
 
-## Degrees of separation and influence limits
+## 7. Degrees of separation and influence limits
 
 Visibility and influence are constrained through explicit graph distance.
 
@@ -85,7 +110,7 @@ Visibility and influence are constrained through explicit graph distance.
 
 This bounds unsolicited reach and limits the impact of unknown or weakly anchored peers.
 
-## Sybil resistance through structure
+## 8. Sybil resistance through structure
 
 2WAY does not attempt global Sybil prevention.
 
@@ -100,7 +125,7 @@ Large numbers of unanchored identities therefore remain inert.
 
 The graph encodes relationships and constraints, not social truth or moral trust.
 
-## Denial-of-service containment
+## 9. Denial-of-service containment
 
 The PoC is designed to degrade predictably and fail closed under load or attack.
 
@@ -115,14 +140,14 @@ Structural mechanisms include:
 
 These guarantees hold regardless of peer behavior.
 
-## Failure behavior
+## 10. Failure behavior
 
 When violations occur, the system rejects input, preserves local integrity, and continues operating with reduced scope.
 
 Recovery is explicit, never implicit.
 No automatic reconciliation, overwrite, or trust escalation occurs as a side effect of failure.
 
-## What the system guarantees
+## 11. What the system guarantees
 
 Guaranteed by design:
 
@@ -135,7 +160,7 @@ Guaranteed by design:
 
 These properties are enforced structurally, not by convention or policy.
 
-## What the system enables but does not define
+## 12. What the system enables but does not define
 
 The 2WAY platform enforces structure and limits.
 What that structure means is decided by applications and users.
@@ -156,7 +181,7 @@ It does not decide what actions mean or why they matter.
 
 Structure is guaranteed. Meaning is not.
 
-## Application model for developers
+## 13. Application model for developers
 
 2WAY is not an application framework and not a runtime in the traditional sense.
 It is a shared execution substrate that applications run on top of.
@@ -173,7 +198,7 @@ From a developer's perspective:
 
 This applies equally to backend services, frontend applications, background agents, embedded software, and headless systems.
 
-### What applications do
+### 13.1 What applications do
 
 Applications focus on domain logic:
 
@@ -184,7 +209,7 @@ Applications focus on domain logic:
 
 Applications may expose user interfaces, provide services to other applications, control devices, or run autonomously. The platform does not assume a specific interaction model.
 
-### What applications do not do
+### 13.2 What applications do not do
 
 Applications do not:
 
@@ -197,7 +222,7 @@ Applications do not:
 
 These concerns are handled once, consistently, by the platform.
 
-## Application domains and environments
+## 14. Application domains and environments
 
 2WAY applies to systems where local authority, explicit trust boundaries, and bounded failure matter, regardless of environment or scale.
 
@@ -229,7 +254,7 @@ Applicable domains include:
 
 These domains share a common requirement: centralized trust, implicit coordination, and silent failure are unacceptable.
 
-## What this repository deliberately does not decide
+## 15. What this repository deliberately does not decide
 
 The following are intentionally left undefined or application-specific:
 
@@ -243,7 +268,7 @@ Absence of a feature is not an oversight unless explicitly marked as such.
 
 The protocol constrains behavior. It does not impose policy.
 
-## Who this repository is for
+## 16. Who this repository is for
 
 * Systems engineers evaluating the protocol and architecture
 * Implementers building the PoC exactly as specified
@@ -258,7 +283,7 @@ Recommended reading paths:
 
 The repository is structured to support all of these perspectives without reinterpretation.
 
-## Repository structure and authority
+## 17. Repository structure and authority
 
 The repository is organized by conceptual dependency and authority level.
 Lower-numbered folders define constraints that higher-numbered folders must not bypass or contradict.
@@ -330,7 +355,7 @@ The numbering is intentional and normative.
 
 Later folders must not introduce concepts that violate constraints defined earlier.
 
-## Conformance
+## 18. Conformance
 
 An implementation conforms to the 2WAY proof of concept design if and only if:
 
@@ -341,13 +366,13 @@ An implementation conforms to the 2WAY proof of concept design if and only if:
 
 Any deviation requires an explicit Architecture Decision Record.
 
-## Scope boundary
+## 19. Scope boundary
 
 Only properties explicitly defined within this repository are claimed by the design.
 
 No additional guarantees should be inferred from terminology, naming, or examples.
 
-## Status
+## 20. Status
 
 This repository describes a proof of concept [WIP].
 
