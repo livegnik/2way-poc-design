@@ -4,12 +4,19 @@
 
 # 2WAY System PoC Design Repository
 
+<br><br>
+
 ## Table of contents
+
+### Orientation
 
 - [1. 2WAY at a glance](#1-2way-at-a-glance)
 - [2. What 2WAY is](#2-what-2way-is)
 - [3. Why it exists](#3-why-it-exists)
 - [4. Core idea](#4-core-idea)
+
+### Security and correctness model
+
 - [5. Security model and threat framing](#5-security-model-and-threat-framing)
 - [6. Structural impossibility](#6-structural-impossibility)
 - [7. Degrees of separation and influence limits](#7-degrees-of-separation-and-influence-limits)
@@ -17,17 +24,25 @@
 - [9. Denial-of-service containment](#9-denial-of-service-containment)
 - [10. Failure behavior](#10-failure-behavior)
 - [11. What the system guarantees](#11-what-the-system-guarantees)
+
+### Building on 2WAY
+
 - [12. What the system enables but does not define](#12-what-the-system-enables-but-does-not-define)
 - [13. Application model for developers](#13-application-model-for-developers)
   - [13.1 What applications do](#131-what-applications-do)
   - [13.2 What applications do not do](#132-what-applications-do-not-do)
 - [14. Application domains and environments](#14-application-domains-and-environments)
+
+### Repository scope and authority
+
 - [15. What this repository deliberately does not decide](#15-what-this-repository-deliberately-does-not-decide)
 - [16. Who this repository is for](#16-who-this-repository-is-for)
 - [17. Repository structure and authority](#17-repository-structure-and-authority)
 - [18. Conformance](#18-conformance)
 - [19. Scope boundary](#19-scope-boundary)
 - [20. Status](#20-status)
+
+<br><br>
 
 ## 1. 2WAY at a glance
 
@@ -161,6 +176,8 @@ Guaranteed by design:
 These properties are enforced structurally, not by convention or policy.
 
 ## 12. What the system enables but does not define
+
+This section defines areas intentionally left to applications and users, rather than enforced by the platform.
 
 The 2WAY platform enforces structure and limits.
 What that structure means is decided by applications and users.
