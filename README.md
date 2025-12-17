@@ -155,7 +155,7 @@ Structural mechanisms include:
 * Authorization before any state mutation
 * A single serialized write path for ordered state
 * Scoped synchronization to avoid unbounded scans
-* Peer-level throttling and rate limiting
+* Peer-level throttling using client puzzles with difficulty adjusted to load
 
 These guarantees hold regardless of peer behavior.
 
