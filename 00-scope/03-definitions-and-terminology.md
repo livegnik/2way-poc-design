@@ -79,7 +79,7 @@ Trust boundary:
 
 ### 5.3 Frontend app
 
-A frontend app is a user facing application that interacts with the backend only through the backend’s exposed interfaces.
+A frontend app is a user facing application that interacts with the backend only through the backend's exposed interfaces.
 
 Constraints:
 
@@ -184,7 +184,7 @@ The graph is the set of persisted objects stored by a node across all apps.
 Constraints:
 
 - The graph is local to a node.
-- The graph is the authoritative record for the node’s accepted operations.
+- The graph is the authoritative record for the node's accepted operations.
 
 ### 7.2 Graph object
 
@@ -420,7 +420,7 @@ This file does not define revocation object structure.
 
 For any component that references terms from this file:
 
-- If an input claims a type, domain, identity, or author that cannot be resolved under the repository’s defined structures, the input is invalid.
+- If an input claims a type, domain, identity, or author that cannot be resolved under the repository's defined structures, the input is invalid.
 - Invalid inputs are rejected, they are not partially applied.
 - Rejection must not create new persisted graph objects.
 
@@ -428,7 +428,7 @@ This file does not define error codes or logging requirements.
 
 ### 11.3 Trust boundary failures
 
-- Inputs received across a trust boundary are treated as untrusted until validated by the backend’s defined validation and authorization pipeline.
+- Inputs received across a trust boundary are treated as untrusted until validated by the backend's defined validation and authorization pipeline.
 - If validation cannot be completed due to missing prerequisites, the input is rejected.
 
 This file does not define prerequisite acquisition behavior.

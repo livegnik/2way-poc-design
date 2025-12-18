@@ -23,7 +23,7 @@ The component model enforces the following system-wide rules:
 - All persistent state mutation flows through managers.
 - All protocol invariants are enforced by managers, not services.
 - Services may coordinate behavior but cannot weaken or override manager guarantees.
-- No component accesses another component’s internal state directly.
+- No component accesses another component's internal state directly.
 
 ## 3. Component categories
 

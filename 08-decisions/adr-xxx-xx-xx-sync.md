@@ -82,7 +82,7 @@ Assume we start with **pull** as the baseline.
 
 B wants to pull messages from A.
 
-1. B calls A’s `/sync/pull` endpoint with:
+1. B calls A's `/sync/pull` endpoint with:
 
    ```json
    {

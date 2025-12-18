@@ -87,7 +87,7 @@ Given adherence to the invariants in this file and the detailed specifications e
 - There is a single enforced write path to persistent state.
 - There is a single enforced authorization gate for mutations.
 - There is a single enforced schema validation gate for type and relation correctness.
-- No app can directly mutate or reinterpret another app’s objects through backend bypass.
+- No app can directly mutate or reinterpret another app's objects through backend bypass.
 - Peer input is treated as untrusted and is subject to the same validation and authorization pipeline as local input.
 
 ## 6. Allowed behaviors

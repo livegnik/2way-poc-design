@@ -125,7 +125,7 @@ All such constraints must be explicitly declared by schema and evaluated determi
 
 The following behaviors are allowed when all authorization layers succeed:
 
-- Creation of new objects within the identity’s authorized scope.
+- Creation of new objects within the identity's authorized scope.
 - Mutation of owned objects when schema and ACL rules permit mutation.
 - Read access to objects permitted by visibility rules.
 - Limited interaction with non owned objects when explicitly authorized.

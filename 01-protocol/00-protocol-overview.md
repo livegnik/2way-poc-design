@@ -6,13 +6,13 @@
 
 ## 1. Purpose and scope
 
-This document defines the role and posture of the 2WAY protocol within the PoC design repository. It is a graph-native, envelope-based mutation and replication protocol intended for distrustful peers. It explains protocol boundaries, mandatory invariants, and how the protocol’s subsystems compose, without redefining details owned by other protocol files.
+This document defines the role and posture of the 2WAY protocol within the PoC design repository. It is a graph-native, envelope-based mutation and replication protocol intended for distrustful peers. It explains protocol boundaries, mandatory invariants, and how the protocol's subsystems compose, without redefining details owned by other protocol files.
 
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-* The protocol’s externally observable responsibilities, identity binding, envelope submission, validation ordering, and sync sequencing posture.
+* The protocol's externally observable responsibilities, identity binding, envelope submission, validation ordering, and sync sequencing posture.
 * Mandatory invariants that all implementations must preserve across local writes and remote synchronization.
 * The lifecycle of an operation from authoring through persistence, including where rejection must occur.
 
