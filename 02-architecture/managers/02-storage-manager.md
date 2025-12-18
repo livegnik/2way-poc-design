@@ -1,3 +1,7 @@
+
+
+
+
 # 02 Storage Manager
 
 ## 1. Purpose and scope
