@@ -14,7 +14,7 @@
 
 ## 2. Responsibilities and boundaries
 
-### 2.1 This specification is responsible for the following
+This specification is responsible for the following
 
 * Resolving a local frontend session token into a backend `requester_identity_id`, or an explicit unauthenticated state.
 * Validating session token presence, uniqueness, expiry, and linkage to a frontend user record.
@@ -23,7 +23,7 @@
 * Providing deterministic authentication outcomes for HTTP and WebSocket entrypoints.
 * Emitting authentication-related audit signals through Log Manager where required by system policy.
 
-### 2.2 This specification does not cover the following
+This specification does not cover the following
 
 * Authorization or permission evaluation for graph reads or writes. Owned by ACL Manager.
 * Creation, refresh, rotation, or revocation of frontend sessions. Owned by the frontend web application.
