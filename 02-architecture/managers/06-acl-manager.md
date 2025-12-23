@@ -6,11 +6,7 @@
 
 ## 1. Purpose and scope
 
-### 1.1 Purpose
-
 The ACL Manager is the sole authority for access control decisions over graph objects. It determines whether a requester may read or mutate graph state based on identity, app context, schema defaults, ownership, group membership, and object-level overrides.
-
-### 1.2 Scope
 
 This file defines the responsibilities, boundaries, invariants, guarantees, inputs, outputs, and failure behavior of the ACL Manager.
 
