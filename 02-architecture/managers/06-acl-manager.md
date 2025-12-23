@@ -242,12 +242,3 @@ Authorization proceeds without cache or denies if correctness cannot be guarante
 * Authorization must be enforced uniformly across all entry points.
 * Authorization must complete before any graph mutation.
 * No alternative authorization path may exist.
-
-## Change Summary
-
-* Added explicit enforcement that all access control occurs exclusively through ACL Manager.
-* Removed speculative or UI-facing ACL concepts not present in the PoC build guide.
-* Corrected emphasis to include both read and write authorization paths.
-* Clarified interaction boundaries with Graph Manager, Schema Manager, and State Manager.
-* Tightened remote execution constraints to match PoC sync and history integrity rules.
-* Retained ownership, group-based, app-based, schema-default, and object-level ACL concepts from older design documents because they remain explicitly referenced and required by the PoC build guide.
