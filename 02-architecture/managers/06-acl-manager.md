@@ -14,8 +14,6 @@ This file does not define schema structure, graph mutation semantics, sync selec
 
 ## 2. Responsibilities and boundaries
 
-### 2.1 Responsibilities and boundaries
-
 This specification is responsible for the following:
 
 * Acting as the single authorization authority for all read and write access to graph objects.
