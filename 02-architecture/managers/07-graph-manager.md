@@ -6,11 +6,7 @@
 
 ## 1. Purpose and scope
 
-### 1.1 Purpose
-
 The Graph Manager is the authoritative coordinator for graph state access within the local node. It is the only permitted write path for graph objects, and it provides the canonical read surface for graph objects where access control and application scoping must be enforced.
-
-### 1.2 Scope
 
 This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, component interactions, and failure handling for the Graph Manager.
 
