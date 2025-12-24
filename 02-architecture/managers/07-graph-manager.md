@@ -16,9 +16,10 @@ This file specifies graph level access behavior only. It does not define schema 
 
 This specification is responsible for the following:
 
-* Acting as the single entry point for all persisted mutations of Parents, Attributes, Edges, and Ratings.
-* Accepting graph envelopes from trusted in process components only, including local services and State Manager for remote application.
-* Validating envelope structure and operation shape at the graph layer.
+* Acting as the single entry point for all persisted mutations of Parents, Attributes, Edges, Ratings, and ACL structures (ACL data is represented as Parent and Attribute objects per the protocol object model).
+* Accepting graph envelopes only from trusted in process components, including local services and State Manager for remote application after Network Manager verification.
+* Validating envelope structure and operation shape at the graph layer, including supervised operation identifiers, `type_key`/`type_id` exclusivity, a declared `owner_identity`, and the canonical `ops` array defined by the serialization specification.
+* Enforcing namespace isolation and object reference rules defined in the identifier specification.
 * Delegating type resolution and schema validation to Schema Manager.
 * Delegating authorization decisions for reads and writes to ACL Manager.
 * Enforcing application context for all operations.
@@ -45,11 +46,14 @@ This specification does not cover the following:
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
-* All persisted mutations of Parents, Attributes, Edges, and Ratings pass through the Graph Manager.
+* All persisted mutations of Parents, Attributes, Edges, Ratings, and ACL structures pass through the Graph Manager.
 * The Graph Manager never performs a persisted write without schema validation and authorization evaluation completing successfully.
 * The Graph Manager never returns graph object data to a caller unless authorization evaluation permits that read.
+* Remote envelopes are accepted only after OperationContext is constructed by State Manager following Network Manager verification. The Graph Manager never ingests raw network data or performs signature verification.
+* All operations in an envelope share the same `app_id`, declared `owner_identity`, and sync domain context, and the enforcement identity is derived from OperationContext rather than transport metadata.
 * Graph write operations are always scoped to a single `app_id`.
 * Graph read operations execute within a single application context and may access objects owned by other applications only when explicitly permitted by schema and ACL rules.
+* Updates never change `app_id`, `type_id`, `owner_identity`, or other immutable metadata defined by the object model.
 * Envelope application is atomic, either all operations in an accepted envelope are committed, or none are.
 * Global sequencing for committed mutations is strictly monotonic and assigned by a serialized write path.
 * Callers cannot choose or influence sequencing, storage controlled fields, or sync participation metadata.
@@ -107,6 +111,8 @@ OperationContext includes at minimum:
 * Remote node identity when applicable.
 * Trace identifier.
 
+OperationContext is the authoritative binding for executing identity, `app_id`, remote mode, and sync domain. Envelope hints cannot override it, and no transport metadata is trusted.
+
 All inputs are treated as untrusted and validated.
 
 ### 5.2 Outputs
@@ -130,6 +136,7 @@ The Graph Manager relies on:
 
 * Schema Manager for type existence, mapping, validation, value constraints, and domain membership.
 * ACL Manager for allow or deny decisions, masking requirements, and distance based rules.
+* State Manager, after Network Manager verification, for remote envelope delivery, sync domain context, and replay protection metadata. The Graph Manager is cryptography agnostic and rejects remote input that bypasses this path.
 * Storage Manager for transactional persistence and sequence allocation.
 * Event Manager for event delivery.
 
@@ -158,13 +165,15 @@ The Graph Manager forbids:
 * Persisted graph writes from any other component.
 * Bypassing schema validation or authorization.
 * Returning unauthorized data.
-* Writing into another application’s graph.
-* Creating or mutating cross ownership edges.
+* Writing into another application's graph.
+* Mutating objects or issuing edges owned by another identity without explicit schema and ACL authorization.
 * Caller supplied storage controlled fields.
 * Partial envelope application.
 * Emitting events prior to commit.
 * Unbounded queries or traversals.
 * Using foreign graphs as implicit traversal intermediates.
+* Accepting envelopes that declare unsupported operation identifiers, deletion semantics, or violate the supervised `parent_*`, `attr_*`, `edge_*`, and `rating_*` operations defined by the protocol serialization rules.
+* Accepting remote envelopes that bypass the Network Manager and State Manager pipeline.
 * Issuing raw SQL or direct storage calls. All access goes through Storage Manager.
 * Leaking existence through error surfaces when masking is required.
 
@@ -188,11 +197,13 @@ Failure at any stage aborts the envelope.
 
 The Graph Manager validates:
 
-* Single `app_id`.
-* Supported operation kinds.
-* Required identifiers and references.
-* Absence of storage controlled fields.
-* Internal reference consistency.
+* The envelope contains at least one operation entry in `ops` and no unknown top level fields.
+* Every operation `op` value is one of `parent_create`, `parent_update`, `attr_create`, `attr_update`, `edge_create`, `edge_update`, `rating_create`, or `rating_update`.
+* Each operation supplies `app_id`, `owner_identity`, and exactly one of `type_key` or `type_id`.
+* All operations share the same `app_id`, declared `owner_identity`, sync domain context, and OperationContext `app_id`.
+* Required identifiers and references for the object category are present, resolve to existing objects inside the same `app_id`, and updates supply immutable identifiers such as `parent_id`, `attr_id`, `edge_id`, or `rating_id` when required.
+* ACL data is represented using canonical Parent and Attribute objects only.
+* Caller supplied storage controlled fields such as `id`, `global_seq`, `sync_flags`, or schema compiled fields are absent.
 
 Failure rejects the envelope.
 
@@ -217,7 +228,7 @@ For accepted envelopes:
 
 * Global sequence values are allocated.
 * All operations persist in one transaction.
-* Sync metadata is derived solely from schema.
+* Domain membership metadata (`sync_flags`, domain eligibility, and other storage controlled fields) is computed inside Graph Manager using schema and sync-domain configuration, and callers cannot supply or override these values.
 * Serialized context is released after commit.
 
 ### 7.6 Post commit events
@@ -282,6 +293,7 @@ Rules:
 * Explicit inclusion can bypass visibility filtering but never authorization.
 * Rating interpretation is defined by schema and ACL, not by Graph Manager.
 * Rating payloads are opaque to Graph Manager.
+* Logical delete behaviors are modeled as schema defined Rating types (often binary) that reference the target Parent, Attribute, or Edge. These Ratings suppress those objects during default reads without pruning the underlying records.
 
 ### 8.7 Cross application visibility
 
@@ -352,6 +364,7 @@ On internal failure:
 * No partial writes.
 * Serialized context released.
 * Failure returned.
+* Error surfaces map to the canonical structural, schema, authorization, sync, or resource error classes defined by the protocol, and precedence rules (structural before schema before authorization) are preserved.
 
 Event failures do not invalidate commits.
 
@@ -360,7 +373,8 @@ Event failures do not invalidate commits.
 Assumptions:
 
 * Objects may be created and mutated.
-* Deletions, if defined, are explicit graph mutations.
+* Removal is implemented by appending Rating objects that point to the target Parent, Attribute, or Edge and record a delete vote. The Rating is treated as a visibility suppressor while the original object remains persisted, and future schema versions may revise this approach.
+* Delete style requests therefore translate into Rating operations rather than bespoke delete operation identifiers.
 * Deleted or superseded objects are not returned unless explicitly requested and permitted.
 
 Undefined lifecycle states are treated as current.
@@ -396,6 +410,10 @@ Graph Manager provides prepared operations and bounded reads. Relies on transact
 ### 13.4 Event Manager and Log Manager
 
 Graph Manager publishes post commit events and logs outcomes.
+
+### 13.5 State Manager
+
+State Manager is the only source of remote envelopes presented to Graph Manager. It performs sync-domain ordering checks after Network Manager verification, constructs the OperationContext with `is_remote`, `sync_domain`, and `remote_node_identity`, and delivers the envelope for validation. Graph Manager rejects remote input that bypasses State Manager and never performs cryptographic verification itself.
 
 ## 14. Interface stability
 
