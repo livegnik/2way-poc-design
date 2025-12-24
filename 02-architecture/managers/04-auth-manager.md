@@ -42,6 +42,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Auth Manager never infers identity from client-supplied identity claims.
 * Auth Manager produces an explicit authenticated or unauthenticated result for every request.
 * Authentication results are deterministic given the same session store state and input.
+* Auth Manager binds only the `OperationContext.requester_identity_id` and leaves envelope-declared `owner_identity` metadata untouched so Graph Manager can enforce the explicit authorship requirements defined by the protocol serialization and identity specifications.
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
 ## 4. Authentication inputs and outputs
@@ -63,10 +64,21 @@ All inputs are treated as untrusted.
 
 * An authentication result used by the HTTP or WebSocket layer to construct an `OperationContext`, containing:
 
-  * `requester_identity_id` as an integer, or null if unauthenticated.
-  * Authentication state classification, authenticated, unauthenticated, or rejected.
-  * Admin eligibility flag for admin-gated endpoints.
-  * A rejection category suitable for mapping to the interface error model and audit logging.
+* `requester_identity_id` as an integer, or null if unauthenticated.
+* Authentication state classification, authenticated, unauthenticated, or rejected.
+* Admin eligibility flag for admin-gated endpoints.
+* A rejection category suitable for mapping to the interface error model and audit logging.
+
+### 4.3 OperationContext construction requirements
+
+Per the protocol overview, once authentication succeeds the HTTP or WebSocket layer MUST construct an `OperationContext` that:
+
+* Includes `requester_identity_id`, `app_id`, `is_remote=False`, and `trace_id` before invoking any manager or service.
+* Uses trusted route classification and service binding to supply `app_id` and domain scope instead of copying client supplied identifiers.
+* Leaves remote-only fields such as `remote_node_identity_id` unset; these are populated exclusively by State Manager for peer-originated sync packages.
+* Remains immutable once constructed so ACL Manager and Graph Manager evaluate the same identity binding that Auth Manager produced.
+
+Auth Manager enforces that these inputs are present for local entrypoints; requests lacking the metadata required for a complete `OperationContext` are rejected pre-validation.
 
 ## 5. Session token model
 
@@ -146,6 +158,7 @@ Trust boundary:
 ### 7.4 Downstream managers and services
 
 * Downstream components receive identity information exclusively via `OperationContext`.
+* Graph Manager enforces that each operation's explicit `owner_identity` matches the authenticated requester described by `OperationContext`, so envelopes or transport metadata cannot override protocol-mandated authorship semantics.
 * All permission checks remain mandatory regardless of authentication outcome.
 
 ## 8. Failure handling and rejection behavior
