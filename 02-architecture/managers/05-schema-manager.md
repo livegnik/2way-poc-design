@@ -215,9 +215,9 @@ The Schema Manager must compile sync domain configurations that allow State Mana
 
 ### 9.2 Domain name constraints
 
-* Domain names are global across all schemas.
-* Domain name collisions are forbidden.
-* Any collision causes startup failure.
+* Domain names are scoped to the schema's `app_id`, matching the protocol namespace rules for domains.
+* Duplicate domain names within the same `app_id` are forbidden and cause startup failure.
+* Domains declared in one `app_id` must not be interpreted or reused by another app unless a protocol-level schema linkage exists; Schema Manager never invents such linkages.
 
 ### 9.3 Domain modes
 
@@ -230,7 +230,7 @@ The Schema Manager explicitly allows:
 
 * Multiple apps with independent schemas.
 * Deterministic type resolution per app and kind.
-* Schema-declared sync domains shared across apps.
+* Schema-declared sync domains that are isolated per app_id and deterministically enforced.
 * Read-only schema access by other managers.
 
 ## 11. Forbidden behaviors
