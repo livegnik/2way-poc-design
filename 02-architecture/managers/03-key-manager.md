@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document specifies the Key Manager component in the 2WAY backend. It defines local private key generation, storage, loading, and narrowly scoped cryptographic operations performed using those keys.
+This document specifies the Key Manager component in the 2WAY backend. It defines local private key generation, storage, loading, and the narrowly scoped signing, encryption, and decryption operations the protocol allows this component to perform with those keys.
 
 This file covers only local key material and key backed operations. It does not define protocol cryptography, envelope formats, identity semantics, ACL policy, sync rules, or network transport behavior, except where required to define inputs, outputs, trust boundaries, and rejection conditions.
 
@@ -19,14 +19,16 @@ This specification is responsible for the following:
 * Loading and validating key files at startup and on demand.
 * Deriving public keys from private keys for publication into the graph by the Graph Manager.
 * Performing signing operations for explicitly requested identity scopes.
+* Performing ECIES encryption for outbound payloads when a caller supplies a recipient public key.
 * Performing ECIES decryption for ciphertexts addressed to locally held private keys.
 * Enforcing that private keys are never returned, serialized into graph objects, written into logs, or emitted into network payloads.
+* Serving as the only component that may touch private keys for signing or decryption operations.
 * Ensuring the node key exists and is usable before any component that requires node signing or node decryption can operate.
 
 This specification does not cover the following:
 
 * Signature verification of remote envelopes or remote objects.
-* Encryption for outbound payloads.
+* Policy decisions determining when outbound payloads must be encrypted or decrypted.
 * Definition of identity Parents, Attributes, or schema rules in app_0.
 * Determination of authorship, ownership, or permission semantics.
 * ACL evaluation, authorization policy, or OperationContext construction.
@@ -42,11 +44,13 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * All private keys are stored only in the backend key directory as PEM encoded EC private keys.
 * Private keys are never written to the graph, never emitted over the network, and never returned to any caller.
 * Public keys are always derived from private keys and are the only key material permitted to be persisted into the graph.
-* Signing and decryption operations either succeed using a validated locally held private key or fail with an explicit error.
+* Signing, encryption, and decryption operations either succeed using protocol-mandated algorithms and validated locally held keys or fail with explicit errors.
 * Silent fallback, scope inference, or alternate key selection is forbidden.
 * All inputs to cryptographic operations are treated as untrusted bytes and are validated for size and type before use.
 * The Key Manager signs only for explicitly specified identity scopes that are locally held and loadable.
 * The Key Manager never determines authorship. It only performs cryptographic operations for a caller provided author identity.
+* Only the Key Manager may access private keys for signing or decryption. Other components must call into it rather than read private key material.
+* A derived public key is bound to exactly one identity scope and must never be submitted for or reassigned to another identity Parent once persisted.
 * Startup must not complete successfully unless the node key is present, valid, and usable.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
@@ -122,6 +126,7 @@ Binding is implemented as follows:
 
 * The Key Manager derives the public key from a private key.
 * The Graph Manager persists the public key as a `pubkey` Attribute on the corresponding identity Parent in app_0.
+* A derived public key can only be offered for the identity scope that produced it, and it becomes immutable once accepted into the graph.
 
 The Key Manager must not write directly to the graph or database.
 
@@ -151,6 +156,7 @@ The Key Manager accepts the following inputs:
   * Load a specific key by scope and key identifier.
 * Cryptographic operation requests:
   * Sign a byte sequence for a specified identity scope and key identifier.
+  * Encrypt a byte sequence for a specified recipient identity or public key.
   * Decrypt an ECIES ciphertext for a specified identity scope and key identifier.
 
 All requests must originate from trusted backend components.
@@ -161,6 +167,7 @@ The Key Manager provides the following outputs:
 
 * Derived public key bytes for graph binding.
 * Signature bytes for caller provided data.
+* Ciphertext bytes from ECIES encryption using caller supplied recipient public keys.
 * Plaintext bytes from ECIES decryption.
 
 Private key material or representations enabling reconstruction are never returned.
@@ -176,6 +183,7 @@ The Key Manager enforces a minimal authorization boundary:
 * Only internal backend components may call it.
 * Scope must be explicit and never inferred.
 * Operations must be rejected if the requested scope or key is not locally present.
+* No other component may access private keys or bypass the Key Manager for signing, encryption, or decryption.
 
 Higher level authorization and ACL evaluation occur elsewhere.
 
@@ -187,6 +195,7 @@ Higher level authorization and ACL evaluation occur elsewhere.
 * Persist keys before reporting success.
 * Load and cache private keys in memory for the lifetime of the process.
 * Derive public keys for graph binding via the Graph Manager.
+* Encrypt payload bytes via ECIES when the protocol flow requires confidentiality for a recipient public key.
 * Enforce size limits and validation on cryptographic inputs.
 
 ### 8.2 Explicitly forbidden behaviors
@@ -196,9 +205,9 @@ Higher level authorization and ACL evaluation occur elsewhere.
 * Accepting private keys from the graph, remote peers, frontend requests, or app extensions.
 * Writing to the graph, database, or sync state directly.
 * Verifying signatures or inferring authorship.
-* Encrypting outbound payloads.
 * Selecting an identity or key on behalf of the caller.
 * Continuing operation after detecting an invalid node key.
+* Using any algorithm other than secp256k1 for signing or ECIES over secp256k1 for asymmetric encryption.
 
 ## 9. Failure handling
 
@@ -221,6 +230,7 @@ Operations must be rejected with explicit errors if:
 * The requested key is unreadable or malformed.
 * The operation input is invalid, empty where not permitted, or exceeds size limits.
 * ECIES decryption fails.
+* Encryption or signing requests specify unsupported algorithms or omit the recipient public key required for ECIES encryption.
 * The request does not specify exactly one scope and key identifier.
 
 Alternate scopes, silent retries, or fallback behavior are forbidden.
