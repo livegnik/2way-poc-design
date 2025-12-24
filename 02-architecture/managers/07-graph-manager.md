@@ -6,9 +6,9 @@
 
 ## 1. Purpose and scope
 
-The Graph Manager is the authoritative coordinator for graph state access within the local node. It is the only permitted write path for graph objects, and it provides the canonical read surface for graph objects where access control, application context, and traversal constraints must be enforced.
+The Graph Manager is the authoritative coordinator for graph state access within the local node. It is the only permitted write path for graph objects, and it provides the canonical read surface for graph objects where access control, application context, traversal constraints, consistency guarantees, and default visibility filtering must be enforced.
 
-This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, component interactions, and failure handling for the Graph Manager.
+This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, concurrency rules, component interactions, and failure handling for the Graph Manager.
 
 This file specifies graph level access behavior only. It does not define schema content, access control policy logic, synchronization protocol behavior, network transport, or storage internals, except where interaction boundaries are required.
 
@@ -25,18 +25,21 @@ This specification is responsible for the following:
 * Enforcing serialized write ordering and global sequencing for all accepted mutations.
 * Persisting accepted envelopes atomically through Storage Manager.
 * Publishing semantic graph events after commit through Event Manager.
-* Providing canonical read operations for graph objects, with authorization and application context enforced.
+* Providing canonical read operations for graph objects, with authorization, application context, consistency guarantees, and default visibility filtering enforced.
 * Providing bounded traversal primitives required to support authorization checks that depend on graph distance.
+* Enforcing bounded read and traversal budgets.
+* Defining the concurrency contract for graph reads and writes at the manager boundary.
+* Enforcing strict separation between graph access logic and storage implementation.
 
 This specification does not cover the following:
 
 * Schema definition, migration, or versioning behavior.
-* The meaning of types, fields, or application semantics.
+* The meaning of types, fields, or application semantics beyond what is required to enforce visibility defaults defined in this file.
 * The content of access control policies, rule evaluation, or policy storage.
 * Construction of sync packages, per peer sync state, or inbound and outbound sync flows.
 * Network transport, encryption, or peer management.
-* Storage schemas, SQL details, and indexing strategies beyond required read and write boundaries.
-* Application specific query engines, search, ranking, analytics, or denormalized views.
+* Storage schemas, SQL details, or indexing strategies.
+* Application specific query engines, search, ranking, analytics, denormalized views, or aggregates.
 
 ## 3. Invariants and guarantees
 
@@ -51,13 +54,43 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Global sequencing for committed mutations is strictly monotonic and assigned by a serialized write path.
 * Callers cannot choose or influence sequencing, storage controlled fields, or sync participation metadata.
 * The Graph Manager does not emit mutation events before commit.
-* Graph Manager behavior is deterministic given identical inputs and identical persisted state at evaluation time.
+* Reads observe committed state only.
+* Reads never observe partially applied envelopes.
+* When snapshot binding is requested, read results are consistent with the requested bound across all object kinds.
+* Default visibility filtering may exclude otherwise readable objects but can never grant access that authorization has denied.
 
-These guarantees must hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
+These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 4. Inputs, outputs, and trust boundaries
+## 4. Concurrency and execution model
 
-### 4.1 Inputs
+### 4.1 Write serialization
+
+The Graph Manager enforces a single serialized write path:
+
+* At most one write envelope is applied at any time.
+* Sequence allocation and persistence occur inside the serialized write context.
+* The serialized context spans only the minimum required work to guarantee atomicity and ordering.
+
+### 4.2 Read concurrency
+
+The Graph Manager permits concurrent reads:
+
+* Reads do not acquire the serialized write context.
+* Reads may execute concurrently with other reads and with pending writes.
+* A read may or may not observe a concurrent write depending on whether that write has committed before the read begins.
+
+### 4.3 Storage coordination assumptions
+
+The Graph Manager assumes that Storage Manager provides:
+
+* Transactional commits for write envelopes.
+* A concurrency model where readers do not require explicit coordination with the writer.
+
+The Graph Manager never blocks reads to protect ordering.
+
+## 5. Inputs, outputs, and trust boundaries
+
+### 5.1 Inputs
 
 The Graph Manager accepts:
 
@@ -65,7 +98,7 @@ The Graph Manager accepts:
 * A graph envelope for write requests.
 * A graph read request descriptor for read requests.
 
-OperationContext includes, at minimum:
+OperationContext includes at minimum:
 
 * Requesting identity identifier.
 * Executing `app_id`.
@@ -74,290 +107,298 @@ OperationContext includes, at minimum:
 * Remote node identity when applicable.
 * Trace identifier.
 
-All inputs are treated as untrusted and must be validated.
+All inputs are treated as untrusted and validated.
 
-### 4.2 Outputs
+### 5.2 Outputs
 
 The Graph Manager returns:
 
-* For writes, an acceptance or rejection result for the entire envelope.
-* For accepted writes, assigned global sequence values and created identifiers when required by the caller.
-* For reads, a result set containing only authorized objects, as visible from the executing application context.
-* For all failures or rejections, a structured error code and a narrow reason suitable for propagation and logging.
+* For writes, acceptance or rejection for the entire envelope.
+* For accepted writes, assigned global sequence values and created identifiers when required.
+* For reads, result sets containing only authorized objects filtered by default visibility rules.
+* For failures or rejections, structured error codes and narrow reasons suitable for propagation and logging.
 
 Side effects include:
 
-* Persisted state mutations for accepted writes.
+* Persisted state mutations.
 * Post commit event publication.
 * Audit and diagnostics logging.
 
-### 4.3 Trust boundaries
+### 5.3 Trust boundaries
 
-The Graph Manager relies on the following components as authorities:
+The Graph Manager relies on:
 
-* Schema Manager for type existence, type mapping, structural validation, value constraints, and domain membership used for sync participation metadata.
-* ACL Manager for allow or deny decisions on read and write operations, including rules that depend on graph structure and distance.
-* Storage Manager for transactional persistence and allocation of globally ordered sequence identifiers.
+* Schema Manager for type existence, mapping, validation, value constraints, and domain membership.
+* ACL Manager for allow or deny decisions, masking requirements, and distance based rules.
+* Storage Manager for transactional persistence and sequence allocation.
 * Event Manager for event delivery.
 
-The Graph Manager does not trust callers to provide correct type identifiers, ownership metadata, sync scope, or safe values.
+The Graph Manager does not trust callers to supply correct types, ownership, sync scope, or safe values.
 
-## 5. Allowed and forbidden behaviors
+## 6. Allowed and forbidden behaviors
 
-### 5.1 Explicitly allowed behaviors
+### 6.1 Explicitly allowed behaviors
 
 The Graph Manager allows:
 
-* Write envelopes from local services, subject to schema validation and authorization.
-* Write envelopes from State Manager for remote application, subject to schema validation, authorization, and additional restrictions conveyed by OperationContext.
-* Read requests for Parents, Attributes, Edges, and Ratings, subject to authorization and application context.
-* Reads of objects owned by other applications, when explicitly permitted by schema visibility and ACL rules.
-* Bounded adjacency reads, such as attributes under a parent, edges adjacent to a parent, and ratings attached to a target, subject to authorization.
-* Bounded traversal reads required to support authorization checks that depend on graph distance, subject to strict resource limits.
+* Write envelopes from local services after validation and authorization.
+* Write envelopes from State Manager for remote application under additional context restrictions.
+* Read requests for Parents, Attributes, Edges, and Ratings.
+* Cross application reads when explicitly permitted by schema visibility and ACL rules.
+* Bounded adjacency reads.
+* Bounded traversal strictly for authorization support.
+* Default visibility filtering driven by Ratings.
+* Explicit reads that opt out of default visibility filtering.
+* Snapshot bounded reads when supported.
 
-### 5.2 Explicitly forbidden behaviors
+### 6.2 Explicitly forbidden behaviors
 
 The Graph Manager forbids:
 
-* Persisted graph writes performed by any other component.
-* Any bypass of schema validation or authorization evaluation.
-* Returning any object or object field to a caller when authorization does not permit the read.
+* Persisted graph writes from any other component.
+* Bypassing schema validation or authorization.
+* Returning unauthorized data.
 * Writing into another application’s graph.
-* Creating or mutating edges that span application ownership boundaries.
-* Caller supplied values for storage controlled fields, including global sequencing and sync participation metadata.
-* Partial application of write envelopes.
-* Emitting mutation events prior to a successful commit.
-* Exposing unbounded queries or traversals that can cause unbounded scans, unbounded memory growth, or unbounded response sizes.
-* Using foreign application graphs as implicit traversal intermediates unless explicitly permitted by schema and ACL rules.
+* Creating or mutating cross ownership edges.
+* Caller supplied storage controlled fields.
+* Partial envelope application.
+* Emitting events prior to commit.
+* Unbounded queries or traversals.
+* Using foreign graphs as implicit traversal intermediates.
+* Issuing raw SQL or direct storage calls. All access goes through Storage Manager.
+* Leaking existence through error surfaces when masking is required.
 
-## 6. Write path behavior
+## 7. Write path behavior
 
-### 6.1 Processing order
+### 7.1 Processing order
 
-For each received write envelope, Graph Manager enforces the following order:
+For each write envelope:
 
-* Envelope structural validation.
-* Per operation schema validation and type resolution.
-* Per operation authorization evaluation.
-* Acquisition of the serialized write context.
-* Sequence allocation, sync participation metadata derivation, and persistence.
+* Structural validation.
+* Schema validation and type resolution.
+* Authorization evaluation.
+* Serialized write context acquisition.
+* Sequence allocation and persistence.
 * Transaction commit.
-* Post commit event publication and logging.
+* Event publication and logging.
 
-No later step occurs if an earlier step fails.
+Failure at any stage aborts the envelope.
 
-### 6.2 Envelope structural validation
+### 7.2 Structural validation
 
-The Graph Manager validates that:
+The Graph Manager validates:
 
-* The envelope targets exactly one `app_id`.
-* Each operation is a supported graph mutation kind.
-* Each operation includes required identifiers and references for its kind.
-* The envelope does not attempt to supply storage controlled fields.
-* Internal references are consistent.
+* Single `app_id`.
+* Supported operation kinds.
+* Required identifiers and references.
+* Absence of storage controlled fields.
+* Internal reference consistency.
 
-Structural validation failure rejects the entire envelope.
+Failure rejects the envelope.
 
-### 6.3 Schema validation and type resolution
+### 7.3 Schema validation
 
-For each operation, Graph Manager invokes Schema Manager to:
+Schema Manager validates:
 
-* Validate that the operation kind is permitted for the referenced type.
-* Map `type_key` to internal identifiers used by storage.
-* Validate value representations and constraints for Attribute and Rating operations.
-* Provide domain membership needed to derive sync participation metadata.
-
-Schema Manager rejections reject the entire envelope.
-
-### 6.4 Authorization evaluation
-
-For each operation, Graph Manager invokes ACL Manager with:
-
-* OperationContext.
-* Object kind and type identifiers.
-* Ownership and authorship metadata required for evaluation.
-* Local or remote mode, and remote identity metadata when applicable.
-
-Any denial rejects the entire envelope.
-
-### 6.5 Sequencing and persistence
-
-For accepted envelopes, Graph Manager:
-
-* Obtains strictly increasing global sequence identifiers through Storage Manager within a serialized write context.
-* Persists all operations within a single transaction.
-* Derives and writes sync participation metadata from schema domain definitions only.
-* Releases the serialized write context after commit.
-
-Graph Manager does not perform event publication or network related work while holding the serialized write context.
-
-### 6.6 Post commit events
-
-After commit, Graph Manager publishes semantic events via Event Manager. Events include:
-
-* `app_id`.
-* Affected object kinds and identifiers.
-* The global sequence range for the committed envelope.
-* Trace identifier when available.
-
-Event payloads exclude sensitive values unless explicitly required by the consumer and permitted by applicable read authorization rules.
-
-## 7. Read path behavior
-
-### 7.1 Read surface
-
-The Graph Manager provides read operations over persisted graph objects, limited to:
-
-* Direct reads by identifier for Parents, Attributes, Edges, and Ratings.
-* Bounded adjacency reads limited to direct relationships.
-* Minimal header reads required for validation and authorization evaluation.
-
-Read operations execute within a single application context. Object ownership may belong to a different application if explicitly permitted.
-
-### 7.2 Read processing order
-
-For each read request, Graph Manager enforces:
-
-* Structural validation of request parameters.
-* Authorization evaluation through ACL Manager for the requested read scope.
-* Storage reads through Storage Manager.
-* Result filtering to ensure only authorized objects are returned.
-
-If authorization cannot be determined, the read is rejected.
-
-### 7.3 Authorization on reads
-
-Read authorization is mandatory. Graph Manager:
-
-* Invokes ACL Manager for the read operation using OperationContext and requested scope.
-* Applies allow or deny outcomes per object.
-* Ensures no unauthorized identifiers or fields are returned.
-
-### 7.4 Resource limits on reads
-
-Read operations must be bounded. Graph Manager enforces:
-
-* Maximum object count per request.
-* Maximum scan budget for adjacency reads.
-* Rejection of requests exceeding configured limits.
-
-Limits apply identically for local and remote contexts.
-
-## 8. Bounded traversal support for authorization
-
-### 8.1 Purpose
-
-Some authorization decisions depend on graph distance. The Graph Manager provides bounded traversal primitives solely to support such authorization evaluation.
-
-### 8.2 Traversal boundaries
-
-Traversal support is restricted to:
-
-* Fixed maximum depth.
-* Fixed maximum frontier size.
-* Fixed maximum total visited node count.
-
-Traversal is not a general query mechanism.
-
-### 8.3 Data exposure constraints
-
-Traversal operations must not expose more data than required:
-
-* Results are limited to boolean outcomes or minimal identifiers when permitted.
-* Intermediate traversal state is not exposed unless separately authorized.
-
-### 8.4 Failure handling for traversal
-
-Traversal requests are rejected when:
-
-* Configured limits are exceeded.
-* Required seed objects cannot be resolved.
-* Authorization cannot be evaluated safely.
-
-Rejections must not leak existence information beyond authorization outcomes.
-
-## 9. Failure and rejection handling
-
-### 9.1 Rejection conditions
-
-Graph Manager rejects write envelopes when:
-
-* Structural validation fails.
-* Schema validation fails.
-* Authorization is denied.
-* Application ownership rules are violated.
-* Storage controlled fields are supplied.
-
-Graph Manager rejects read requests when:
-
-* Structural validation fails.
-* Authorization is denied.
-* Requested bounds exceed configured limits.
-
-### 9.2 Failure behavior
-
-On internal failures:
-
-* No partial writes are committed.
-* Serialized write context is released.
-* A failure result distinct from rejection is returned.
-
-Internal failures include storage errors, sequencing failures, and inconsistent metadata state.
-
-Event publication failures do not invalidate commits but are recorded for diagnostics.
-
-## 10. Minimal state and caching constraints
-
-### 10.1 Permitted in memory state
-
-Graph Manager may maintain minimal in memory state required for correctness, including:
-
-* System scoped identity Parent identifiers and public key Attribute references.
-* Transient caches used during request processing.
-
-### 10.2 Forbidden state
-
-Graph Manager must not maintain:
-
-* Long lived application semantic indices.
-* Independent schema or policy state.
-* State required for recovery after restart.
-
-## 11. Component interactions
-
-### 11.1 Schema Manager
-
-Graph Manager provides:
-
-* `app_id`.
-* Operation kind or read scope.
-* Type keys and candidate values.
-
-Graph Manager relies on:
-
-* Type validation and mapping.
+* Operation kind compatibility.
+* Type resolution.
+* Value constraints.
 * Domain membership.
 
-### 11.2 ACL Manager
+Any rejection aborts the envelope.
 
-Graph Manager provides:
+### 7.4 Authorization evaluation
 
-* OperationContext.
-* Object identifiers and metadata.
-* Requested read or write scope.
-* Traversal outcomes when required.
+ACL Manager evaluates each operation. Any denial aborts the envelope.
 
-Graph Manager relies on allow or deny decisions.
+### 7.5 Sequencing and persistence
 
-### 11.3 Storage Manager
+For accepted envelopes:
 
-Graph Manager provides:
+* Global sequence values are allocated.
+* All operations persist in one transaction.
+* Sync metadata is derived solely from schema.
+* Serialized context is released after commit.
 
-* Prepared write operations.
-* Bounded read descriptors.
+### 7.6 Post commit events
 
-Graph Manager relies on transactional guarantees and sequence allocation.
+Events are emitted only after commit and must include:
 
-### 11.4 Event Manager and Log Manager
+* `app_id`.
+* Object identifiers sufficient for re fetch.
+* Global sequence range.
+* Trace identifier.
 
-Graph Manager publishes post commit events and records acceptance, rejection, and failure outcomes with trace identifiers.
+Event failure never rolls back committed state.
+
+## 8. Read semantics and behavior
+
+### 8.1 Read surface
+
+Supported reads:
+
+* Direct reads by identifier.
+* Bounded adjacency reads.
+* Minimal header reads.
+* Bounded batch reads by identifier.
+
+Reads execute in one application context. Ownership may differ if permitted.
+
+### 8.2 Read consistency model
+
+* Reads observe committed state only.
+* No repeatable read guarantee by default.
+* Snapshot binding is optional and explicit.
+
+### 8.3 Snapshot bounded reads
+
+When requested and supported:
+
+* No returned row may have `global_seq` greater than the bound.
+* The bound applies across all object kinds.
+* Failure to enforce safely aborts the read.
+
+### 8.4 Read processing order
+
+* Structural validation.
+* Authorization evaluation.
+* Storage reads.
+* Default visibility filtering.
+* Authorization filtering.
+* Response shaping.
+
+### 8.5 Authorization on reads
+
+Authorization is mandatory. Header reads used for authorization must not leak existence unless permitted.
+
+### 8.6 Default visibility filtering using Ratings
+
+Ratings are first class graph objects that can influence default visibility.
+
+Rules:
+
+* Visibility filtering applies only after authorization.
+* Suppressing visibility signals exclude objects by default.
+* Explicit inclusion can bypass visibility filtering but never authorization.
+* Rating interpretation is defined by schema and ACL, not by Graph Manager.
+* Rating payloads are opaque to Graph Manager.
+
+### 8.7 Cross application visibility
+
+Cross application reads require:
+
+* Executing application context.
+* Schema level visibility.
+* ACL permission.
+
+Adjacency and traversal across ownership boundaries require explicit permission at each step.
+
+### 8.8 Batch read semantics
+
+* Per item authorization and visibility.
+* Partial results allowed.
+* Whole request fails only on structural or internal failure.
+
+### 8.9 Error and masking rules
+
+* Masked reads return not found.
+* Unmasked reads may return permission denied.
+* Batch items follow per item masking rules.
+
+### 8.10 Resource limits
+
+Graph Manager enforces:
+
+* Maximum object count.
+* Maximum scan budget.
+* Maximum payload size.
+
+Limits apply uniformly.
+
+## 9. Bounded traversal support
+
+Traversal exists solely for authorization.
+
+### 9.1 Boundaries
+
+* Fixed depth.
+* Fixed frontier.
+* Fixed visited count.
+
+### 9.2 Seed rules
+
+Seeds must be admissible. Masking applies if resolution would leak existence.
+
+### 9.3 Exposure constraints
+
+Traversal does not expose intermediate state unless separately authorized.
+
+### 9.4 Failure handling
+
+Traversal failures must not leak existence.
+
+## 10. Failure and rejection handling
+
+### 10.1 Rejection conditions
+
+Writes are rejected on validation, authorization, ownership, or bounds violation.
+
+Reads are rejected on validation, authorization when masking is not required, bounds violation, or invalid snapshot parameters.
+
+### 10.2 Failure behavior
+
+On internal failure:
+
+* No partial writes.
+* Serialized context released.
+* Failure returned.
+
+Event failures do not invalidate commits.
+
+## 11. Object lifecycle assumptions
+
+Assumptions:
+
+* Objects may be created and mutated.
+* Deletions, if defined, are explicit graph mutations.
+* Deleted or superseded objects are not returned unless explicitly requested and permitted.
+
+Undefined lifecycle states are treated as current.
+
+## 12. Minimal state and caching constraints
+
+### 12.1 Permitted state
+
+* System identity Parents and key Attributes.
+* Transient request scoped caches.
+* Short lived memoization.
+
+### 12.2 Forbidden state
+
+* Long lived semantic indices.
+* Independent schema or policy state.
+* Recovery critical in memory state.
+
+## 13. Component interactions
+
+### 13.1 Schema Manager
+
+Graph Manager provides context and values. Relies on validation, mapping, domain membership, and visibility affecting rating identification.
+
+### 13.2 ACL Manager
+
+Graph Manager provides context, metadata, traversal outcomes, and visibility context. Relies on allow, deny, masking, and distance rules.
+
+### 13.3 Storage Manager
+
+Graph Manager provides prepared operations and bounded reads. Relies on transactions and sequencing.
+
+### 13.4 Event Manager and Log Manager
+
+Graph Manager publishes post commit events and logs outcomes.
+
+## 14. Interface stability
+
+The Graph Manager is an internal system component. It is not a public API.
+
+Backward compatibility expectations are defined at the interface boundary, not in this document.
