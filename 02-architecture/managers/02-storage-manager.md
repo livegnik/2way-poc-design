@@ -14,9 +14,10 @@ Storage Manager is responsible for:
 
 * Owning a single SQLite connection (and its WAL file) for the backend runtime, including opening, migrations, pragmas, and shutdown.
 * Creating and upgrading the global schema plus per-app table sets on demand.
-* Providing typed helper methods for managers and services to insert, update, and query rows without bypassing schema constraints, plus narrowly-scoped deletion hooks limited to maintenance tasks or Graph Manager flows that policy permits.
+* Providing typed helper methods for managers and services to insert, update, and query rows without bypassing schema constraints. Graph objects are append-only per the protocol, so Storage Manager does not expose deletion primitives for Parent, Attribute, Edge, or Rating records.
 * Supplying atomic persistence primitives for the monotonic `global_seq` counter plus `domain_seq` and `sync_state`; Graph Manager and State Manager decide when sequences are consumed and what they mean.
 * Acting as the persistence layer for configuration (`settings`), peer metadata, App Manager metadata, and application graphs while recognizing that graph tables remain the source of truth (e.g., identities are authoritative in app_0 and only cached elsewhere).
+* Persisting append-only lifecycle transitions that higher-level managers express as additional graph rows; Storage Manager never interprets these transitions and simply guarantees durable storage.
 * Enforcing transactional consistency, locking rules, and write batching so that higher-level managers remain free of SQLite details.
 * Exposing observability (metrics, pragmas, vacuum stats) to Health and Log Managers.
 
@@ -59,9 +60,11 @@ CREATE TABLE IF NOT EXISTS apps (
 );
 
 CREATE TABLE IF NOT EXISTS sync_state (
-    peer_id  INTEGER,
-    domain   TEXT,
-    last_seq INTEGER NOT NULL,
+    peer_id          INTEGER,
+    domain           TEXT,
+    last_seq         INTEGER NOT NULL,
+    revocation_epoch INTEGER NOT NULL DEFAULT 0,
+    visibility_caps  TEXT NOT NULL,
     PRIMARY KEY (peer_id, domain)
 );
 
@@ -91,7 +94,7 @@ CREATE TABLE IF NOT EXISTS global_seq (
 
 * `global_seq` is initialized with a single row `(id=1, seq=0)` on the first run. Storage Manager advances it atomically but does not decide when logical operations should claim the counter; Graph Manager determines sequencing policy.
 * `settings` belongs to Config Manager, but Storage Manager enforces its persistence guarantees and transactions.
-* `sync_state` and `domain_seq` persist sync watermarks. Storage Manager only records the numbers provided by sync or State Manager flows, while State Manager defines what a "flush complete" event means before requesting an increment.
+* `sync_state` persists per-peer/per-domain state required by the protocol: the highest accepted `global_seq`, the latest revocation epoch affecting that peer, and serialized domain visibility constraints. The `domain` column stores the `sync_domain` identifier defined in `01-protocol/07-sync-and-consistency.md`. Storage Manager only records values computed by State Manager, while `domain_seq` tracks per-domain replication watermarks that State Manager advances once a flush completes.
 * `identities` acts only as a local cache/registry (e.g., for peer metadata). The authoritative identity records live in the graph (app_0 parents/attributes); Storage Manager must not treat this cache as the source of truth and sync logic may choose to rebuild it from the graph.
 * SQLite-level foreign keys are not declared in this schema; Graph Manager and Schema Manager enforce referential integrity in validation logic to preserve append-only behaviors and cross-app referencing rules.
 
@@ -102,35 +105,37 @@ For every app registered in `apps`, Storage Manager ensures the following table 
 ```sql
 CREATE TABLE IF NOT EXISTS app_N_type (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id   INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
     kind     TEXT NOT NULL,           -- 'parent' | 'attr' | 'edge' | 'rating'
     type_key TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS app_N_parent (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id         INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
     type_id        INTEGER NOT NULL,
     owner_identity INTEGER NOT NULL,
     global_seq     INTEGER NOT NULL,
     sync_flags     INTEGER NOT NULL,
+    value_json     TEXT,
     created_at     TEXT NOT NULL,
     updated_at     TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS app_N_attr (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    parent_id      INTEGER NOT NULL,
+    app_id         INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
+    src_parent_id  INTEGER NOT NULL,
     type_id        INTEGER NOT NULL,
     owner_identity INTEGER NOT NULL,
     global_seq     INTEGER NOT NULL,
     sync_flags     INTEGER NOT NULL,
-    value_text     TEXT,
-    value_number   REAL,
-    value_blob     BLOB,
     value_json     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS app_N_edge (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id         INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
     src_parent_id  INTEGER NOT NULL,
     dst_parent_id  INTEGER,
     dst_attr_id    INTEGER,
@@ -142,19 +147,19 @@ CREATE TABLE IF NOT EXISTS app_N_edge (
 
 CREATE TABLE IF NOT EXISTS app_N_rating (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id           INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
     target_parent_id INTEGER,
     target_attr_id   INTEGER,
     type_id          INTEGER NOT NULL,
     owner_identity   INTEGER NOT NULL,
     global_seq       INTEGER NOT NULL,
     sync_flags       INTEGER NOT NULL,
-    value_text       TEXT,
-    value_number     REAL,
     value_json       TEXT
 );
 
 CREATE TABLE IF NOT EXISTS app_N_log (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id       INTEGER NOT NULL DEFAULT N CHECK (app_id = N),
     level        TEXT NOT NULL,
     event_type   TEXT NOT NULL,
     context_json TEXT NOT NULL,
@@ -162,16 +167,18 @@ CREATE TABLE IF NOT EXISTS app_N_log (
 );
 ```
 
-* `app_N_type` serves as a registry of semantic types per app, partitioned by `kind`. Storage Manager enforces uniqueness of `type_key` but defers semantic meaning to Schema Manager.
-* `sync_flags` is a bit-set consumed by sync services for queueing/purge semantics. Storage Manager treats it opaquely yet indexes it for range scans (see below).
-* `value_*` columns provide sparse storage for heterogenous attribute payloads. Only one of the columns should be populated per row, but Storage Manager does not enforce mutual exclusivity beyond optional helper assertions.
+* `app_N_type` serves as a registry of semantic types per app, partitioned by `kind`. Storage Manager enforces uniqueness of `type_key` but defers semantic meaning to Schema Manager. Every per-app table materializes the `app_id` column even though the table name encodes it so that the canonical metadata fields defined in `01-protocol/02-object-model.md` are always present on disk.
+* `sync_flags` is a bit-set consumed by sync services for queueing/purge semantics. Storage Manager treats it opaquely, indexes it for scans (see below), and only accepts values supplied by Graph Manager during inserts so the immutability requirement in the protocol is preserved.
+* `value_json` is the canonical payload column for Parents, Attributes, and Ratings per the protocol. Derived indexes or computed projections may exist elsewhere for performance, but Storage Manager does not persist alternative canonical value columns.
+* `src_parent_id`, `dst_parent_id`, and `dst_attr_id` mirror the field names defined in the object model. Storage Manager helper code enforces the structural constraints (e.g., Attributes must reference an in-app Parent and Edges must populate exactly one destination column) even though SQLite-level foreign keys remain disabled.
+* `app_N_rating` rows participate in default visibility filtering defined by Graph Manager. Storage Manager persists these rows without interpreting their semantics.
 
 ### 3.4 Indexes and naming conventions
 
 * Indexes are materialized per app:
   * `CREATE INDEX IF NOT EXISTS app_N_parent_type_owner ON app_N_parent (type_id, owner_identity);`
   * `CREATE INDEX IF NOT EXISTS app_N_parent_sync ON app_N_parent (sync_flags, global_seq);`
-  * `CREATE INDEX IF NOT EXISTS app_N_attr_parent_type ON app_N_attr (parent_id, type_id);`
+  * `CREATE INDEX IF NOT EXISTS app_N_attr_parent_type ON app_N_attr (src_parent_id, type_id);`
   * `CREATE INDEX IF NOT EXISTS app_N_edge_src_type ON app_N_edge (src_parent_id, type_id);`
   * `CREATE INDEX IF NOT EXISTS app_N_edge_dst_type ON app_N_edge (dst_parent_id, type_id);`
 * Index DDL is idempotent and runs inside the same transaction that creates the tables to avoid race conditions.
@@ -201,18 +208,19 @@ The manager exposes typed methods rather than raw SQL. Examples:
 * `select_parents(app_id, *, type_ids=None, owner=None, since_seq=None, limit=None)` -> list of dict rows.
 * `select_attrs(app_id, parent_ids=None, type_ids=None, since_seq=None)`.
 * `select_edges`, `select_ratings` with directional filters.
-* `update_sync_flags(app_id, table, row_ids, flags)` - bulk updates for sync scheduling.
-* `record_sync_progress(peer_id, domain, last_seq)` - updates `sync_state`.
+* `record_sync_progress(peer_id, domain, *, last_seq, revocation_epoch, visibility_caps)` - updates the `sync_state` row with the monotonic sequence plus the revocation and domain visibility state supplied by State Manager.
 * `load_domain_seq(domain)` / `increment_domain_seq(domain)` - helpers used by State Manager to persist per-domain watermarks once it decides a flush completed.
 * `upsert_setting(key, value)` and `list_settings()` - used only by Config Manager but enforced here.
+* No API mutates `sync_flags`. Graph Manager and Schema Manager decide the flag value at insert time, and Storage Manager rejects attempts to change it so that the immutability guarantees from the object model remain true.
 
 APIs follow these rules:
 
 * All write helpers accept already-validated DTOs. Storage Manager trusts the inputs for schema correctness but still enforces required columns.
 * Graph Manager orchestrates `global_seq` assignment. Storage Manager simply persists the integer attached to each write request and does not enforce reuse/skipping semantics beyond requiring a non-null value.
+* Sync flag bits are selected by Graph Manager and Schema Manager as part of the validated DTO. Storage Manager enforces immutability by only accepting the values during insert.
 * Caller-provided timestamps are validated to be ISO8601 strings before insertion when feasible, mainly in tests.
 * Query helpers always return immutable structures (tuples or frozen dataclasses) so callers cannot mutate shared caches.
-* Deletion helpers are restricted to internal maintenance routines or explicit Graph Manager code paths for domains where policy allows removal; other managers cannot delete graph objects directly.
+* No deletion helpers exist for graph objects because the protocol forbids delete operations. Maintenance routines may delete only auxiliary or diagnostic tables owned exclusively by Storage Manager.
 
 ## 6. Global sequence and synchronization support
 
@@ -220,7 +228,7 @@ APIs follow these rules:
 
 * `next_global_seq()` runs inside a single-row `UPDATE global_seq SET seq = seq + 1 WHERE id = 1 RETURNING seq` (or a select + update under transaction) to ensure atomicity, but callers choose when to invoke it.
 * Callers may reuse a claimed sequence for multiple rows in a single logical mutation batch only when Graph Manager authorizes that pattern; Storage Manager simply records the supplied value.
-* `sync_flags` plus `global_seq` indexes allow efficient scanning of mutations pending sync. Storage Manager provides `select_pending_rows(app_id, table, flag_mask, limit, after_seq)` for sync services without interpreting the semantics.
+* `sync_flags` plus `global_seq` indexes allow efficient scanning of objects eligible for particular sync domains without mutating the row. Storage Manager provides `select_pending_rows(app_id, table, flag_mask, limit, after_seq)` for sync services without interpreting the semantics of the domain bits.
 * `domain_seq` persists per-domain replication watermarks (e.g., `app`, `acl`, `schema`). State Manager defines the lifecycle of each domain and signals when Storage Manager should atomically advance the corresponding counter.
 * `sync_state` records remote peers' progress. Helpers ensure the `(peer_id, domain)` composite key exists and is updated atomically based on inputs from sync services.
 
@@ -254,7 +262,7 @@ APIs follow these rules:
 * The SQLite file resides under a path controlled by Config Manager; Storage Manager ensures directories exist and restricts permissions to the backend user.
 * No other component reads or writes the database files directly. Even backup routines must call Storage Manager to quiesce the database before copying files.
 * Inputs to Storage Manager are considered untrusted until validated by the caller. However, Storage Manager still performs basic sanity checks (non-null, type normalization) to mitigate misuse.
-* Binary blobs stored in `value_blob` are not decrypted inside Storage Manager; they remain opaque payloads. Key Manager handles sensitive operations.
+* Binary payloads stored inside `value_json` (for example base64-encoded blobs defined by schema) are not decrypted inside Storage Manager; they remain opaque payloads. Key Manager handles sensitive operations.
 * Sync and export operations must go through ACL Manager; Storage Manager expects callers to present a pre-validated OperationContext or capability and does not evaluate authorization policy itself.
 * SQL injection is prevented by using parameterized statements exclusively. Storage Manager never concatenates user input into SQL fragments.
 
@@ -275,6 +283,7 @@ APIs follow these rules:
 * Batch inserts and updates that reuse `global_seq` within a single logical mutation under Graph Manager coordination.
 * Creating new apps via App Manager, which triggers Storage Manager to provision per-app tables automatically.
 * Running maintenance commands (checkpoint, vacuum) via authorized operational tooling.
+* Retaining all historical graph rows; there is no pruning pipeline currently.
 
 ### 12.2 Forbidden
 
@@ -283,6 +292,7 @@ APIs follow these rules:
 * Writing graph rows without going through Graph Manager sequencing primitives (e.g., fabricating `global_seq` values or skipping assignment).
 * Allowing external callers to read tables without upstream ACL/OperationContext validation enforced by higher layers.
 * Treating Storage Manager as a general queue or event bus; it stores durable state, not transient work items.
-* Deleting graph rows outside maintenance routines or Graph Manager pathways explicitly authorized by policy.
+* Deleting Parent, Attribute, Edge, or Rating rows. The protocol lacks deletion operations, so Storage Manager never removes these records once persisted.
+* Running pruning or compaction routines that would drop graph rows or rewrite history. Lifecycle transitions remain append-only in this PoC.
 
 Storage Manager enforces these boundaries to keep the backend's persistent state consistent, auditable, and ready for synchronization across distributed peers.
