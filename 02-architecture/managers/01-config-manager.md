@@ -19,6 +19,7 @@ Config Manager is responsible for:
 * Detecting configuration drift (settings mutation, env refresh, remote pull) and coordinating controlled reloads where allowed.
 * Exposing read-only subscription APIs that notify managers and services when eligible settings change.
 * Providing typed getters and update methods that persist values, emit audit trails, and enforce policy.
+* Supplying the canonical protocol version tuple declared in `01-protocol/10-versioning-and-compatibility.md` so compatibility logic reads a single source of truth.
 
 Config Manager explicitly does not:
 
@@ -42,11 +43,13 @@ BACKEND_PORT=8000
 KEYS_DIR=backend/keys
 TOR_CONTROL_PORT=9051
 TOR_SOCKS_PORT=9050
+PROTOCOL_VERSION=1.0.0
 ```
 
 * `.env` is parsed exactly once at startup. After parsing, Config Manager keeps these values in memory, assigns them to the `node.*` namespace, and no other component reads the file directly.
-* The file never contains graph identifiers, protocol data, or mutable feature flags. It describes the node host itself (paths, bind addresses, Tor wiring) and determines how the backend reaches persistent resources.
+* The file never contains graph identifiers or mutable feature flags. It describes the node host itself (paths, bind addresses, Tor wiring, declared protocol version) and determines how the backend reaches persistent resources.
 * `.env` values are immutable after startup. Updating them requires a restart so that every manager observes the same boot posture.
+* `PROTOCOL_VERSION` encodes the `(major.minor.patch)` tuple that the backend advertises to peers. Config Manager validates the tuple, ensures it matches the supported build version, and publishes it under `node.protocol.version` so handshake components reuse an identical value.
 
 ### 3.2 Settings stored in the backend database
 
@@ -77,6 +80,13 @@ CREATE TABLE IF NOT EXISTS settings (
 * Graph data replicates and carries ACL semantics that do not apply to local node-only configuration; syncing secrets or host parameters would leak state to peers.
 * Keeping configuration outside the graph keeps the graph authoritative for domain objects only, while configuration remains lightweight, fast, and host-local.
 
+### 3.5 Protocol version tuple
+
+* Config Manager is the sole owner of the locally configured protocol version required by `01-protocol/10-versioning-and-compatibility.md`.
+* The tuple originates from `.env`, cannot be overridden by SQLite settings or environment overrides, and is immutable for the life of the process. Bumping the tuple requires editing `.env` and restarting so every manager observes the same value.
+* The tuple is published both as `(major, minor, patch)` integers and as a normalized string (e.g., `1.0.0`) so downstream components can follow the protocol document's lexicographic comparison rules without reparsing text.
+* Startup fails if the tuple is missing, malformed, or advertises a version newer than the running build supports. This prevents Network Manager or handshake code from promising behavior it cannot provide.
+
 ## 4. Configuration sources and precedence
 
 Config Manager enforces a deterministic precedence stack:
@@ -88,6 +98,8 @@ Config Manager enforces a deterministic precedence stack:
 5. **Ephemeral/test overrides** provided programmatically (CLI flags, integration tests). These exist only for the current process and are intended for tests or diagnostics.
 
 Later sources override earlier ones for the same key. Unknown keys cause validation failure unless a manager or app registers the key and schema metadata ahead of the reload.
+
+`PROTOCOL_VERSION` (and thus `node.protocol.version`) is exempt from overrides; it may only be set via `.env` to keep protocol negotiation deterministic.
 
 ## 5. Initialization, validation, and publication flow
 
@@ -104,14 +116,16 @@ Later sources override earlier ones for the same key. Unknown keys cause validat
 2. `.env` is parsed. Structural errors abort startup before any other manager initializes.
 3. SQLite is opened through Storage Manager. Config Manager ensures the `settings` table exists, reads all keys, and merges them onto the tree.
 4. Environment overrides and ephemeral overrides are resolved, coerced into native types, and merged per precedence rules.
-5. Composite configuration is validated against registered schema definitions (built-in plus app/service contributions). Validation includes type checks, port range checks, Tor safety rules, and references to existing directories.
-6. Config Manager emits a monotonic configuration version identifier (`cfg_seq`), stores the full snapshot, and exposes derived views to managers.
-7. Managers receive their namespace snapshot during initialization hooks and must acknowledge acceptance. Failure to acknowledge halts startup.
+5. Config Manager resolves the `node.protocol.version` tuple, validates it against the supported build tuple, and publishes it for the compatibility workflow defined in `01-protocol/10-versioning-and-compatibility.md`.
+6. Composite configuration is validated against registered schema definitions (built-in plus app/service contributions). Validation includes type checks, port range checks, Tor safety rules, and references to existing directories.
+7. Config Manager emits a monotonic configuration version identifier (`cfg_seq`), stores the full snapshot, and exposes derived views to managers.
+8. Managers receive their namespace snapshot during initialization hooks and must acknowledge acceptance. Failure to acknowledge halts startup.
 
 ### 5.3 Outputs
 
 * Immutable snapshot objects keyed by namespace.
 * Configuration version metadata (sequence, timestamp, provenance, source stack).
+* Canonical protocol version tuple (major, minor, patch) used by Network Manager and State Manager during compatibility checks.
 * Audit log entries capturing inputs, success/failure, and applied overrides.
 
 ## 6. Runtime APIs and consumption model
@@ -126,12 +140,14 @@ Config Manager exposes read-only and mutation-safe APIs:
 * `listSettings()` - returns the current key-value map for debugging or export, subject to ACL filtering.
 * `subscribe(keys, callback)` - registers for change notifications on specific keys. Callbacks execute synchronously before the new configuration becomes visible elsewhere, enabling managers to veto invalid runtime changes.
 * `exportConfig(OperationContext, selector)` - service-layer API that returns filtered configuration allowed for the caller's app/domain (used for surfacing safe settings to frontend clients). ACL Manager enforces visibility before Config Manager returns any values to this API.
+* `getProtocolVersion()` - returns the `(major, minor, patch)` tuple (plus normalized string) for the locally configured protocol version defined in `01-protocol/10-versioning-and-compatibility.md`, enabling compatibility logic to declare and validate versions without fetching unrelated configuration.
 
 All APIs return immutable structures (frozen dicts/tuples) to prevent mutation. Frontend apps interact through HTTP endpoints implemented by services, which in turn invoke Config Manager using OperationContext so ACL Manager can enforce administrative permissions.
 
 ## 7. Change handling and immutability rules
 
 * Node runtime configuration (`node.*`) is static after startup. Changes require process restart.
+* `node.protocol.version` cannot be reloaded or overridden. Administrators must edit `.env` and restart so every compatibility check observes the new tuple before the node advertises it to peers.
 * Select manager namespaces may opt-in to hot reload (e.g., Log Manager verbosity, DoS thresholds). Hot reload requires schema metadata declaring the key as `reloadable` plus a validation hook in the owning manager.
 * Config Manager monitors the `settings` table (triggered by its own updates) and exposes a manual `reload()` API for controlled refresh (used in tests or administrative commands). `.env` reloads require explicit restart.
 * On reload, Config Manager repeats the full load/validate process. If validation fails, the previous snapshot remains authoritative, and failure details are logged.
