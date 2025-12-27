@@ -76,13 +76,11 @@ Responsibilities:
 * Initializing transport adapters and registering transport error hooks.
 * Validating that each adapter satisfies the send, receive, and telemetry expectations defined in `01-protocol/08-network-transport-requirements.md` before it is exposed downstream.
 * Creating and starting inbound transport surfaces in a defined order:
-
   * Bastion ingress surface.
   * Optional admitted data surface, if configured as a distinct surface.
 * Publishing readiness only after all required surfaces are live, the Bastion Engine is able to accept connections, and DoS Guard dependencies defined in `01-protocol/11-dos-guard-and-client-puzzles.md` are reachable or explicitly configured out.
 * Starting the Bastion, Incoming, and Outgoing Engines in that order.
 * Starting the Network Manager runtime loop responsibilities that belong to this manager:
-
   * connection reaping and timeout enforcement
   * keepalive scheduling if the transport requires it
   * handshake maintenance that is strictly transport-level and does not alter protocol semantics
@@ -106,7 +104,6 @@ Responsibilities:
 * Maintaining provisional transport context for telemetry and throttling, without treating it as identity.
 * Emitting admission telemetry to DoS Guard and consuming DoS Guard directives defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Executing the admission state machine for both inbound and outbound session attempts, exactly as defined in `01-protocol/11-dos-guard-and-client-puzzles.md`:
-
   * allow admission
   * deny admission
   * require challenge, then re-evaluate on response
@@ -134,7 +131,6 @@ Responsibilities:
 * Invoking the Key Manager to verify envelope signatures and bind the envelope to a signer identity, exactly as defined in `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
 * Invoking the Key Manager to decrypt envelopes addressed to the local node, when encryption is used, following `01-protocol/04-cryptography.md`.
 * Constructing an internal delivery unit that contains:
-
   * the plaintext envelope bytes intended for the State Manager
   * verified signer identity
   * transport metadata and admission context required for downstream policy and telemetry
@@ -283,19 +279,15 @@ This section defines the integration contracts in terms of inputs, outputs, and 
 Inbound:
 
 * Incoming Engine requests signature verification for an envelope and receives:
-
   * verified signer identity, or failure
 * Incoming Engine requests decryption for an envelope addressed to the local node and receives:
-
   * plaintext envelope bytes, or failure
 
 Outbound:
 
 * Outgoing Engine requests signing of an outbound envelope and receives:
-
   * signed envelope bytes, or failure
 * Outgoing Engine requests encryption of an outbound envelope for a peer and receives:
-
   * ciphertext envelope bytes, or failure
 
 Rules:
