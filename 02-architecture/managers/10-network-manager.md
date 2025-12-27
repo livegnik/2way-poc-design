@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document specifies the Network Manager. The Network Manager owns all peer to peer network communication for a 2WAY node. It defines transport abstraction, ordered network startup and shutdown, staged admission through a bastion, cryptographic binding at the network boundary, and coordination with the DoS Guard for abuse containment. It is the sole component through which network data may enter or leave the system.
+This document specifies the Network Manager. The Network Manager owns all peer to peer network communication for a 2WAY node. It defines transport abstraction, ordered network startup and shutdown, staged admission through a bastion, cryptographic binding at the network boundary, and coordination with the DoS Guard for abuse containment. It is the sole component through which network data may enter or leave the system, consistent with the responsibilities described in `01-protocol/00-protocol-overview.md` and the cryptographic boundary defined in `01-protocol/04-cryptography.md`.
 
 This specification defines internal engines that together constitute the Network Manager. These engines are normative and required for correct implementation.
 
@@ -17,18 +17,21 @@ This document does not define protocol semantics, graph mutation logic, authoriz
 This specification is responsible for the following:
 
 - Owning all inbound and outbound network listeners and connections.
-- Abstracting supported network transports while preserving peer context.
+- Abstracting supported network transports while preserving peer context per `01-protocol/08-network-transport-requirements.md`.
 - Performing ordered network startup and shutdown sequencing.
 - Managing onion service lifecycle where configured.
 - Enforcing hard transport level limits on size, rate, and concurrency.
-- Providing staged admission via a Bastion Engine.
+- Providing staged admission via a Bastion Engine aligned with the abuse resistance model coordinated through DoS Guard Manager.
 - Coordinating admission decisions with the DoS Guard Manager.
 - Managing post admission inbound and outbound communication paths.
-- Performing cryptographic binding for network packages using the Key Manager.
-- Verifying signatures and decrypting inbound packages addressed to the local node.
-- Signing and encrypting outbound packages as required by protocol rules.
+- Performing cryptographic binding for network packages using the Key Manager exactly as mandated in `01-protocol/04-cryptography.md`.
+- Verifying signatures and decrypting inbound packages addressed to the local node using the algorithms specified in `01-protocol/04-cryptography.md`.
+- Signing and encrypting outbound packages as required by protocol rules defined in `01-protocol/04-cryptography.md` and `01-protocol/03-serialization-and-envelopes.md`.
 - Ensuring only admitted and cryptographically verified packages are forwarded internally.
 - Preserving transport metadata and admission context.
+- Preserving envelope byte order and boundaries exactly across ingress and egress.
+- Surfacing explicit best effort connection lifecycle and failure events to the State Manager, DoS Guard Manager, and Event Manager.
+- Treating transport provided peer references as advisory context only until cryptographic identity binding occurs.
 - Exposing readiness and liveness state to the Health Manager.
 - Emitting network level events, failures, and state transitions.
 
@@ -52,8 +55,12 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 - No inbound package reaches the State Manager without passing cryptographic verification and decryption where applicable.
 - Rejected or unauthenticated network input cannot cause state mutation.
 - Admission, verification, and forwarding decisions are deterministic for a given input and configuration.
-- Transport metadata and admission context are preserved exactly.
+- Transport metadata and admission context are preserved exactly in accordance with `01-protocol/08-network-transport-requirements.md`.
+- Envelope payload bytes and protocol level metadata are immutable between transport ingress and State Manager handoff, except for cryptographic operations orchestrated with the Key Manager when producing outbound packages.
 - Trust level increases only monotonically across defined boundaries.
+- Transport provided peer references are never treated as authenticated identity without cryptographic verification, matching the trust model in `01-protocol/08-network-transport-requirements.md` and `01-protocol/04-cryptography.md`.
+- All components treat transport connectivity as best effort: delivery, ordering, deduplication, and availability guarantees are never assumed.
+- Only the Network Manager interacts directly with raw transport data per `01-protocol/08-network-transport-requirements.md`. Downstream consumers receive outputs solely through the verified package or telemetry paths described in this specification.
 - Failure at any network boundary fails closed.
 - These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
@@ -103,6 +110,7 @@ Constraints:
 - The Bastion Engine must not parse protocol semantics.
 - The Bastion Engine must not forward data to protocol or application components.
 - Challenge payloads are opaque and must not be interpreted.
+- Transport level peer references exposed at the Bastion boundary are advisory and must not be treated as authenticated identity assertions.
 
 ### 4.3 Incoming Engine
 
@@ -116,6 +124,7 @@ Responsibilities:
 - Invoking the Key Manager to verify package signatures.
 - Invoking the Key Manager to decrypt packages addressed to the local node.
 - Associating verified signer identity with each package.
+- Preserving the exact envelope boundaries and payload bytes delivered by the transport layer when forwarding to the State Manager.
 - Forwarding only verified and decrypted packages to the State Manager.
 
 Constraints:
@@ -123,6 +132,7 @@ Constraints:
 - Data from unadmitted connections must not reach the Incoming Engine.
 - Partially verified packages must not be forwarded.
 - Authorization, schema, and graph evaluation are forbidden.
+- Ordering, deduplication, retry, or delivery guarantees must not be inferred or introduced.
 
 ### 4.4 Outgoing Engine
 
@@ -135,6 +145,8 @@ Responsibilities:
 - Invoking the Key Manager to sign and encrypt outbound packages.
 - Applying transport framing and transmission.
 - Enforcing outbound transport limits.
+- Preserving outbound envelope boundaries, byte content, and metadata as provided by the State Manager while applying cryptographic protection.
+- Emitting explicit delivery failure, timeout, and disconnect events to the Event Manager, State Manager, and DoS Guard Manager without implicit retry.
 - Reporting transmission failures and connection state changes.
 
 Constraints:
@@ -142,6 +154,17 @@ Constraints:
 - Outbound traffic to unadmitted peers is forbidden.
 - Implicit retry or replay is forbidden unless specified elsewhere.
 - Cryptographic or transport failure must fail closed.
+- Ordering, deduplication, or delivery guarantees must not be promised beyond the transport specification.
+
+### 4.5 Transport interface obligations
+
+All engines interact with the transport abstraction defined by the protocol specification. The following requirements apply globally:
+
+- Transport behavior is adversarial and best effort as described in `01-protocol/08-network-transport-requirements.md`. Drops, duplication, delay, and disconnects must be tolerated and surfaced without embellishment.
+- Envelope payloads and boundaries must never be mutated or synthesized by the Network Manager, preserving the guarantees in `01-protocol/08-network-transport-requirements.md`.
+- Peer references emitted by the transport remain advisory and must only be used for connection management, telemetry, and DoS Guard policy inputs until cryptographic identity binding is completed per `01-protocol/08-network-transport-requirements.md`.
+- Delivery failure, timeout, and disconnect signals must be propagated to the Event Manager, State Manager, and DoS Guard Manager without implicit retry semantics.
+- No component outside the Network Manager, State Manager (through verified package delivery), and DoS Guard Manager (through telemetry feeds) may access transport derived data.
 
 ## 5. Admission and DoS Guard integration
 
@@ -155,6 +178,7 @@ The Bastion Engine must provide:
 - Byte and message counters.
 - Local resource pressure indicators.
 - Admission request type, inbound or outbound.
+- Transport advisory peer references and observed routing metadata suitable for behavioral analysis.
 
 ### 5.2 DoS Guard to Bastion outputs
 
@@ -175,6 +199,7 @@ Constraints:
 - Admission requires explicit allow.
 - Challenge content is opaque to the Network Manager.
 - Puzzle ownership resides exclusively with the DoS Guard Manager.
+- Telemetry or directives obtained during this exchange must not be repurposed as authenticated identity evidence.
 
 ## 6. Connection lifecycle and state transitions
 
@@ -232,6 +257,13 @@ The Network Manager produces:
 - Network events and failures emitted to the Event Manager.
 - Readiness and liveness state updates to the Health Manager.
 
+### 7.3 Transport semantics and consumers
+
+- Transport services provide best effort delivery only, as explicitly stated in `01-protocol/08-network-transport-requirements.md`. Drops, delay, duplication, and disconnects must be surfaced as events without implying reliability, ordering, or deduplication guarantees.
+- Peer references supplied by transport are advisory only per `01-protocol/08-network-transport-requirements.md`. Identity assertions must originate from cryptographic verification performed with the Key Manager.
+- Only the Network Manager, State Manager (via verified package delivery), and DoS Guard Manager (via explicit telemetry) may consume transport outputs, matching the consumer list in `01-protocol/08-network-transport-requirements.md`. All other components are strictly prohibited from interacting with raw transport data.
+- Delivery failure, timeout, and disconnect signals must be emitted promptly to both the Event Manager and State Manager so that higher layers can apply their own recovery or sync logic.
+
 ## 8. Trust boundaries
 
 The Network Manager defines multiple trust boundaries:
@@ -264,6 +296,8 @@ The Network Manager must not:
 - Modify package contents.
 - Persist network input beyond transient buffering.
 - Bypass defined engine transitions.
+- Treat transport level peer identifiers as authenticated identity, which would violate `01-protocol/08-network-transport-requirements.md`.
+- Synthesize or mutate envelope payloads or protocol metadata beyond cryptographic protection required for outbound packages.
 
 ## 10. Failure and rejection behavior
 
