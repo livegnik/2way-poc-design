@@ -21,8 +21,8 @@ This specification is responsible for the following:
 - Performing ordered network startup and shutdown sequencing.
 - Managing onion service lifecycle where configured.
 - Enforcing hard transport level limits on size, rate, and concurrency.
-- Providing staged admission via a Bastion Engine aligned with the abuse resistance model coordinated through DoS Guard Manager.
-- Coordinating admission decisions with the DoS Guard Manager.
+- Providing staged admission via a Bastion Engine aligned with the abuse resistance model coordinated through DoS Guard Manager per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+- Coordinating admission decisions with the DoS Guard Manager as defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
 - Managing post admission inbound and outbound communication paths.
 - Performing cryptographic binding for network packages using the Key Manager exactly as mandated in `01-protocol/04-cryptography.md`.
 - Verifying signatures and decrypting inbound packages addressed to the local node using the algorithms specified in `01-protocol/04-cryptography.md`.
@@ -61,6 +61,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 - Transport provided peer references are never treated as authenticated identity without cryptographic verification, matching the trust model in `01-protocol/08-network-transport-requirements.md` and `01-protocol/04-cryptography.md`.
 - All components treat transport connectivity as best effort: delivery, ordering, deduplication, and availability guarantees are never assumed.
 - Only the Network Manager interacts directly with raw transport data per `01-protocol/08-network-transport-requirements.md`. Downstream consumers receive outputs solely through the verified package or telemetry paths described in this specification.
+- Admission directives, rate limits, and client puzzles are authoritative only when produced by DoS Guard Manager, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 - Failure at any network boundary fails closed.
 - These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
@@ -168,6 +169,8 @@ All engines interact with the transport abstraction defined by the protocol spec
 
 ## 5. Admission and DoS Guard integration
 
+Admission control semantics are defined in `01-protocol/11-dos-guard-and-client-puzzles.md`. The Network Manager acts solely as the transport for telemetry, directives, and puzzle payloads between peers and the DoS Guard Manager.
+
 ### 5.1 Bastion to DoS Guard inputs
 
 The Bastion Engine must provide:
@@ -198,7 +201,7 @@ Constraints:
 
 - Admission requires explicit allow.
 - Challenge content is opaque to the Network Manager.
-- Puzzle ownership resides exclusively with the DoS Guard Manager.
+- Puzzle ownership resides exclusively with the DoS Guard Manager per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 - Telemetry or directives obtained during this exchange must not be repurposed as authenticated identity evidence.
 
 ## 6. Connection lifecycle and state transitions

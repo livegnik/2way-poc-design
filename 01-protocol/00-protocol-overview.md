@@ -45,6 +45,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 * `08-network-transport-requirements.md` defines the adversarial transport abstraction and mandatory signaling and delivery properties.
 * `09-errors-and-failure-modes.md` defines canonical error classes, precedence rules, and mandatory rejection behavior.
 * `10-versioning-and-compatibility.md` defines version tuples and compatibility checks.
+* `11-dos-guard-and-client-puzzles.md` defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
 
 ## 5. Operation lifecycle
 
@@ -77,6 +78,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 
 * State Manager is the only producer of outbound sync packages and the only consumer of inbound sync packages.
 * Remote sync uses the same graph message envelope format as local writes, wrapped with sync metadata, including sender identity, sync domain name, and a declared sequence range such as `from_seq` and `to_seq`.
+* DoS Guard Manager enforces admission control and client puzzles before Network Manager processes inbound connections, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Network Manager handles transport and cryptography, including signature creation and verification, and ECIES encryption where confidentiality is required.
 * The receiver enforces per-peer, per-domain ordering rules and must reject packages that are replayed, out of order, malformed, or inconsistent with known sync state.
 
