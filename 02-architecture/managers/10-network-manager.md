@@ -30,7 +30,7 @@ This specification is responsible for the following:
 - Ensuring only admitted and cryptographically verified packages are forwarded internally.
 - Preserving transport metadata and admission context.
 - Preserving envelope byte order and boundaries exactly across ingress and egress.
-- Surfacing explicit best effort connection lifecycle and failure events to the State Manager, DoS Guard Manager, and Event Manager.
+- Surfacing explicit best effort connection lifecycle and failure events to the State Manager, DoS Guard Manager, and Event Manager per `01-protocol/08-network-transport-requirements.md`.
 - Treating transport provided peer references as advisory context only until cryptographic identity binding occurs.
 - Exposing readiness and liveness state to the Health Manager.
 - Emitting network level events, failures, and state transitions.
@@ -163,7 +163,7 @@ All engines interact with the transport abstraction defined by the protocol spec
 - Transport behavior is adversarial and best effort as described in `01-protocol/08-network-transport-requirements.md`. Drops, duplication, delay, and disconnects must be tolerated and surfaced without embellishment.
 - Envelope payloads and boundaries must never be mutated or synthesized by the Network Manager, preserving the guarantees in `01-protocol/08-network-transport-requirements.md`.
 - Peer references emitted by the transport remain advisory and must only be used for connection management, telemetry, and DoS Guard policy inputs until cryptographic identity binding is completed per `01-protocol/08-network-transport-requirements.md`.
-- Delivery failure, timeout, and disconnect signals must be propagated to the Event Manager, State Manager, and DoS Guard Manager without implicit retry semantics.
+- Delivery failure, timeout, and disconnect signals must be propagated to the Event Manager, State Manager, and DoS Guard Manager without implicit retry semantics per `01-protocol/08-network-transport-requirements.md`.
 - No component outside the Network Manager, State Manager (through verified package delivery), and DoS Guard Manager (through telemetry feeds) may access transport derived data.
 
 ## 5. Admission and DoS Guard integration
@@ -178,7 +178,7 @@ The Bastion Engine must provide:
 - Byte and message counters.
 - Local resource pressure indicators.
 - Admission request type, inbound or outbound.
-- Transport advisory peer references and observed routing metadata suitable for behavioral analysis.
+- Transport advisory peer references and observed routing metadata suitable for behavioral analysis per `01-protocol/08-network-transport-requirements.md`.
 
 ### 5.2 DoS Guard to Bastion outputs
 
@@ -262,7 +262,7 @@ The Network Manager produces:
 - Transport services provide best effort delivery only, as explicitly stated in `01-protocol/08-network-transport-requirements.md`. Drops, delay, duplication, and disconnects must be surfaced as events without implying reliability, ordering, or deduplication guarantees.
 - Peer references supplied by transport are advisory only per `01-protocol/08-network-transport-requirements.md`. Identity assertions must originate from cryptographic verification performed with the Key Manager.
 - Only the Network Manager, State Manager (via verified package delivery), and DoS Guard Manager (via explicit telemetry) may consume transport outputs, matching the consumer list in `01-protocol/08-network-transport-requirements.md`. All other components are strictly prohibited from interacting with raw transport data.
-- Delivery failure, timeout, and disconnect signals must be emitted promptly to both the Event Manager and State Manager so that higher layers can apply their own recovery or sync logic.
+- Delivery failure, timeout, and disconnect signals must be emitted promptly to both the Event Manager and State Manager so that higher layers can apply their own recovery or sync logic, consistent with `01-protocol/08-network-transport-requirements.md`.
 
 ## 8. Trust boundaries
 

@@ -30,6 +30,7 @@ This specification is responsible for the following:
 - Signaling connection establishment and termination.
 - Signaling delivery failure, timeout, or disconnect.
 - Supporting multiple concurrent peer connections.
+- Producing connection-level telemetry (byte and message counters, timing samples, resource pressure indicators) required for DoS Guard and observability tooling while preserving envelope opacity.
 - Operating over untrusted and potentially anonymous networks as required by the PoC.
 
 This specification does not cover the following:
@@ -137,6 +138,7 @@ The transport layer emits:
 - Advisory peer references.
 - Connection state events.
 - Delivery failure or timeout events.
+- Connection telemetry including byte counters, message counters, timing samples, and resource pressure metrics suitable for DoS Guard Manager analysis and Event Manager observability. All telemetry remains advisory and unauthenticated.
 
 ### 9.3 Consumers
 
@@ -147,6 +149,12 @@ Transport outputs may be consumed only by:
 - DoS Guard Manager mechanisms for behavioral analysis.
 
 No other component may directly access the transport.
+
+### 9.4 Telemetry propagation
+
+- Transport implementations must surface connection lifecycle events, delivery failures, timeouts, disconnects, and associated telemetry so that the Network Manager can forward them to Event Manager and DoS Guard Manager without mutation.
+- Telemetry may include byte counters, message counters, routing metadata, latency samples, and local resource pressure indicators. All such data is advisory and must not be treated as authenticated identity or authorization evidence.
+- State Manager consumes only the verified package deliveries supplied by Network Manager; telemetry shared with State Manager is limited to the readiness signals necessary for sync scheduling and may not expose raw transport payloads.
 
 ## 10. Failure and rejection handling
 
