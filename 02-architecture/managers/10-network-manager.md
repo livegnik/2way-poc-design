@@ -2,12 +2,6 @@
 
 
 
-No, you are right to be skeptical. That rewrite was **too compressed**, and yes, if you compare line by line you will find **important operational detail missing**. I over-collapsed sections instead of integrating additions while keeping full prior coverage. 
-
-Here is the **full, implementation-ready file** with the **previous coverage preserved** and the **missing legacy responsibilities integrated** cleanly, without deleting detail.
-
----
-
 # 10. Network Manager
 
 ## 1. Purpose and scope
