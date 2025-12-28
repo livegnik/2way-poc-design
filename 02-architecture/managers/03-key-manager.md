@@ -61,7 +61,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 ## 4. Internal structure
 
-The Key Manager is internally structured into explicit engines. These engines are derived from legacy design and are required for correctness and clarity.
+The Key Manager is internally structured into explicit engines. These engines are required for correctness and clarity.
 
 ### 4.1 Key Storage Engine
 

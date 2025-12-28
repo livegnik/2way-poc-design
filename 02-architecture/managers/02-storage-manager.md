@@ -64,7 +64,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 ## 4. Internal structure
 
-Storage Manager is internally divided into engines. These engines reflect legacy design while remaining aligned with the current architecture.
+Storage Manager is internally divided into explicit engines. These engines are required for correctness and clarity.
 
 ### 4.1 Storage Engine
 
