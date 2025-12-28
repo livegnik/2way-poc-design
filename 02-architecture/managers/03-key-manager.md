@@ -2,259 +2,310 @@
 
 
 
-# 03. Key Manager
+# 03 Key Manager
 
 ## 1. Purpose and scope
 
-This document specifies the Key Manager component in the 2WAY backend. It defines local private key generation, storage, loading, and the narrowly scoped signing, encryption, and decryption operations the protocol allows this component to perform with those keys.
+This document defines the Key Manager component in the 2WAY backend. It specifies the authoritative handling of all local private key material and the narrowly scoped cryptographic operations permitted to be performed using those keys.
 
-This file covers only local key material and key backed operations. It does not define protocol cryptography, envelope formats, identity semantics, ACL policy, sync rules, or network transport behavior, except where required to define inputs, outputs, trust boundaries, and rejection conditions.
+It implements the storage and execution boundaries mandated by `01-protocol/04-cryptography.md` and the identity and key binding rules in `01-protocol/05-keys-and-identity.md`.
+
+Key Manager is responsible for key generation, durable storage, loading, and controlled use of private keys for signing and asymmetric encryption or decryption. It is a security critical manager with strict boundaries. It does not interpret protocol semantics, graph meaning, ACL rules, or sync logic. It performs cryptographic operations only when explicitly instructed by authorized backend components.
+
+This specification defines structure, responsibilities, invariants, lifecycle behavior, failure handling, and interaction contracts required to implement the Key Manager correctly.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following:
+This specification is responsible for the following
 
-* Generating secp256k1 keypairs for node, identity, and app identities.
-* Persisting private keys to the backend key directory using PEM encoding.
-* Loading and validating key files at startup and on demand.
-* Deriving public keys from private keys for publication into the graph by the Graph Manager.
-* Performing signing operations for explicitly requested identity scopes.
-* Performing ECIES encryption for outbound payloads when a caller supplies a recipient public key.
-* Performing ECIES decryption for ciphertexts addressed to locally held private keys.
-* Enforcing that private keys are never returned, serialized into graph objects, written into logs, or emitted into network payloads.
-* Serving as the only component that may touch private keys for signing or decryption operations.
-* Ensuring the node key exists and is usable before any component that requires node signing or node decryption can operate.
+* Generating secp256k1 keypairs for node, identity, and app scopes.
+* Persisting private keys to disk using a deterministic and validated on disk format.
+* Loading and validating private key material at startup and on demand.
+* Deriving public keys from locally held private keys.
+* Performing signing operations defined in `01-protocol/04-cryptography.md` for explicitly specified scopes and key identifiers.
+* Performing ECIES encryption for outbound payloads when a recipient public key is provided, as required by `01-protocol/04-cryptography.md`.
+* Performing ECIES decryption for inbound payloads addressed to locally held private keys, as required by `01-protocol/04-cryptography.md`.
+* Enforcing that private keys are never returned, serialized, logged, or emitted.
+* Acting as the sole component permitted to access private key material.
+* Ensuring the node key exists, is valid, and is usable before dependent managers may operate.
+* Refusing all cryptographic operations when invariants are violated.
 
-This specification does not cover the following:
+This specification does not cover the following
 
-* Signature verification of remote envelopes or remote objects.
-* Policy decisions determining when outbound payloads must be encrypted or decrypted.
-* Definition of identity Parents, Attributes, or schema rules in app_0.
-* Determination of authorship, ownership, or permission semantics.
-* ACL evaluation, authorization policy, or OperationContext construction.
-* Sync package construction, application, conflict resolution, or revocation precedence.
-* Frontend key storage, client side signing, or key export UX.
-* Key escrow, key synchronization between nodes, or remote key recovery.
+* Signature verification of remote envelopes or objects.
+* Protocol level decisions about when signing or encryption is required.
+* Graph object creation, persistence, or schema enforcement.
+* ACL evaluation or permission semantics.
+* Identity ownership, authorship, or trust interpretation.
+* Sync package construction or application.
+* Frontend key storage or client side signing.
+* Key escrow, key export, or key sharing between nodes.
+* Network transport or peer communication.
 
 ## 3. Invariants and guarantees
 
-Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
+Across all components and contexts defined in this file, the following invariants and guarantees hold:
 
-* All keypairs managed by this component use secp256k1.
-* All private keys are stored only in the backend key directory as PEM encoded EC private keys.
-* Private keys are never written to the graph, never emitted over the network, and never returned to any caller.
-* Public keys are always derived from private keys and are the only key material permitted to be persisted into the graph.
-* Signing, encryption, and decryption operations either succeed using protocol-mandated algorithms and validated locally held keys or fail with explicit errors.
-* Silent fallback, scope inference, or alternate key selection is forbidden.
-* All inputs to cryptographic operations are treated as untrusted bytes and are validated for size and type before use.
-* The Key Manager signs only for explicitly specified identity scopes that are locally held and loadable.
-* The Key Manager never determines authorship. It only performs cryptographic operations for a caller provided author identity.
-* Only the Key Manager may access private keys for signing or decryption. Other components must call into it rather than read private key material.
-* A derived public key is bound to exactly one identity scope and must never be submitted for or reassigned to another identity Parent once persisted.
-* Startup must not complete successfully unless the node key is present, valid, and usable.
+* All keypairs use secp256k1 exclusively and all asymmetric encryption uses ECIES over secp256k1, as mandated by `01-protocol/04-cryptography.md`.
+* All private keys exist only on disk and in process memory.
+* Private keys are never written to the graph, database, logs, or network.
+* Public keys are always derived from private keys.
+* Every cryptographic operation uses an explicitly specified scope and key identifier.
+* No implicit scope selection or fallback is permitted.
+* Invalid, missing, or malformed keys cause explicit failure.
+* The node key must exist and be valid before startup completes.
+* The Key Manager never determines authorship or authority and defers to identity semantics defined in `01-protocol/05-keys-and-identity.md`.
+* Only the Key Manager may perform signing or decryption using private keys.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 4. Identity scopes and key classes
+## 4. Internal structure
 
-Identity scopes are internal addressing constructs used by the Key Manager to select locally held private keys. They are not protocol level concepts and do not appear in the graph or on the wire.
+The Key Manager is internally structured into explicit engines. These engines are derived from legacy design and are required for correctness and clarity.
 
-Each scope corresponds to a protocol identity represented as a Parent in app_0.
+### 4.1 Key Storage Engine
 
-### 4.1 Node scope
+The Key Storage Engine owns:
+
+* Filesystem layout and directory management.
+* Atomic creation of key files.
+* Loading and parsing of key files.
+* Validation of key format and curve type.
+* Ensuring uniqueness and non ambiguity of node keys.
+
+It performs no cryptographic operations beyond parsing and validation.
+
+### 4.2 Key Generation Engine
+
+The Key Generation Engine owns:
+
+* Generation of secp256k1 keypairs.
+* Assignment of key identifiers.
+* Coordination with the Storage Engine to persist keys durably.
+* Ensuring generated keys are usable before returning success.
+
+It does not bind keys to graph identities directly.
+
+### 4.3 Crypto Operation Engine
+
+The Crypto Operation Engine owns:
+
+* Signing byte sequences with a specified private key exactly as defined in `01-protocol/04-cryptography.md`.
+* ECIES encryption using a supplied recipient public key in compliance with `01-protocol/04-cryptography.md`.
+* ECIES decryption using a specified private key in compliance with `01-protocol/04-cryptography.md`.
+* Input validation for cryptographic operations.
+* Enforcing algorithm and size constraints.
+
+It never selects keys implicitly.
+
+### 4.4 Key Cache Engine
+
+The Key Cache Engine owns:
+
+* In memory caching of parsed private keys.
+* Cache invalidation on key rotation or failure.
+* Ensuring cached keys match on disk representations.
+
+Caching is an optimization only and must not change semantics.
+
+## 5. Identity scopes and key classes
+
+Identity scopes are internal addressing constructs used by the Key Manager. They correspond to protocol identities represented as Parents in app_0, as described in `01-protocol/05-keys-and-identity.md`, but do not appear on the wire.
+
+### 5.1 Node scope
 
 * Exactly one node keypair exists per backend instance.
-* The node scope corresponds to the node identity Parent in app_0.
-* The node keypair is used for:
-  * Signing outbound sync packages when required by protocol flows.
-  * ECIES decryption of inbound payloads addressed to the node identity.
-* The node keypair must exist before the Network Manager or State Manager can perform any operation requiring node signing or decryption.
+* The node scope corresponds to the node identity Parent defined in `01-protocol/05-keys-and-identity.md`.
+* The node key is used for:
+  * Signing outbound sync related payloads when required.
+  * Decrypting inbound payloads addressed to the node.
+* Startup must fail if the node key is missing or unusable.
 
-### 4.2 Identity scopes
+### 5.2 Identity scopes
 
-* One or more identity keypairs may exist locally for a given identity Parent.
-* Identity keypairs are used for identity scoped signing when required by higher level flows.
-* Multiple keypairs for the same identity are permitted over time.
-* The Key Manager does not select which identity key is active. Key selection is determined by the caller based on authoritative graph state.
+* One or more identity keypairs may exist locally for a given identity.
+* Identity keys may represent users or system identities.
+* Multiple keys over time are permitted to support rotation.
+* The Key Manager does not choose which identity key is active.
 
-### 4.3 App scopes
+### 5.3 App scopes
 
-* App identity keypairs exist for app identities that require backend signing or decryption.
-* App scopes distinguish app level cryptographic actions from user or node actions.
-* App identities are treated as first class protocol identities and follow the same binding rules as other identities.
+* App keypairs exist for app identities that require backend cryptographic operations.
+* App scopes are distinct from user and node scopes.
+* App identities are first class identities and follow the same binding rules.
 
-## 5. Persistent key storage
+## 6. Persistent key storage
 
-### 5.1 Storage root and directory layout
+### 6.1 Storage root and layout
 
-The Key Manager stores key files under a single configured directory root within the backend filesystem.
+All key material is stored under a single backend directory.
 
-The following paths are used:
+Paths are:
 
 * `backend/keys/nodes/node_key.pem`
 * `backend/keys/identities/<identity_id>/<key_id>.pem`
 * `backend/keys/apps/<app_id>/<key_id>.pem`
 
-The key directory is treated as sensitive data and must not be served, indexed, or exposed via any HTTP, WebSocket, or app extension surface.
+This directory must never be exposed via any API or static file server.
 
-### 5.2 Encoding and representation
+### 6.2 Encoding and format
 
-* Each key file is a PEM encoded EC private key for secp256k1.
-* Public keys are derived from private keys when needed.
-* No separate public key files are required or permitted.
+* Keys are stored in a validated deterministic format.
+* The format must encode curve type, public key, and private key.
+* Public keys are always derivable from private keys.
+* Separate public key files are forbidden.
 
-### 5.3 File creation and update rules
+### 6.3 Creation and update rules
 
-* Key generation must be atomic from the perspective of other components.
-* A generated key must be durably persisted before success is returned to the caller.
-* Existing key files must not be overwritten except as part of an explicit rotation flow.
-* Multiple key files may exist for the same identity scope.
-* If the node key is duplicated or ambiguous, startup must fail.
+* Key creation must be atomic.
+* Existing key files must never be overwritten implicitly.
+* Node key duplication or ambiguity causes startup failure.
+* Old keys remain on disk after rotation.
 
-### 5.4 Local only property
+### 6.4 Local only constraint
 
-* Private key material must not leave the backend key directory except into process memory for cryptographic operations.
-* The Key Manager must not accept private key material from the graph, from network input, or from frontend input.
+* Private keys must not be accepted from external input.
+* Private keys must not be reconstructed from graph state.
 
-## 6. Public key binding to graph identities
+## 7. Public key binding to graph identities
 
-### 6.1 Binding requirement
+### 7.1 Binding contract
 
-For each locally held identity scope used for signing, a corresponding public key must exist in the graph.
+* Public keys are derived by the Key Manager.
+* Graph Manager persists them as public key Attributes as defined in `01-protocol/05-keys-and-identity.md`.
+* A public key binds permanently to one identity Parent.
 
-Binding is implemented as follows:
+The Key Manager never writes to the graph directly.
 
-* The Key Manager derives the public key from a private key.
-* The Graph Manager persists the public key as a `pubkey` Attribute on the corresponding identity Parent in app_0.
-* A derived public key can only be offered for the identity scope that produced it, and it becomes immutable once accepted into the graph.
+### 7.2 Identity existence requirement
 
-The Key Manager must not write directly to the graph or database.
+* Signing or public key exposure is forbidden unless the identity Parent exists.
+* Exception is allowed only during identity creation flows explicitly orchestrated by higher layers.
 
-### 6.2 Identity existence requirement
+### 7.3 Authority split
 
-The Key Manager must not sign or provide public key material for an identity scope unless the corresponding identity Parent already exists in the graph, except when explicitly invoked as part of an identity creation or identity reconstruction flow.
+* Key Manager owns private keys and derivation.
+* Graph Manager owns persistence and binding.
 
-### 6.3 Authority split
+## 8. Interfaces and interactions
 
-* The Key Manager is authoritative for private keys and derived public keys.
-* The Graph Manager is authoritative for persisting public keys and binding them to identity Parents.
+### 8.1 Inputs
 
-## 7. Interfaces and interactions
-
-This section defines formal inputs and outputs. Callers are internal backend managers and system services only.
-
-### 7.1 Inputs
-
-The Key Manager accepts the following inputs:
-
-* Configuration inputs:
-  * Key directory root path.
-  * Policy for generating missing keys per scope.
-* Key lifecycle requests:
+* Configuration:
+  * Key directory path.
+  * Policy for missing key generation.
+* Lifecycle requests:
   * Ensure node key exists.
-  * Create a new keypair for a specified identity or app scope.
-  * Load a specific key by scope and key identifier.
-* Cryptographic operation requests:
-  * Sign a byte sequence for a specified identity scope and key identifier.
-  * Encrypt a byte sequence for a specified recipient identity or public key.
-  * Decrypt an ECIES ciphertext for a specified identity scope and key identifier.
+  * Generate new keypair for a scope.
+  * Load key by scope and identifier.
+* Cryptographic requests:
+  * Sign bytes.
+  * Encrypt bytes with recipient public key.
+  * Decrypt ciphertext.
 
-All requests must originate from trusted backend components.
+All callers are trusted backend components.
 
-### 7.2 Outputs
+### 8.2 Outputs
 
-The Key Manager provides the following outputs:
+* Public key bytes.
+* Signature bytes.
+* Ciphertext bytes.
+* Plaintext bytes.
 
-* Derived public key bytes for graph binding.
-* Signature bytes for caller provided data.
-* Ciphertext bytes from ECIES encryption using caller supplied recipient public keys.
-* Plaintext bytes from ECIES decryption.
+Private key material is never returned.
 
-Private key material or representations enabling reconstruction are never returned.
+### 8.3 Scope specification
 
-### 7.3 Scope specification
+Every request must specify:
 
-Each operation must specify exactly one identity scope and one key identifier. Requests that do not do so must be rejected.
+* Exactly one scope.
+* Exactly one key identifier.
 
-### 7.4 Authorization boundary
+Requests that do not are rejected.
 
-The Key Manager enforces a minimal authorization boundary:
+### 8.4 Authorization boundary
 
-* Only internal backend components may call it.
-* Scope must be explicit and never inferred.
-* Operations must be rejected if the requested scope or key is not locally present.
-* No other component may access private keys or bypass the Key Manager for signing, encryption, or decryption.
+* Only backend managers and services may call the Key Manager.
+* Scope and key identifiers are never inferred.
+* Missing or invalid keys cause rejection.
 
-Higher level authorization and ACL evaluation occur elsewhere.
+## 9. Startup and shutdown behavior
 
-## 8. Allowed and forbidden behaviors
+### 9.1 Startup
 
-### 8.1 Explicitly allowed behaviors
+Startup proceeds as follows:
 
-* Generate secp256k1 keypairs for explicitly requested scopes.
-* Persist keys before reporting success.
-* Load and cache private keys in memory for the lifetime of the process.
-* Derive public keys for graph binding via the Graph Manager.
-* Encrypt payload bytes via ECIES when the protocol flow requires confidentiality for a recipient public key.
-* Enforce size limits and validation on cryptographic inputs.
+1. Resolve key directory path.
+2. Load and validate node key.
+3. Validate node key uniqueness.
+4. Prepare in memory caches.
+5. Expose readiness to dependent managers.
 
-### 8.2 Explicitly forbidden behaviors
+Failure aborts backend startup.
 
-* Exporting private keys in any form.
-* Returning raw key objects or serialized private key material.
-* Accepting private keys from the graph, remote peers, frontend requests, or app extensions.
-* Writing to the graph, database, or sync state directly.
-* Verifying signatures or inferring authorship.
-* Selecting an identity or key on behalf of the caller.
-* Continuing operation after detecting an invalid node key.
-* Using any algorithm other than secp256k1 for signing or ECIES over secp256k1 for asymmetric encryption.
+### 9.2 Shutdown
 
-## 9. Failure handling
+* No special shutdown actions are required.
+* In memory caches are discarded with process exit.
 
-### 9.1 Startup failures
+## 10. Allowed and forbidden behaviors
 
-Startup must fail if any of the following occur:
+### 10.1 Allowed behaviors
 
-* The node key is missing and generation is not permitted.
-* The node key file is unreadable or malformed.
-* The node key is not secp256k1.
-* The node key cannot be used for required signing or decryption operations.
+* Generating keys for explicit scopes.
+* Loading keys into memory.
+* Performing signing and ECIES operations.
+* Deriving public keys for graph binding.
+* Enforcing strict validation.
 
-Startup failure is fatal for the backend process.
+### 10.2 Forbidden behaviors
 
-### 9.2 Runtime rejections
+* Exporting private keys.
+* Accepting private keys from external sources.
+* Writing to the graph or database.
+* Verifying signatures.
+* Selecting keys implicitly.
+* Continuing after node key failure.
+* Using non secp256k1 algorithms.
 
-Operations must be rejected with explicit errors if:
+## 11. Failure handling
 
-* The requested scope or key does not exist locally.
-* The requested key is unreadable or malformed.
-* The operation input is invalid, empty where not permitted, or exceeds size limits.
-* ECIES decryption fails.
-* Encryption or signing requests specify unsupported algorithms or omit the recipient public key required for ECIES encryption.
-* The request does not specify exactly one scope and key identifier.
+### 11.1 Startup failures
 
-Alternate scopes, silent retries, or fallback behavior are forbidden.
+Startup must fail if:
 
-### 9.3 Key and graph mismatch
+* Node key is missing and cannot be generated.
+* Node key is malformed or wrong curve.
+* Node key cannot sign or decrypt.
 
-If a request targets an identity scope that is not bound in the graph, it must be rejected unless the request is explicitly part of an identity creation or reconstruction flow.
+### 11.2 Runtime failures
 
-The Key Manager must not attempt to repair graph state.
+Operations must fail if:
 
-### 9.4 Rotation and revocation interactions
+* Scope or key does not exist.
+* Key is malformed.
+* Inputs are invalid or oversized.
+* Decryption fails.
+* Algorithm constraints are violated.
 
-Key rotation and revocation semantics are defined at the protocol and flow layers.
+Silent fallback is forbidden.
 
-The Key Manager provides support behavior only:
+### 11.3 Graph and key mismatch
 
-* Creating and persisting new keypairs when invoked by an authorized rotation flow.
-* Retaining older keys on disk without selecting active keys.
-* Refusing to use keys marked as revoked when the caller supplies authoritative revocation status.
+If graph state indicates revocation or mismatch, the Key Manager refuses use of the key when instructed by higher layers. It does not repair graph state.
 
-The Key Manager does not determine revocation precedence.
+### 11.4 Rotation and revocation support
 
-## 10. Operational constraints
+The Key Manager supports rotation by:
 
-* The backend key directory is the single source of truth for private keys.
-* Loss of a private key prevents future signing and decryption for that scope but does not corrupt existing graph state.
-* The Key Manager must not introduce background tasks beyond startup loading and request time operations.
+* Creating new keys on request.
+* Retaining old keys.
+* Refusing revoked keys when provided authoritative status.
+
+It does not decide revocation precedence.
+
+## 12. Operational constraints
+
+* Key directory is the sole private key authority.
+* Loss of keys prevents future operations but does not corrupt history.
+* No background tasks beyond load and request handling.
