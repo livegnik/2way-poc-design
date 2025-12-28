@@ -13,7 +13,6 @@ The Network Manager owns all peer-to-peer network I/O for a 2WAY node. It is the
 This specification defines internal engines and phases that together constitute the Network Manager. These engines, phases, and boundaries are normative and required for correct implementation.
 
 This specification consumes the protocol contracts defined in:
-
 * `01-protocol/08-network-transport-requirements.md`
 * `01-protocol/03-serialization-and-envelopes.md`
 * `01-protocol/04-cryptography.md`
@@ -26,8 +25,6 @@ Those files remain normative for all behaviors described here.
 
 This document does not define synchronization policy, graph semantics, authorization decisions, or DoS policy logic.
 
----
-
 ## 2. Responsibilities and boundaries
 
 ### 2.1 This specification is responsible for the following
@@ -39,7 +36,6 @@ This document does not define synchronization policy, graph semantics, authoriza
 * Providing staged admission via a Bastion Engine that isolates unauthenticated peers and coordinates with DoS Guard for allow, deny, and challenge flows per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Executing challenge transport as an opaque exchange, without interpreting puzzle content, difficulty, or verification logic, which are owned by DoS Guard and defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Performing peer discovery for first-degree peers, including:
-
   * requesting peer identity and node endpoint attributes from the State Manager
   * resolving candidate endpoints for connectivity
   * scheduling and initiating outbound session attempts
@@ -65,8 +61,6 @@ This document does not define synchronization policy, graph semantics, authoriza
 * Multi-hop relay policy, overlay routing, or topology optimization beyond direct peer connectivity.
 * Any user-facing APIs, UI behavior, or admin workflows.
 
----
-
 ## 3. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
@@ -86,8 +80,6 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in `01-protocol/09-errors-and-failure-modes.md`.
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
----
-
 ## 4. Internal engine structure
 
 The Network Manager is composed of four mandatory internal engines. These engines define strict phase boundaries and must not be collapsed, reordered, or bypassed.
@@ -105,28 +97,23 @@ Responsibilities:
 * Initializing transport adapters and registering transport error hooks.
 * Validating that each adapter satisfies the send, receive, framing, and telemetry expectations defined in `01-protocol/08-network-transport-requirements.md` before it is exposed downstream.
 * Creating and starting inbound transport surfaces in a defined order:
-
   * Bastion ingress surface.
   * Optional admitted data surface, if configured as a distinct surface.
 * Starting engines in a defined order:
-
   * Bastion Engine.
   * Incoming Engine.
   * Outgoing Engine.
 * Starting Network Manager background phases after bastion readiness:
-
   * Peer Discovery Phase.
   * Reachability Tracking Phase.
 * Publishing readiness only after:
-
   * all required surfaces are live
   * the Bastion Engine is able to accept connections and execute admission
   * required DoS Guard dependencies are reachable, or explicitly configured out
 * Starting runtime loop responsibilities that belong to this manager:
-
   * connection reaping and timeout enforcement
   * keepalive scheduling if the transport requires it
-  * handshake maintenance that is strictly transport-level and does not alter protocol semantics
+  * handshake maintenance that is strictly transport-level and does not alter protocol semantics, per `01-protocol/08-network-transport-requirements.md`
   * outbound dial scheduling and concurrency control
 * Coordinating ordered shutdown and surfacing shutdown progress to Health Manager.
 * Ensuring shutdown sets readiness false immediately, then drains, then sets liveness false at completion.
@@ -135,7 +122,6 @@ Startup sequencing rules:
 
 * The bastion ingress surface must be started before any admitted data surface.
 * No peer discovery outbound dial may be attempted until:
-
   * bastion admission is operational, and
   * DoS Guard is available for admission decisions, unless explicitly configured out.
 * Inbound acceptance may begin once bastion ingress surface is live, but no inbound traffic may pass into the Incoming Engine until admission succeeds.
@@ -159,7 +145,6 @@ Responsibilities:
 * Maintaining provisional transport context for telemetry and throttling, without treating it as identity.
 * Emitting admission telemetry to DoS Guard and consuming DoS Guard directives defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Executing the admission state machine for both inbound and outbound session attempts, exactly as defined in `01-protocol/11-dos-guard-and-client-puzzles.md`:
-
   * allow admission
   * deny admission
   * require challenge, then re-evaluate on response
@@ -170,7 +155,7 @@ Responsibilities:
 
 Constraints:
 
-* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes.
+* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes, because `01-protocol/04-cryptography.md` confines those operations to the post-admission Key Manager boundary.
 * The Bastion Engine must not parse protocol semantics beyond minimal framing required to run the admission exchange, preserving the envelope opacity described in `01-protocol/03-serialization-and-envelopes.md`.
 * The Bastion Engine must not forward any payload to State Manager, Graph Manager, ACL Manager, or Storage Manager.
 * Challenge payloads are opaque. The Bastion Engine must not interpret puzzle content, difficulty, or correctness, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
@@ -189,7 +174,6 @@ Responsibilities:
 * Invoking the Key Manager to verify envelope signatures and bind the envelope to a signer identity, exactly as defined in `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
 * Invoking the Key Manager to decrypt envelopes addressed to the local node, when encryption is used, following `01-protocol/04-cryptography.md`.
 * Constructing an internal delivery unit that contains:
-
   * the plaintext envelope bytes intended for the State Manager
   * verified signer identity
   * transport metadata and admission context required for downstream policy and telemetry
@@ -222,10 +206,8 @@ Constraints:
 
 * Outbound traffic to unadmitted peers is forbidden.
 * The Outgoing Engine must not persist outbound messages for retry. If persistence or resend is required, it belongs to State Manager and its sync policy.
-* Implicit retry, replay, or backoff behavior is forbidden unless explicitly defined by the protocol and invoked by the State Manager.
+* Implicit retry, replay, or backoff behavior is forbidden unless explicitly defined in `01-protocol/07-sync-and-consistency.md` and invoked by the State Manager, because transports remain best-effort per `01-protocol/08-network-transport-requirements.md`.
 * Cryptographic failure or transport failure must fail closed for that envelope. The envelope is not modified and not retried by this manager.
-
----
 
 ## 5. Transport surfaces and onion service lifecycle
 
@@ -261,8 +243,6 @@ Rules:
 * If a bastion ingress service is revoked due to abuse pressure, existing admitted sessions on a distinct admitted surface may remain active, subject to DoS Guard directives and resource limits.
 * Service lifecycle changes must be emitted as explicit events and reflected in Health Manager readiness signals.
 * Publishing new reachable endpoints to peers is not owned by the Network Manager. The Network Manager may only surface endpoint facts to the State Manager for persistence and publication decisions.
-
----
 
 ## 6. Peer discovery, endpoint resolution, and reachability
 
@@ -354,8 +334,6 @@ The Network Manager may perform bounded probing, limited to:
 
 Probing must be bounded by hard rate limits and must not be used to generate additional traffic under load.
 
----
-
 ## 7. Outbound connection scheduling, fairness, and session reuse
 
 ### 7.1 Dial scheduler ownership
@@ -404,8 +382,6 @@ The scheduler must include storm prevention:
 * jittered scheduling when many peers enter eligible state simultaneously
 * strict backoff on repeated failure
 
----
-
 ## 8. Admission and DoS Guard integration
 
 Admission control semantics are defined in `01-protocol/11-dos-guard-and-client-puzzles.md`. The Network Manager acts as the transport boundary that supplies telemetry to DoS Guard and executes DoS Guard directives.
@@ -446,8 +422,6 @@ Constraints:
 * Puzzle ownership resides exclusively with the DoS Guard Manager.
 * Telemetry and directives must not be repurposed as identity evidence.
 
----
-
 ## 9. Connection lifecycle and state transitions
 
 Each network session must exist in exactly one state:
@@ -483,8 +457,6 @@ Additional constraints:
 * A single underlying transport session must not be concurrently treated as both bastion-held and admitted.
 * If the transport reuses a single TCP-like connection for admission and then admitted traffic, the transition from bastion-held to admitted must include an explicit internal state flip, and any pre-admission buffers must be cleared or strictly bounded before admitted traffic is accepted.
 
----
-
 ## 10. Manager interactions
 
 This section defines integration contracts in terms of inputs, outputs, and trust boundaries, without importing responsibilities from other managers.
@@ -494,19 +466,15 @@ This section defines integration contracts in terms of inputs, outputs, and trus
 Inbound:
 
 * Incoming Engine requests signature verification for an envelope and receives:
-
   * verified signer identity, or failure
 * Incoming Engine requests decryption for an envelope addressed to the local node and receives:
-
   * plaintext envelope bytes, or failure
 
 Outbound:
 
 * Outgoing Engine requests signing of an outbound envelope and receives:
-
   * signed envelope bytes, or failure
 * Outgoing Engine requests encryption of an outbound envelope for a peer and receives:
-
   * ciphertext envelope bytes, or failure
 
 Rules:
@@ -524,21 +492,19 @@ Inbound delivery:
 
 Outbound transmission:
 
-* Outgoing Engine receives outbound packages from the State Manager in a form that is already envelope-complete at the protocol level.
+* Outgoing Engine receives outbound packages from the State Manager in a form that is already envelope-complete at the protocol level defined by `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
 * State Manager may include destination identity and optional transport hints derived from node attributes.
-* The Network Manager may apply only cryptographic wrapping and transport framing, not protocol rewriting.
+* The Network Manager may apply only cryptographic wrapping and transport framing, not protocol rewriting, preserving the semantics mandated by `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
 
 Discovery and endpoint inputs:
 
 * The Network Manager requests from State Manager:
-
   * first-degree peer identities eligible for connection attempts
   * node endpoint attributes associated with those identities
 
 Discovery and reachability outputs:
 
 * The Network Manager may provide advisory telemetry to State Manager:
-
   * per-peer reachability state
   * last successful contact timestamps
   * last failure timestamps and coarse failure classes
@@ -596,8 +562,6 @@ Readiness may be degraded, but not true, when:
 
 * existing admitted sessions are maintained but new admissions are fail-closed due to dependency failure
 
----
-
 ## 11. Inputs and outputs
 
 ### 11.1 Inputs
@@ -627,8 +591,6 @@ The Network Manager produces:
 * Admission telemetry emitted to DoS Guard.
 * Advisory reachability telemetry surfaced to State Manager.
 
----
-
 ## 12. Allowed and forbidden behaviors
 
 ### 12.1 Explicitly allowed behaviors
@@ -651,14 +613,12 @@ The Network Manager must not:
 * Deliver any inbound package to State Manager without successful verification, and successful decryption when required.
 * Treat transport-level peer identifiers or endpoints as authenticated identity.
 * Interpret, create, solve, or verify client puzzles, or choose puzzle difficulty.
-* Modify envelope contents, reorder envelope fields, normalize bytes, or synthesize protocol metadata.
+* Modify envelope contents, reorder envelope fields, normalize bytes, or synthesize protocol metadata, because the envelope structure is fixed by `01-protocol/03-serialization-and-envelopes.md`.
 * Persist raw network input, decrypted payloads, endpoint attributes, or outbound payloads for retry.
 * Implement implicit retry, replay, deduplication, or reordering semantics.
 * Perform ACL evaluation, schema validation, graph mutation, sync decisions, or trust scoring.
 * Expand discovery beyond first-degree peers.
 * Treat reachability as an authorization or trust input.
-
----
 
 ## 13. Failure and rejection behavior
 
@@ -713,7 +673,6 @@ On resource pressure:
 * Reduce outbound dial rate and concurrency before shedding admitted sessions.
 * Prefer preserving admitted sessions over bastion-held sessions.
 * If limits are exceeded, shed lowest-trust sessions first, with lowest-trust defined purely by lifecycle state:
-
   * bastion-held and challenged are lower than admitted
 
 ### 13.6 Cryptographic failure
@@ -740,8 +699,6 @@ On repeated dial failures:
 * Do not increase dial rate under failure.
 * Do not attempt all peers simultaneously, enforce fairness and jitter.
 
----
-
 ## 14. Configuration and mandatory limits
 
 The Network Manager enforces mandatory limits, including:
@@ -764,8 +721,6 @@ The Network Manager enforces mandatory limits, including:
 These limits are mandatory and cannot be disabled.
 
 They enforce hard-cap guidance from `01-protocol/08-network-transport-requirements.md`, preserve resource-failure semantics described in `01-protocol/09-errors-and-failure-modes.md`, and feed telemetry inputs consumed by `01-protocol/11-dos-guard-and-client-puzzles.md`.
-
----
 
 ## 15. Security considerations
 
