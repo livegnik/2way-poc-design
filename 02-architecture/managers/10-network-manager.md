@@ -13,11 +13,11 @@ The Network Manager owns all peer-to-peer network I/O for a 2WAY node. It is the
 This specification defines internal engines and phases that together constitute the Network Manager. These engines, phases, and boundaries are normative and required for correct implementation.
 
 This specification consumes the protocol contracts defined in:
-* `01-protocol/08-network-transport-requirements.md`
 * `01-protocol/03-serialization-and-envelopes.md`
 * `01-protocol/04-cryptography.md`
 * `01-protocol/05-keys-and-identity.md`
 * `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/08-network-transport-requirements.md`
 * `01-protocol/09-errors-and-failure-modes.md`
 * `01-protocol/11-dos-guard-and-client-puzzles.md`
 
