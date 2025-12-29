@@ -1,218 +1,261 @@
 
 
 
-
 # 04 Auth Manager
 
 ## 1. Purpose and scope
 
-1.1 This document defines the Auth Manager component of the 2WAY backend.
+The Auth Manager is the local authentication authority for the 2WAY backend. It resolves frontend-originated HTTP and WebSocket requests into authenticated backend identities and produces the identity-binding inputs required to construct a valid `OperationContext`, as required in the local submission flow defined by `01-protocol/00-protocol-overview.md`.
 
-1.2 The Auth Manager is responsible for resolving local frontend-originated requests into authenticated backend identities and producing the identity-related fields required to construct an `OperationContext`.
+The Auth Manager operates strictly on local entrypoints. It does not participate in remote peer authentication, sync provenance, or cryptographic verification of envelopes, which are governed by `01-protocol/08-network-transport-requirements.md` and `01-protocol/07-sync-and-consistency.md`.
 
-1.3 This file covers only local authentication for HTTP and WebSocket entrypoints. Remote peer authentication, signature verification, and sync provenance are explicitly out of scope and owned by Network Manager and State Manager.
+The Auth Manager does not perform authorization, cryptographic verification, graph mutation, or session lifecycle management. Those responsibilities are owned by other managers as defined below.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following:
+This specification is responsible for the following
 
-* Resolving a local frontend session token into a backend `requester_identity_id`, or an explicit unauthenticated state.
-* Validating session token presence, uniqueness, expiry, and linkage to a frontend user record.
-* Enforcing that authentication is performed before any backend manager or service is invoked.
-* Supporting explicit admin-only endpoint gating based on trusted local configuration or identity metadata.
-* Providing deterministic authentication outcomes for HTTP and WebSocket entrypoints.
-* Emitting authentication-related audit signals through Log Manager where required by system policy.
+* Resolving a local frontend session token into a backend `requester_identity_id`, in alignment with the `OperationContext` construction workflow in `01-protocol/00-protocol-overview.md`.
+* Producing an explicit authentication outcome for every local request.
+* Enforcing authentication before any backend manager or service is invoked so that authorization obeys the ordering defined in `01-protocol/06-access-control-model.md`.
+* Supporting route-level admin gating based on trusted local configuration or identity metadata.
+* Binding authentication results into `OperationContext` inputs in a deterministic and immutable manner.
+* Providing authenticated identity resolution for both HTTP and WebSocket entrypoints.
+* Rejecting unauthenticated or malformed requests with explicit failure classification.
+* Emitting authentication and admin-gating audit signals via Log Manager so that authentication-stage failures propagate into the observability posture described in `01-protocol/09-errors-and-failure-modes.md`.
+* Operating as a strict trust boundary between untrusted frontend input and trusted backend execution.
 
-This specification does not cover the following:
+This specification does not cover the following
 
-* Authorization or permission evaluation for graph reads or writes. Owned by ACL Manager.
-* Creation, refresh, rotation, or revocation of frontend sessions. Owned by the frontend web application.
-* Password handling, credential verification, or user onboarding flows. Owned by the frontend.
-* Graph mutation, schema validation, or envelope handling. Owned by Graph Manager and Schema Manager.
-* Remote peer authentication, envelope signature validation, or sync trust decisions. Owned by Network Manager and State Manager.
-* Key generation, key storage, or cryptographic operations. Owned by Key Manager.
+* Authorization or permission evaluation. Owned by ACL Manager per `01-protocol/06-access-control-model.md`.
+* Graph mutation or schema validation. Owned by Graph Manager and Schema Manager per `01-protocol/02-object-model.md` and `01-protocol/03-serialization-and-envelopes.md`.
+* Session creation, refresh, rotation, or revocation. Owned by the frontend application.
+* Password handling, credential verification, or user onboarding. Owned by the frontend.
+* Cryptographic signing, verification, or key access. Owned by Key Manager and Network Manager per `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
+* Remote peer authentication, handshake validation, or sync provenance. Owned by Network Manager and State Manager per `01-protocol/08-network-transport-requirements.md` and `01-protocol/07-sync-and-consistency.md`.
+* Rate limiting, client puzzles, or abuse mitigation. Owned by DoS Guard and the interface layer.
 
 ## 3. Invariants and guarantees
 
-Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
+Across all relevant components and execution contexts defined in this file, the following invariants hold:
 
-* Authentication is strictly separated from authorization. A successful authentication result never implies permission.
+* Authentication is strictly separated from authorization in accordance with `01-protocol/06-access-control-model.md`.
+* Authentication never implies permission, visibility, or ownership.
 * Auth Manager never mutates backend graph state.
-* Auth Manager never accesses private keys or performs cryptographic verification.
-* Auth Manager never infers identity from client-supplied identity claims.
-* Auth Manager produces an explicit authenticated or unauthenticated result for every request.
-* Authentication results are deterministic given the same session store state and input.
-* Auth Manager binds only the `OperationContext.requester_identity_id` and leaves envelope-declared `owner_identity` metadata untouched so Graph Manager can enforce the explicit authorship requirements defined by the protocol serialization and identity specifications.
-* These guarantees hold regardless of caller, execution context, input source, or peer behavior.
+* Auth Manager never accesses private keys or performs cryptographic operations, keeping cryptographic enforcement with the actors defined in `01-protocol/04-cryptography.md`.
+* Auth Manager never trusts client-supplied identity claims, consistent with the prohibition on inferred identity in `01-protocol/05-keys-and-identity.md`.
+* Every request produces exactly one explicit authentication outcome.
+* Authentication results are deterministic given identical session store state.
+* `OperationContext.requester_identity_id` is bound exclusively by Auth Manager so that the HTTP layer can provide the context described in `01-protocol/00-protocol-overview.md`.
+* Envelope-declared authorship is never overridden or inferred by Auth Manager, matching the authorship guarantees in `01-protocol/05-keys-and-identity.md`.
+* All guarantees hold regardless of caller, execution context, or input source.
 
-## 4. Authentication inputs and outputs
+## 4. Authentication lifecycle and execution phases
 
-### 4.1 Inputs
+Auth Manager operates as a pure execution engine with explicit phases. These phases are derived from legacy architecture flows and remain valid.
 
-* Local HTTP request metadata.
+### 4.1 Phase 1, Input acquisition
 
-  * Session token supplied via header or cookie, as defined by the local interface specification.
-  * Route classification indicating whether authentication is required and whether admin gating applies.
-  * App context resolved by the HTTP routing layer.
-* Local WebSocket connection metadata.
+* Receive raw request metadata from HTTP or WebSocket layer.
+* Extract session token from header or cookie.
+* Receive trusted route classification and app context from the interface layer.
+* Treat all extracted data as untrusted input.
 
-  * Session token supplied during connection establishment.
+### 4.2 Phase 2, Token validation
 
-All inputs are treated as untrusted.
+* Validate token presence.
+* Validate token format.
+* Validate token existence in frontend session store.
+* Validate token expiry.
+* Resolve linked frontend user record.
+* Resolve linked backend identity.
 
-### 4.2 Outputs
+Any failure terminates execution and produces a rejected authentication result.
 
-* An authentication result used by the HTTP or WebSocket layer to construct an `OperationContext`, containing:
+### 4.3 Phase 3, Admin gating evaluation
 
-* `requester_identity_id` as an integer, or null if unauthenticated.
-* Authentication state classification, authenticated, unauthenticated, or rejected.
-* Admin eligibility flag for admin-gated endpoints.
-* A rejection category suitable for mapping to the interface error model and audit logging.
+* Executed only after successful authentication.
+* Apply admin-only route constraints if applicable.
+* Determine admin eligibility from trusted local configuration or identity metadata.
+* Failure produces a rejected authentication result.
 
-### 4.3 OperationContext construction requirements
+### 4.4 Phase 4, Authentication result emission
 
-Per the protocol overview, once authentication succeeds the HTTP or WebSocket layer MUST construct an `OperationContext` that:
+* Produce a complete authentication result.
+* Bind identity and flags for `OperationContext` construction.
+* Emit audit signals where required.
+* Return control to interface layer.
 
-* Includes `requester_identity_id`, `app_id`, `is_remote=False`, and `trace_id` before invoking any manager or service.
-* Uses trusted route classification and service binding to supply `app_id` and domain scope instead of copying client supplied identifiers.
-* Leaves remote-only fields such as `remote_node_identity_id` unset; these are populated exclusively by State Manager for peer-originated sync packages.
-* Remains immutable once constructed so ACL Manager and Graph Manager evaluate the same identity binding that Auth Manager produced.
+## 5. Authentication inputs and outputs
 
-Auth Manager enforces that these inputs are present for local entrypoints; requests lacking the metadata required for a complete `OperationContext` are rejected pre-validation.
+### 5.1 Inputs
 
-## 5. Session token model
+#### HTTP entrypoints
 
-### 5.1 Session store authority
+* Session token from header or cookie.
+* Trusted route classification.
+* App context resolved by routing layer.
 
-* The frontend database is the sole authority for session tokens.
-* Each session token must map to exactly one frontend session record.
-* Each session record must map to exactly one frontend user record.
-* Each frontend user record must map to exactly one backend `identity_id`.
+#### WebSocket entrypoints
 
-Auth Manager relies exclusively on this mapping and does not persist or cache identity resolution across requests.
+* Session token supplied during connection establishment.
 
-This reflects the PoC design separation between `frontend.db` and `backend.db`. 
+All inputs are untrusted.
 
-### 5.2 Validation requirements
+### 5.2 Outputs
 
-For endpoints that require authentication, Auth Manager must validate:
+Auth Manager produces an authentication result containing:
+
+* `requester_identity_id`, integer or null.
+* Authentication state, authenticated, unauthenticated, or rejected.
+* Admin eligibility flag.
+* Rejection category.
+
+### 5.3 OperationContext construction requirements
+
+The interface layer MUST construct an `OperationContext` only after Auth Manager success, matching the lifecycle defined in `01-protocol/00-protocol-overview.md`.
+
+Requirements:
+
+* `requester_identity_id` set exactly as produced by Auth Manager.
+* `app_id` supplied from trusted routing logic.
+* `is_remote` set to false, reflecting the local submission posture in `01-protocol/00-protocol-overview.md`.
+* `trace_id` generated by the interface layer.
+* Remote-only fields unset.
+* Context treated as immutable after construction.
+
+Requests lacking sufficient metadata to build a valid `OperationContext` are rejected so that downstream validation may apply the ordering defined in `01-protocol/06-access-control-model.md`.
+
+## 6. Session token model
+
+### 6.1 Authority and ownership
+
+* Frontend database is the sole session authority for local requests referenced in `01-protocol/00-protocol-overview.md`.
+* Each token maps to exactly one session record.
+* Each session maps to exactly one frontend user.
+* Each frontend user maps to exactly one backend identity.
+
+Auth Manager does not cache session resolutions.
+
+### 6.2 Validation requirements
+
+For authenticated endpoints, Auth Manager validates:
 
 * Token presence.
-* Token format constraints as defined by the interface layer.
-* Token existence in the frontend session store.
+* Token format.
+* Token existence.
 * Token expiry.
-* Existence and integrity of the linked frontend user record.
-* Existence of the referenced backend identity.
+* User record integrity.
+* Backend identity existence.
 
 Failure of any check results in rejection.
 
-### 5.3 Unauthenticated access
+### 6.3 Unauthenticated access
 
-* Endpoints explicitly marked as public by the interface layer may proceed with `requester_identity_id` set to null.
-* All other endpoints require a successfully authenticated identity.
-* Auth Manager does not infer public access. It relies on explicit route classification.
+* Public endpoints may proceed with `requester_identity_id = null`.
+* All other endpoints require authentication.
+* Public access is explicit, never inferred.
 
-## 6. Admin gating
+## 7. Admin gating
 
-### 6.1 Admin gating semantics
+### 7.1 Semantics
 
-* Admin gating is a route-level constraint.
-* Admin eligibility is determined from trusted local configuration or trusted identity metadata.
-* Admin gating is evaluated only after successful authentication.
+* Admin gating is evaluated after authentication.
+* Admin eligibility is required only for explicitly marked routes.
 
-### 6.2 Constraints
+### 7.2 Constraints
 
-* Admin gating is not a general authorization mechanism.
-* Admin status does not bypass ACL evaluation.
-* Admin gating applies only to endpoints explicitly marked as admin-only.
+* Admin status does not bypass ACL evaluation per `01-protocol/06-access-control-model.md`.
+* Admin status does not grant implicit permissions.
+* Admin gating applies only to route-level constraints.
 
-## 7. Interaction with other components
+## 8. Interaction with other components
 
-### 7.1 HTTP layer
+### 8.1 HTTP layer
 
-Inputs received:
+Inputs:
 
 * Session token.
 * Route classification.
 * App context.
 
-Outputs provided:
+Outputs:
 
-* Authentication result used to populate `OperationContext`.
+* Authentication result for `OperationContext`.
 
 Trust boundary:
 
-* The HTTP layer is trusted only to classify routes and supply raw request metadata. It is not trusted for identity assertions.
+* HTTP layer supplies metadata but never identity assertions, consistent with `01-protocol/05-keys-and-identity.md`.
 
-### 7.2 WebSocket layer
+### 8.2 WebSocket layer
 
-* WebSocket connections must be authenticated at connection establishment.
-* Auth Manager provides identity resolution before the connection is registered.
-* Unauthenticated or rejected connections must not receive events.
+* Authentication occurs at connection establishment.
+* Unauthenticated connections are rejected.
+* Rejected connections receive no events.
 
-### 7.3 Storage and session access
+### 8.3 Storage access
 
-* Auth Manager reads session and user records through an approved frontend storage interface.
-* Auth Manager does not access backend graph tables or raw SQLite connections.
+* Auth Manager reads frontend session and user records through approved interfaces.
+* Auth Manager never accesses backend graph tables or raw SQLite connections.
 
-### 7.4 Downstream managers and services
+### 8.4 Downstream managers
 
-* Downstream components receive identity information exclusively via `OperationContext`.
-* Graph Manager enforces that each operation's explicit `owner_identity` matches the authenticated requester described by `OperationContext`, so envelopes or transport metadata cannot override protocol-mandated authorship semantics.
-* All permission checks remain mandatory regardless of authentication outcome.
+* Identity binding flows only through `OperationContext`.
+* Graph Manager enforces authorship and ownership independently per `01-protocol/05-keys-and-identity.md`.
+* ACL Manager performs all authorization checks regardless of authentication outcome per `01-protocol/06-access-control-model.md`.
 
-## 8. Failure handling and rejection behavior
+## 9. Failure handling and rejection behavior
 
-### 8.1 Failure posture
+### 9.1 Failure posture
 
 * Fail closed.
-* Reject on ambiguity, inconsistency, or store unavailability.
+* Reject on ambiguity, inconsistency, or unavailability, following the posture in `01-protocol/09-errors-and-failure-modes.md`.
 
-### 8.2 Rejection categories
+### 9.2 Rejection categories
 
-Auth Manager must distinguish, at minimum:
+At minimum:
 
 * Missing token.
 * Malformed token.
 * Unknown token.
 * Expired token.
 * Session store unavailable.
-* User record missing or inconsistent.
+* User record missing.
 * Backend identity missing.
 * Admin gating failure.
 
-These categories are used for audit and diagnostics. The interface layer may map them to a uniform unauthorized response.
+These categories map to the canonical classification ordering in `01-protocol/09-errors-and-failure-modes.md`.
 
-### 8.3 Session store unavailability
+### 9.3 Session store unavailability
 
-* If the session store cannot be queried, all authenticated endpoints are rejected.
-* Admin endpoints are always rejected in this state.
-* Public endpoints may proceed only if explicitly allowed by the interface specification.
+* All authenticated endpoints rejected.
+* Admin endpoints always rejected.
+* Public endpoints proceed only if explicitly allowed.
 
-### 8.4 Abuse posture
+### 9.4 Abuse posture
 
-* Repeated authentication failures may be logged with aggregation to avoid amplification.
-* Auth Manager does not implement rate limiting or client puzzles.
-* Load and abuse mitigation are owned by DoS Guard and the interface layer.
+* Authentication failures may be logged with aggregation.
+* No rate limiting or puzzles implemented here.
+* Abuse mitigation owned elsewhere.
 
-## 9. Security constraints specific to Auth Manager
+## 10. Security constraints specific to Auth Manager
 
-### 9.1 Identity isolation
+### 10.1 Identity isolation
 
-* Auth Manager must never accept client-provided identity identifiers, public keys, or app identifiers as authoritative.
-* Only the session store linkage is authoritative for identity resolution.
+* Client-supplied identity claims are ignored, reflecting the prohibition on inferred identity in `01-protocol/05-keys-and-identity.md`.
+* Session linkage is the only authoritative identity source for local submissions as described in `01-protocol/00-protocol-overview.md`.
 
-### 9.2 Privilege containment
+### 10.2 Privilege containment
 
-* Authentication does not imply ownership, visibility, or write access.
-* App identity, user identity, and admin status remain orthogonal inputs to ACL evaluation.
+* Authentication does not imply authorization per `01-protocol/06-access-control-model.md`.
+* App identity and user identity remain distinct inputs.
 
-### 9.3 Auditability
+### 10.3 Auditability
 
-* Authentication failures and admin gating failures must be observable through Log Manager.
-* Auth Manager must not emit graph objects or write audit data into the graph.
+* Authentication and admin gating failures are observable via Log Manager.
+* Auth Manager does not emit graph objects.
 
-### 9.4 Local-only scope
+### 10.4 Local-only scope
 
-* Auth Manager must never process remote sync traffic or peer-originated envelopes.
-* Remote identities are introduced exclusively through Network Manager and State Manager.
+* Auth Manager never processes remote traffic.
+* Remote identities are introduced exclusively by Network Manager and State Manager per `01-protocol/08-network-transport-requirements.md`.
