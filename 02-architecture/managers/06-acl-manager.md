@@ -6,81 +6,123 @@
 
 ## 1. Purpose and scope
 
-The ACL Manager is the sole authority for access control decisions over graph objects. It determines whether a requester may read or mutate graph state based on identity, app context, schema defaults, ownership, group membership, and object-level overrides.
+The ACL Manager is the sole authority for access control decisions over graph objects within the 2WAY system, implementing the normative behaviors defined in `01-protocol/06-access-control-model.md` and the pipeline positioning described in `01-protocol/00-protocol-overview.md`. It determines whether a requester may read or mutate graph state based on identity, app context, schema-defined defaults, ownership rules, group and relationship constraints, object-level ACL overrides, execution context, and sync constraints.
 
-This file defines the responsibilities, boundaries, invariants, guarantees, inputs, outputs, and failure behavior of the ACL Manager.
+This specification defines the responsibilities, boundaries, internal engines, execution phases, invariants, guarantees, inputs, outputs, and failure behavior of the ACL Manager.
 
-This file does not define schema structure, graph mutation semantics, sync selection logic, transport behavior, or identity authentication. Those concerns are owned by other components and are referenced only where required for correctness.
+This specification defines authorization logic only. It does not define authentication, identity verification, graph mutation semantics, persistence, sync selection, transport behavior, encryption, signature verification, or logging implementation. Those concerns are handled by other protocol specifications such as `01-protocol/05-keys-and-identity.md`, `01-protocol/03-serialization-and-envelopes.md`, and `01-protocol/07-sync-and-consistency.md`.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following:
+### 2.1 This specification is responsible for the following
 
-* Acting as the single authorization authority for all read and write access to graph objects.
-* Evaluating access decisions using:
-  * Identity-based rules.
-  * App-based rules.
-  * Domain-based isolation rules.
-  * Group-based rules.
-  * Owner privileges.
-  * Schema-defined default access rules.
+* Acting as the single authorization authority for all read and write access to graph objects, as mandated in `01-protocol/00-protocol-overview.md`.
+* Evaluating access decisions for all graph operations, including create, read, update, and delete, matching `01-protocol/06-access-control-model.md`.
+* Enforcing authorization consistently for:
+  * Local frontend requests.
+  * Backend system services.
+  * Backend app extension services.
+  * State Manager driven remote sync application.
+* Evaluating authorization using only:
+  * Identity context.
+  * App context.
+  * Domain and sync domain context.
+  * Schema-defined defaults and prohibitions.
+  * Ownership semantics.
+  * Group and relationship constraints derived from the graph.
   * Object-level ACL overrides.
-  * Execution context constraints (local versus remote).
-* Enforcing app and domain isolation by rejecting cross-context operations unless schema metadata explicitly allows them.
-* Deriving authorization decisions solely from local graph state, compiled schema metadata, and ACL objects provided through trusted manager interfaces.
-* Participating in every write path through Graph Manager.
-* Participating in every read path where visibility is restricted.
-* Producing a deterministic allow or deny decision for a given operation context.
-* Enforcing access control uniformly across:
-  * System services.
-  * App backend extension services.
-  * Frontend app requests.
-  * Local operations.
-  * Remote sync application.
-* Denying access by default when policy data is missing, malformed, ambiguous, or unsupported.
+* Enforcing app isolation and domain isolation per `01-protocol/01-identifiers-and-namespaces.md` and `01-protocol/06-access-control-model.md`.
+* Enforcing remote execution restrictions during sync application, including the remote envelope rules in `01-protocol/07-sync-and-consistency.md`.
+* Producing deterministic allow or deny decisions with stable rejection categories.
+* Failing closed on missing, ambiguous, malformed, or unsupported policy data.
+* Participating in every graph mutation path before any persistent write occurs, consistent with the sequencing in `01-protocol/00-protocol-overview.md`.
+* Participating in every restricted read path where visibility is constrained by policy, as required by `01-protocol/06-access-control-model.md`.
 
-This specification does not cover the following:
+### 2.2 This specification does not cover the following
 
-* Authentication, session handling, or identity verification.
+* Authentication or session resolution.
+* Identity verification or signature validation.
 * Graph mutation ordering, sequencing, or persistence.
-* Schema definition, validation, or compilation.
-* Sync domain selection or envelope construction.
-* Network transport, encryption, or signature verification.
-* Event emission, logging, or auditing beyond returning structured denial metadata to callers.
+* Schema definition, compilation, or validation.
+* Sync domain selection or package construction.
+* Network transport, encryption, or peer authentication.
+* Event emission, logging storage, or audit pipelines.
 
 ## 3. Invariants and guarantees
 
-Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
+Across all relevant components, boundaries, and contexts defined in this file, the following invariants and guarantees hold:
 
-* All access control decisions occur exclusively through the ACL Manager.
-* No service, manager, app, or extension may implement ad hoc authorization logic.
-* Authorization semantics are uniform and predictable across all apps and sync domains.
-* Authorization decisions are deterministic for identical inputs and graph state.
-* Authorization decisions rely solely on local graph state, ACL objects, and compiled schema metadata. Network metadata, transport characteristics, or implicit context are ignored.
-* Authorization evaluation has no side effects on graph state.
-* Authorization evaluation must complete before any graph mutation is applied.
-* Explicit deny rules from schema or ACL data take precedence over grant rules.
-* Deny-by-default behavior applies whenever correctness cannot be guaranteed.
-* These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
+* All access control decisions occur exclusively through the ACL Manager, preserving the single-authority requirement in `01-protocol/00-protocol-overview.md`.
+* No other manager, service, or app may implement independent authorization logic, in accordance with the trust boundaries in `01-protocol/06-access-control-model.md`.
+* Authorization decisions are deterministic for identical inputs and identical graph state, mirroring `01-protocol/06-access-control-model.md`.
+* Authorization decisions rely solely on:
+  * Local graph state.
+  * Compiled schema metadata.
+  * ACL objects attached to graph Parents.
+  These sources align with the allowed inputs described in `01-protocol/06-access-control-model.md`, and no network metadata or transport hints are ever considered.
+* Authorization evaluation has no side effects, per `01-protocol/06-access-control-model.md`.
+* Authorization evaluation completes before any graph mutation occurs, firmly positioned between schema validation and persistence in `01-protocol/00-protocol-overview.md`.
+* Explicit deny rules always override allow rules, matching the precedence rules in `01-protocol/06-access-control-model.md`.
+* Schema-defined prohibitions cannot be overridden by ACL data, per `01-protocol/06-access-control-model.md`.
+* Authorization fails closed when correctness cannot be guaranteed, matching both `01-protocol/06-access-control-model.md` and the rejection handling in `01-protocol/09-errors-and-failure-modes.md`.
+* These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise, ensuring parity with `01-protocol/06-access-control-model.md`.
 
-## 4. Authorization inputs and outputs
+## 4. Internal structure and engines
 
-### 4.1 Inputs
+The ACL Manager is internally structured as a set of deterministic engines executed in a strict order. These engines are logical components and do not imply separate processes or threads.
 
-The ACL Manager consumes the following inputs.
+### 4.1 ACL Evaluation Engine
 
-OperationContext:
+The core engine responsible for evaluating authorization decisions. It orchestrates all subordinate engines and produces the final allow or deny decision.
+
+### 4.2 Schema Default Engine
+
+Evaluates schema-defined default permissions, prohibitions, mutability rules, and creation rules for the target object type.
+
+### 4.3 Ownership Resolution Engine
+
+Resolves ownership semantics for the target object and determines owner privileges as defined by schema metadata.
+
+### 4.4 Domain and App Boundary Engine
+
+Enforces app isolation, domain isolation, and cross-context visibility rules.
+
+### 4.5 Object ACL Engine
+
+Parses, validates, and applies object-level ACL overrides attached to Parent objects.
+
+### 4.6 Graph Constraint Engine
+
+Evaluates schema-declared graph-derived constraints such as group membership, relationship existence, trust edges, degree-of-separation limits, or rating thresholds.
+
+### 4.7 Remote Execution Constraint Engine
+
+Applies additional hard constraints for operations originating from remote peers during sync application.
+
+### 4.8 Cache Layer
+
+An internal, optional cache used to accelerate repeated authorization decisions. Cache use must never affect correctness.
+
+## 5. Authorization inputs and outputs
+
+### 5.1 Inputs
+
+The ACL Manager consumes the following inputs after the structural validation, signature verification, and schema validation stages described in `01-protocol/00-protocol-overview.md` and `01-protocol/07-sync-and-consistency.md`.
+
+#### OperationContext
 
 * requester_identity_id.
-* delegated_key_id or device identifier when provided.
+* delegated_key_id or device identifier, when present.
 * app_id.
-* domain_id.
-* operation type (create, read, update, delete, or other graph verbs surfaced by Graph Manager).
+* domain identifier.
+* operation type.
 * execution context, local or remote.
-* sync domain identifier when invoked during sync apply.
-* authenticated remote peer identity when applicable.
+* sync domain identifier, when invoked during sync.
+* authenticated remote peer identity identifier, when applicable.
 
-Target metadata:
+OperationContext content and immutability follow the lifecycle detailed in `01-protocol/00-protocol-overview.md`, while remote fields originate from the sync submission flow in `01-protocol/03-serialization-and-envelopes.md`.
+
+#### Target object metadata
 
 * Object kind, Parent, Attribute, Edge, or Rating.
 * Target object identifier.
@@ -88,180 +130,210 @@ Target metadata:
 * Associated app identifier.
 * Associated domain identifier.
 * Schema-resolved type identifier.
-* Sync domain membership flags as resolved by Schema Manager.
+* Sync domain membership flags.
 
-Local graph state snapshot:
+These values correspond to the canonical object structures in `01-protocol/02-object-model.md`.
 
-* Parents, Attributes, Edges, Ratings, and ACL objects referenced by the target, scoped to local storage.
-* Group membership edges and indices surfaced via authorized manager interfaces.
-* Other graph-derived relationships declared in schema as part of authorization constraints.
+#### Local graph state
 
-Policy material:
+* Parents, Attributes, Edges, Ratings, and ACL objects required for evaluation.
+* Group membership relationships resolved through authorized manager interfaces.
+* Other schema-declared graph relationships required for constraint evaluation.
 
-* Compiled schema definitions covering mutability, creation permissions, allowed relations, cross-app/domain visibility, and graph-derived constraints for the object type.
-* Schema-defined default ACL rules for the object type and app.
-* Optional object-level ACL overrides attached to the target Parent.
+Only locally persisted and authorized data sources listed in `01-protocol/06-access-control-model.md` may be queried; transport metadata or remote peer claims are ignored.
 
-### 4.2 Outputs
+#### Policy material
+
+* Compiled schema metadata supplied by Schema Manager.
+* Schema-defined default ACL rules.
+* Optional object-level ACL overrides attached to the Parent.
+
+Overrides are stored using the ACL representation defined in `01-protocol/02-object-model.md` and evaluated under the precedence rules from `01-protocol/06-access-control-model.md`.
+
+### 5.2 Outputs
 
 The ACL Manager returns:
 
-* A binary decision, allow or deny.
-* A stable denial reason category suitable for logging and audit.
+* A binary authorization decision, allow or deny.
+* A stable rejection category suitable for logging and audit.
 
-The ACL Manager does not emit events, write logs, or mutate state.
+Rejection categories map deterministically to the protocol errors in `01-protocol/09-errors-and-failure-modes.md` (for example `ERR_AUTH_ACL_DENIED`), ensuring consistent telemetry across managers.
 
-## 5. Policy composition and evaluation model
+The ACL Manager does not emit events and does not mutate state, matching the side-effect restrictions in `01-protocol/06-access-control-model.md`.
 
-### 5.1 Evaluation order
+## 6. Evaluation order and execution model
 
-Authorization executes as a strict sequence of checks. Failure at any stage results in denial:
+Authorization is evaluated in a strict, linear sequence that mirrors the layers enumerated in `01-protocol/06-access-control-model.md`. Failure at any stage results in immediate denial.
 
-1. Ownership rules.
+1. Ownership resolution.
 2. Schema-defined defaults and prohibitions.
 3. App and domain boundary enforcement.
 4. Object-level ACL evaluation.
-5. Schema-declared graph-derived constraints, including group membership.
+5. Graph-derived constraint evaluation.
+6. Remote execution constraint enforcement.
 
-No subsequent rule may override a failure from an earlier stage.
+No later stage may override a failure from an earlier stage, and earlier pipeline stages (structural validation, signature verification, and schema validation) must already have succeeded as described in `01-protocol/00-protocol-overview.md` and enforced for remote envelopes by `01-protocol/07-sync-and-consistency.md`.
 
-### 5.2 Ownership semantics
+## 7. Ownership semantics
 
-The owner of a Parent object is granted implicit privileges as defined by schema defaults. Ownership is derived from Parent authorship and is immutable. Remote and local operations attempting to mutate objects owned by another identity are denied unless schema defaults and ACL data explicitly permit the action. Ownership does not bypass schema constraints or remote execution constraints.
+* Ownership is derived from Parent authorship, exactly as defined in `01-protocol/06-access-control-model.md`.
+* Ownership is immutable and cannot be reassigned.
+* Owner privileges are defined exclusively by schema defaults, and only explicit ACL rules may extend those privileges within schema limits.
+* Ownership does not bypass schema prohibitions declared in `01-protocol/06-access-control-model.md`.
+* Ownership does not bypass remote execution constraints defined for sync flows in `01-protocol/07-sync-and-consistency.md`.
+* Attempts to mutate objects owned by another identity are denied unless explicitly permitted by schema and ACL rules, honoring the remote mutation prohibition in `01-protocol/06-access-control-model.md`.
 
-### 5.3 Schema-defined defaults
+## 8. Schema-defined defaults and prohibitions
 
-Schema metadata establishes the baseline authorization properties for each object type:
+Schema metadata defines, consistent with `01-protocol/06-access-control-model.md`:
 
-* Mutability (mutable, append only, immutable) for each object type.
-* Which identities, apps, or domains may create instances of the type.
-* Allowed relations between object types.
-* Whether cross-app or cross-domain access is ever permitted.
+* Whether an object type is mutable, append-only, or immutable.
+* Which identities, apps, or domains may create objects of the type.
+* Which operations are permitted or forbidden.
+* Whether cross-app or cross-domain access is ever allowed.
 
-Schema validation occurs before ACL evaluation. No ACL may override schema-defined prohibitions or structural requirements.
+Schema-defined prohibitions are absolute and cannot be overridden by ACL data, per `01-protocol/06-access-control-model.md`.
 
-### 5.4 App and domain boundaries
+If schema metadata is missing or incomplete, access is denied, producing the schema-related rejection described in `01-protocol/09-errors-and-failure-modes.md`.
 
-Operations are evaluated strictly within the requesting app_id and domain_id. Objects from other apps or domains are invisible unless schema metadata explicitly whitelists the relation. Cross-app or cross-domain reads and writes are denied by default, including during remote sync application. App identity never substitutes for user identity and cannot expand scope without schema approval.
+## 9. App and domain boundary enforcement
 
-### 5.5 Object-level overrides
+* All authorization is evaluated within the requesting app_id and domain, preserving the isolation boundaries described in `01-protocol/01-identifiers-and-namespaces.md`.
+* Objects outside the app or domain are invisible unless explicitly permitted by schema.
+* Cross-app reads or writes are denied by default.
+* Cross-domain reads or writes are denied by default.
+* App identity does not substitute for user identity.
 
-Object-level ACLs may further restrict or extend access relative to schema defaults, subject to the following constraints:
+These rules apply identically for local execution and remote sync application per `01-protocol/06-access-control-model.md`.
 
-* Overrides must be structurally valid, schema-compatible, and version-supported.
-* Overrides may not violate hard constraints imposed by schema, execution context, or sync domain rules.
-* Overrides are applied after schema defaults and merged deterministically.
-* Explicit deny rules in overrides take precedence over grant rules.
+## 10. Object-level ACL overrides
 
-Invalid or unsupported object-level ACL data results in denial.
+Object-level ACL overrides are attached as Attributes on Parent objects, following the ACL representation described in `01-protocol/02-object-model.md`.
 
-### 5.6 Graph-derived constraints
+Rules:
 
-Schema may declare graph-derived constraints, such as membership edges, degree-of-separation limits, trust or rating thresholds, or other deterministic graph conditions, that must be satisfied before authorization succeeds. The ACL Manager evaluates these constraints using only locally available graph state. Group membership resolution must not require unauthorized graph reads, and derived constraints cannot contradict schema prohibitions.
+* Overrides must be well-formed and schema-compatible.
+* Overrides may restrict or extend permissions within schema limits.
+* Overrides cannot violate schema-defined prohibitions from `01-protocol/06-access-control-model.md`.
+* Explicit deny rules override allow rules.
+* Unsupported or malformed ACL data results in denial and produces the deterministic rejection outlined in `01-protocol/09-errors-and-failure-modes.md`.
 
-## 6. Local and remote execution constraints
+## 11. Graph-derived constraints
 
-### 6.1 Local execution
+Schema may declare graph-derived authorization constraints, including those enumerated in `01-protocol/06-access-control-model.md`:
+
+* Group membership requirements.
+* Relationship existence requirements.
+* Degree-of-separation limits.
+* Trust or rating thresholds.
+
+The ACL Manager evaluates these constraints using only local graph state. Unauthorized graph reads are not permitted during evaluation. If required state cannot be resolved safely, access is denied, matching the fail-closed rule in `01-protocol/06-access-control-model.md`.
+
+## 12. Local and remote execution constraints
+
+### 12.1 Local execution
 
 For local execution:
 
-* Schema defaults and object-level ACLs apply normally.
-* Ownership privileges apply as defined by schema.
-* App and domain boundary enforcement applies identically.
-* App identity constraints apply.
+* Schema defaults apply.
+* Object-level ACLs apply.
+* Ownership semantics apply.
+* App and domain boundaries apply.
 
-### 6.2 Remote execution
+These local behaviors align with the baseline model in `01-protocol/06-access-control-model.md`.
 
-For remote execution, additional hard constraints apply:
+### 12.2 Remote execution
 
-* Remote operations must not rewrite or corrupt local history.
-* Remote operations must not mutate objects owned by local identities unless explicitly permitted by schema and ACL rules.
-* Remote operations must respect app, domain, and sync domain rules enforced by State Manager.
-* Remote operations must not access objects that are not visible within the targeted app_id and domain_id.
+For remote execution during sync application, inside the envelope pipeline defined in `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`:
 
-Any violation of remote execution constraints results in denial regardless of ACL content.
+* Remote operations must not rewrite local history; rewrite attempts map to `ERR_SYNC_REWRITE_ATTEMPT` in `01-protocol/09-errors-and-failure-modes.md`.
+* Remote operations must not mutate objects owned by local identities unless explicitly permitted, per `01-protocol/06-access-control-model.md`.
+* Remote operations must respect sync domain rules enforced by State Manager, including per-domain acceptance gates.
+* Remote operations must not access objects outside the permitted app and domain.
 
-## 7. Explicitly allowed and forbidden behavior
+Any violation results in denial regardless of ACL content, and refusal reasons map to `01-protocol/09-errors-and-failure-modes.md`.
 
-### 7.1 Explicitly allowed
+## 13. Allowed and forbidden behavior
+
+### 13.1 Allowed behavior
 
 The ACL Manager may:
 
-* Cache compiled ACL rules and recent authorization decisions.
-* Query group membership through authorized manager interfaces.
-* Use schema-precompiled metadata provided by Schema Manager.
+* Cache compiled ACL data and recent decisions.
+* Query group membership and relationships through authorized interfaces.
+* Use schema-precompiled metadata that originated from the authorization inputs defined in `01-protocol/06-access-control-model.md`.
 
-### 7.2 Explicitly forbidden
+### 13.2 Forbidden behavior
 
 The ACL Manager must not:
 
-* Perform direct database access.
+* Access the database directly.
 * Mutate graph state.
 * Perform network communication.
 * Authenticate identities.
-* Infer permissions from peer identity, network origin, transport context, or other implicit metadata.
-* Bypass Schema Manager, Graph Manager, or State Manager boundaries.
-* Grant access based on incomplete, implicit, or partially parsed policy data.
+* Infer permissions from transport metadata, which is explicitly forbidden in `01-protocol/06-access-control-model.md`.
+* Bypass Schema Manager, Graph Manager, or State Manager.
+* Grant access based on incomplete or implicit data.
 
-## 8. Interaction with other components
+## 14. Manager interactions
 
-### 8.1 Graph Manager
+### 14.1 Graph Manager
 
-Graph Manager invokes the ACL Manager for every graph mutation and for restricted reads.
+Graph Manager invokes ACL Manager for every mutation and restricted read, exactly as depicted in `01-protocol/00-protocol-overview.md`.
 
-The ACL Manager returns allow or deny prior to any mutation.
+The ACL Manager must return a decision before any write occurs to preserve the envelope validation order established in `01-protocol/03-serialization-and-envelopes.md`.
 
-### 8.2 Schema Manager
+### 14.2 Schema Manager
 
-Schema Manager supplies precompiled default ACL rules and type metadata.
+Schema Manager provides authoritative schema metadata compiled from the object model described in `01-protocol/02-object-model.md`.
 
-The ACL Manager treats schema metadata as authoritative.
+ACL Manager treats schema metadata as final and immutable for the duration of any evaluation.
 
-### 8.3 App Manager and Auth Manager
+### 14.3 Auth Manager and App Manager
 
-Identity and app context are resolved upstream.
+Identity and app context are resolved upstream via the OperationContext construction process in `01-protocol/00-protocol-overview.md`.
 
-The ACL Manager assumes identity context is trusted or denies access if missing.
+If required context is missing, access is denied because the protocol forbids substituting transport metadata for authenticated context.
 
-### 8.4 State Manager
+### 14.4 State Manager
 
-State Manager determines sync domains and execution context.
+State Manager supplies sync domain and execution context per `01-protocol/07-sync-and-consistency.md`.
 
-The ACL Manager enforces domain and remote constraints based on State Manager inputs.
+ACL Manager enforces remote constraints accordingly and denies access if State Manager inputs cannot be validated.
 
-## 9. Failure and rejection behavior
+## 15. Failure and rejection behavior
 
-### 9.1 General rule
+### 15.1 General rule
 
-Any ambiguity, missing data, or unsupported structure results in denial before any persistent write occurs. No partial writes are ever attempted after a denial.
+Any ambiguity, missing data, or unsupported structure results in denial, matching the fail-closed requirement in `01-protocol/06-access-control-model.md` and the rejection handling defined in `01-protocol/09-errors-and-failure-modes.md`. No partial evaluation or partial write is permitted.
 
-### 9.2 Missing identity
+### 15.2 Missing identity
 
-If requester identity is absent:
+If requester identity is missing:
 
-* Deny all operations unless explicitly permitted by schema-defined public access rules.
+* Deny all operations unless schema explicitly permits public access, following the requirements spelled out in `01-protocol/06-access-control-model.md`.
 
-### 9.3 Missing schema defaults
+### 15.3 Missing schema defaults
 
-If no schema-defined ACL exists for the target type:
+If schema-defined ACL metadata is missing:
 
-* Deny access.
+* Deny access, generating the schema-related rejection code from `01-protocol/09-errors-and-failure-modes.md`.
 
-### 9.4 Malformed or unsupported ACL data
+### 15.4 Malformed ACL data
 
-If object-level ACL data is malformed or version-unsupported:
+If object-level ACL data is malformed or unsupported:
 
-* Deny access.
+* Deny access, treating it as an authorization failure per `01-protocol/09-errors-and-failure-modes.md`.
 
-### 9.5 Cache or internal failure
+### 15.5 Internal or cache failure
 
-Cache failures or internal evaluation errors must not affect correctness.
+If internal evaluation fails:
 
-Authorization proceeds without cache or denies if correctness cannot be guaranteed.
+* Deny access or bypass cache and re-evaluate.
+* Correctness always takes precedence over availability.
 
-## 10. Minimum correctness requirements
+## 16. Readiness and liveness guarantees
 
-* Authorization decisions must be deterministic.
-* Authorization must be enforced uniformly across all entry points.
-* Authorization must complete before any graph mutation.
-* No alternative authorization path may exist.
+* ACL Manager is considered ready once schema metadata is loaded, mirroring the readiness expectations in `01-protocol/06-access-control-model.md`.
+* ACL Manager has no long-running state.
+* ACL Manager failure results in fail-closed behavior across the system, ensuring the guarantees described in `01-protocol/06-access-control-model.md`.
