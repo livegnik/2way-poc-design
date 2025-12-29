@@ -14,7 +14,7 @@ This specification defines authorization logic only. It does not define authenti
 
 ## 2. Responsibilities and boundaries
 
-### 2.1 This specification is responsible for the following
+This specification is responsible for the following
 
 * Acting as the single authorization authority for all read and write access to graph objects, as mandated in `01-protocol/00-protocol-overview.md`.
 * Evaluating access decisions for all graph operations, including create, read, update, and delete, matching `01-protocol/06-access-control-model.md`.
@@ -38,7 +38,7 @@ This specification defines authorization logic only. It does not define authenti
 * Participating in every graph mutation path before any persistent write occurs, consistent with the sequencing in `01-protocol/00-protocol-overview.md`.
 * Participating in every restricted read path where visibility is constrained by policy, as required by `01-protocol/06-access-control-model.md`.
 
-### 2.2 This specification does not cover the following
+This specification does not cover the following
 
 * Authentication or session resolution.
 * Identity verification or signature validation.
