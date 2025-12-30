@@ -6,247 +6,307 @@
 
 ## 1. Purpose and scope
 
-This document specifies the State Manager component within the 2WAY architecture. The State Manager coordinates the canonical local state that results from accepted graph envelopes, maintains protocol-mandated sync metadata, and enforces the ordering, durability, and recovery semantics required by the 2WAY protocol. Per `01-protocol/00-protocol-overview.md`, it is the only component permitted to originate outbound sync packages or ingest inbound sync packages, and it ensures that remote envelopes reach Graph Manager in the same deterministic order that they were authored.
+This document specifies the State Manager component within the 2WAY architecture. The State Manager is responsible for maintaining authoritative local state progression, coordinating accepted graph mutations, enforcing deterministic ordering guarantees, tracking synchronization progress with peers, and ensuring durability and recoverability of all state transitions required by the protocol.
 
-This specification covers state handling semantics, sync state tracking, remote envelope routing, durability, and recovery. It does not redefine schema behavior, ACL rules, cryptographic verification, transport mechanics, or storage implementation details except where boundaries are needed to uphold protocol requirements.
+The State Manager acts as the single coordination layer between Graph Manager, Network Manager, and Storage Manager for all stateful operations that affect protocol-visible progression. It does not author graph mutations, perform cryptographic validation, or apply access control decisions. It ensures that only fully verified, correctly ordered, and durably persisted state transitions are exposed to internal components or propagated to peers.
+
+This specification defines state ownership, internal engines and phases, ordering rules, sync metadata handling, startup and shutdown behavior, failure handling, and explicit trust boundaries. It is an architectural specification, not an implementation.
 
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-- Maintaining the authoritative record of committed graph state metadata (including `global_seq`, sync participation flags, and domain eligibility markers) produced by Graph Manager, consistent with the canonical object categories defined in `01-protocol/02-object-model.md`.
-- Tracking per-peer, per-domain `sync_state` (highest accepted sequence, observed gaps, revocation status, and domain visibility) as mandated by `01-protocol/07-sync-and-consistency.md`.
-- Serializing inbound remote envelopes after Network Manager verification, validating ordering metadata, constructing the required remote `OperationContext`, and submitting each envelope to Graph Manager for structural validation, schema validation, authorization, and persistence.
-- Building outbound sync packages from committed envelopes, ensuring each package contains only persisted data, monotonic sequence ranges, and the metadata required by the receiving peer to advance its `sync_state`.
-- Coordinating durable persistence of `sync_state`, commit markers, and recovery checkpoints through Storage Manager.
-- Providing read-only state surfaces (such as snapshot queries, domain visibility tables, and sync progress monitors) to trusted internal components without exposing partially applied data.
-- Managing rollback boundaries and refusing new mutations when ordering, durability, or sync guarantees cannot be met.
-- Reconstructing state and sync metadata after restart exclusively from persisted storage.
+* Maintaining authoritative local state progression metadata derived from committed graph operations.
+* Tracking per-peer and per-domain synchronization state, including sequence position, gaps, suspension flags, and visibility eligibility.
+* Coordinating inbound remote envelopes after network verification and before graph application.
+* Coordinating outbound sync package construction strictly from committed state.
+* Enforcing deterministic ordering, monotonicity, and replay protection for all state transitions.
+* Persisting and recovering state metadata and sync checkpoints via Storage Manager.
+* Providing read-only state views required for internal coordination and observability.
+* Managing startup reconstruction and shutdown flushing of state.
+* Failing closed when ordering, durability, or integrity guarantees cannot be met.
 
 This specification does not cover the following:
 
-- Cryptographic verification, message authentication, or envelope signature handling; those responsibilities belong to Network Manager (`01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`).
-- Schema resolution, authorization evaluation, or semantic validation of graph operations, which remain the responsibilities of Schema Manager, ACL Manager, and Graph Manager per their respective specifications.
-- Direct mutation of canonical graph objects; per `01-protocol/00-protocol-overview.md` and `02-architecture/managers/07-graph-manager.md`, Graph Manager is the sole write path for Parents, Attributes, Edges, Ratings, and ACL structures.
-- Assigning `global_seq` values or defining envelope structure; those rules are defined in `01-protocol/03-serialization-and-envelopes.md` and enforced by Graph Manager.
-- Network transport, peer discovery, or policy decisions around peer throttling beyond the state gating required to protect ordering guarantees.
-- Business logic, application-specific semantics, or derived analytics beyond deterministic, protocol-required state surfaces.
+* Cryptographic verification, encryption, signing, or identity resolution.
+* Schema validation, semantic validation, or authorization decisions.
+* Direct mutation of canonical graph objects.
+* Network transport, peer discovery, or routing.
+* DoS mitigation, client puzzles, or connection throttling.
+* Application-specific logic or derived analytics.
+* Storage engine implementation details beyond required persistence contracts.
 
 ## 3. State domain and ownership
 
-### 3.1 Canonical graph state
+### 3.1 Canonical graph state relationship
 
-Canonical state consists of the persisted Parents, Attributes, Edges, Ratings, and ACL representations defined by `01-protocol/02-object-model.md`, along with the immutable metadata assigned at commit time (`app_id`, `owner_identity`, `global_seq`, `sync_flags`). Graph Manager is the only component that mutates this state. The State Manager consumes commit notifications and Storage Manager checkpoints to mirror the authoritative state height, to ensure sequencing metadata stays aligned, and to gate remote and local consumers on fully committed data only.
+Canonical graph state consists of objects defined by the protocol object model in `01-protocol/02-object-model.md`, including Parents, Attributes, Edges, Ratings, and ACLs, together with immutable commit metadata such as node-local `global_seq` identifiers, author identity, and domain attribution.
 
-### 3.2 Sync metadata
+Graph Manager is the sole component permitted to mutate canonical graph state. The State Manager never writes graph objects directly. Instead, it observes commit notifications and persistence confirmations in order to maintain authoritative progression metadata and to gate synchronization behavior.
 
-For each `(peer_id, sync_domain)` pair the State Manager maintains:
+### 3.2 State metadata owned by State Manager
 
-- Highest accepted `global_seq`.
-- Gap detection flags indicating whether a package was skipped.
-- Known revocation or suspension status affecting the peer's eligibility.
-- Domain visibility and export policy bindings.
-- Outbound progress markers describing the last range transmitted.
+The State Manager owns and persists the following categories of state metadata defined for sync decisions in `01-protocol/07-sync-and-consistency.md`:
 
-This metadata is durably stored via Storage Manager, is authoritative for acceptance decisions per `01-protocol/07-sync-and-consistency.md`, and is never derived from unvalidated inputs.
+* Local commit height and commit checkpoints.
+* Per-peer and per-domain sync state.
+* Inbound and outbound sequence markers.
+* Gap detection and suspension flags.
+* Domain visibility and export eligibility markers.
+* Recovery markers indicating last safe state.
 
-### 3.3 Derived views and caches
+This metadata is authoritative and must be consistent with persisted graph state at all times.
 
-The State Manager may maintain deterministic derived indices (for example, per-domain backlog queues or snapshot summaries) needed for correctness or performance. These structures:
+### 3.3 Derived and transient structures
 
-- Are computed from committed canonical state and sync metadata only.
-- Are immutable once persisted except through recomputation driven by Graph Manager commits.
-- Can be rebuilt entirely from persisted graph and sync data during recovery.
-- Never expose semantics that contradict the canonical object model or the access-control decisions enforced elsewhere.
+The State Manager may maintain derived or transient structures such as:
 
-## 4. Ordering and determinism
+* Per-peer inbound queues.
+* Per-peer outbound backlog indexes.
+* Snapshot indices for read-only queries.
 
-### 4.1 Local sequencing
+All such structures must be derived exclusively from persisted canonical state and persisted metadata defined by the protocol documents. They must be fully reconstructible during startup and must not introduce new authoritative state.
 
-Graph Manager enforces serialized writes and assigns monotonic `global_seq` values per `01-protocol/00-protocol-overview.md`. The State Manager does not allocate sequences; it observes the commit order and records the resulting sequence height, ensuring that every downstream consumer sees a single total order of committed envelopes. Local mutation requests are admitted only while the serialized write path is healthy, and the State Manager refuses to serve derived snapshots that would include partially committed state.
+## 4. Internal engines and execution phases
 
-### 4.2 Per-peer sync ordering
+All engines operate on graph message envelopes and sync packages defined in `01-protocol/03-serialization-and-envelopes.md`, and on sync metadata rules in `01-protocol/07-sync-and-consistency.md`.
 
-For each remote peer and domain, the State Manager enforces:
+### 4.1 State Engine
 
-- Strict monotonic advancement of the peer's declared `global_seq`.
-- Rejection of envelopes that would replay, overlap, regress, or skip the expected next sequence, as required by `01-protocol/07-sync-and-consistency.md`.
-- Deterministic rejection semantics so that identical inputs and identical local state always yield the same accept or reject result.
+The State Engine is the core coordination engine responsible for:
 
-Incoming envelopes that violate ordering are rejected before Graph Manager is invoked, and the peer's sync stream is halted until the inconsistency is resolved or administrative intervention occurs.
+* Observing commit events from Graph Manager.
+* Updating local progression metadata.
+* Managing derived state surfaces.
+* Enforcing global invariants.
 
-### 4.3 Sync state advancement
+It operates serially with respect to state mutations and never allows concurrent writers. OperationContexts it raises for Graph Manager must follow the remote invocation shape defined in Section 9.4 of `01-protocol/03-serialization-and-envelopes.md`.
 
-Sync state advances only when Graph Manager reports that an envelope has been fully accepted, persisted, and assigned a `global_seq`. Rejected envelopes, failed structural validations, authorization denials, or persistence failures do not advance `sync_state` and do not mutate any canonical state, consistent with `01-protocol/07-sync-and-consistency.md` and `01-protocol/09-errors-and-failure-modes.md`. Any error surfaced while applying a remote envelope is recorded against the offending package but has no side effects beyond logging and peer health accounting.
+### 4.2 Sync Engine
 
-## 5. Remote envelope handling
+The Sync Engine is responsible for:
 
-### 5.1 Inbound path
+* Validating inbound sync package metadata.
+* Managing per-peer sync progression.
+* Constructing outbound sync packages.
+* Enforcing ordering and visibility rules.
 
-Inbound sync packages flow through the following stages:
+The Sync Engine does not apply graph mutations directly and never bypasses the State Engine. Its acceptance rules and per-peer progression tracking are identical to the invariants defined in `01-protocol/07-sync-and-consistency.md`.
 
-1. Network Manager performs transport handling, signature verification, optional decryption, and identity resolution, per `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
-2. State Manager validates package metadata (peer identity, domain, declared sequence range) against local `sync_state`, rejects any package that violates ordering or policy, and buffers admissible packages per peer/domain.
-3. For each envelope in a package, State Manager constructs an `OperationContext` flagged as remote, with `is_remote`, `sync_domain`, `remote_node_identity`, and trace identifiers populated exactly as described in `01-protocol/03-serialization-and-envelopes.md` and `02-architecture/managers/07-graph-manager.md`.
-4. The envelope and constructed `OperationContext` are submitted to Graph Manager, which performs structural validation, schema validation, authorization, sequencing, and persistence.
-5. Upon successful commit, the State Manager updates `sync_state`, records the acceptance outcome, and notifies outbound scheduling if new data must be relayed further. On failure, the package is marked rejected, `sync_state` remains unchanged, and the peer is signaled with the canonical error class without leaking additional internal state.
+### 4.3 Recovery Engine
 
-The State Manager never bypasses Graph Manager for remote inputs and never trusts transport metadata that was not validated via the Network Manager and local key material.
+The Recovery Engine is responsible for:
 
-### 5.2 Outbound path
+* Startup reconstruction from persisted storage.
+* Validation of metadata consistency.
+* Detection of irrecoverable divergence.
+* Controlled fail-fast behavior when invariants are violated.
 
-For outbound replication:
+It verifies that persisted metadata and Storage Manager checkpoints satisfy the invariants required by `01-protocol/07-sync-and-consistency.md` before permitting any sync traffic.
 
-- The State Manager selects committed envelopes eligible for each peer based on domain visibility and revocation state.
-- It constructs monotonic ranges (`from_seq`, `to_seq`) and attaches the metadata required by `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
-- It never includes envelopes that have not been persisted or that violate ACL export policies.
-- Packages are handed to Network Manager for signing and optional encryption. Only after Network Manager confirms transmission does the outbound progress marker advance.
+### 4.4 Read Surface Engine
 
-### 5.3 Replay protection and auditing
+The Read Surface Engine exposes strictly read-only views of state metadata to internal components. It guarantees that no partially applied or speculative state is ever visible, so all consumers observe only the durable outcomes required by `01-protocol/09-errors-and-failure-modes.md`.
 
-All accepted and rejected packages are logged with peer identifiers, declared ranges, and resulting decision codes. These logs allow deterministic replay of acceptance decisions for auditing, consistent with the rejection behavior defined in `01-protocol/09-errors-and-failure-modes.md`.
+## 5. Ordering and determinism
 
-## 6. Persistence and recovery
+### 5.1 Global ordering guarantees
 
-### 6.1 Durable sources
+All committed graph operations are totally ordered by the monotonic, node-local `global_seq` assigned by Graph Manager when applying the envelopes defined in `01-protocol/03-serialization-and-envelopes.md`. This ordering model is identical to Section 5 of `01-protocol/07-sync-and-consistency.md`. The State Manager observes this order and ensures that:
 
-The State Manager relies on:
+* No derived state reflects out-of-order commits.
+* No outbound sync package violates this order.
+* No inbound envelope is applied outside the expected sequence.
 
-- Canonical graph data persisted through Storage Manager transactions driven by Graph Manager.
-- Sync metadata tables persisted through Storage Manager.
-- Checkpoints describing the last successfully exported or imported sequence per peer and domain.
+### 5.2 Inbound ordering enforcement
 
-No additional write path to storage is permitted.
+For each peer and domain, the State Manager enforces:
 
-### 6.2 Restart and recovery
+* Strict monotonic sequence advancement.
+* No overlap or replay of previously accepted sequences.
+* No gaps unless explicitly permitted by protocol rules.
 
-On restart:
+Any violation results in rejection before Graph Manager invocation using the sync integrity error classes in `01-protocol/09-errors-and-failure-modes.md`.
 
-- The State Manager replays persisted sync metadata and reconstructs derived caches.
-- It interrogates Storage Manager to determine the highest committed `global_seq` and validates that the stored sync metadata matches that height.
-- Any divergence between persisted graph state and sync metadata results in a fail-fast condition that requires administrative repair; no guessing or inference of missing metadata is allowed, per the forbidden behavior listed in `01-protocol/00-protocol-overview.md`.
+### 5.3 Deterministic behavior
 
-### 6.3 Rollback boundaries
+Given identical persisted state and identical inputs, the State Manager must always produce identical acceptance or rejection outcomes. No non-deterministic inputs, timestamps, or external state may influence decisions, mirroring the deterministic guarantees mandated in `01-protocol/07-sync-and-consistency.md`.
 
-If Storage Manager reports a failed transaction or if Graph Manager reports a persistence failure, the State Manager treats the envelope as not applied, retains the previous `sync_state`, and records the failure for diagnostics. There is no partial rollback; state either reflects the last committed version or the recovery process halts.
+## 6. Inbound remote envelope handling
 
-## 7. State access and exposure
+### 6.1 Inbound processing stages
 
-### 7.1 Read-only surfaces
+Inbound remote data is processed in the following stages:
 
-State Manager exposes read-only snapshots of:
+1. Receipt from Network Manager after cryptographic verification per `01-protocol/04-cryptography.md` and framing guarantees from `01-protocol/08-network-transport-requirements.md`.
+2. Validation of peer identity, domain eligibility, and declared sequence range using sync package metadata from `01-protocol/03-serialization-and-envelopes.md`.
+3. Admission or rejection based on current sync state defined in `01-protocol/07-sync-and-consistency.md`.
+4. Construction of a remote operation context.
+5. Submission to Graph Manager for validation and persistence.
+6. Observation of commit result and metadata update.
 
-- Sync progress per peer and domain.
-- Domain visibility and export policy tables.
-- Commit height and checkpoint metadata.
+At no point may inbound data bypass any stage, ensuring every envelope honors the rejection rules enumerated in `01-protocol/09-errors-and-failure-modes.md`.
 
-These surfaces are available only to trusted managers (for example, Network Manager for scheduling, Observability services, or administrative tooling) and never bypass ACL or schema rules governing the underlying graph data.
+### 6.2 Operation context construction
 
-### 7.2 External visibility constraints
+For each inbound envelope, the State Manager constructs an OperationContext (per `01-protocol/03-serialization-and-envelopes.md`) that includes:
 
-State Manager never exposes raw object payloads to remote peers. Remote peers receive only the envelope data already committed and authorized through Graph Manager, wrapped in sync packages whose metadata is constrained to the minimum required for ordering.
+* Remote origin flag.
+* Peer identity.
+* Sync domain.
+* Trace and correlation identifiers.
 
-## 8. Invariants and guarantees
+This context is immutable once constructed.
 
-Across all relevant components, boundaries, or contexts defined in this file, the following invariants hold:
+### 6.3 Rejection behavior
 
-- Graph Manager remains the sole writer of canonical graph objects. State Manager never mutates graph storage directly.
-- The State Manager is the sole conduit for remote envelopes entering Graph Manager and for outbound sync packages, as mandated by `01-protocol/00-protocol-overview.md`.
-- `sync_state` is authoritative, monotonic per peer and domain, and never regresses.
-- Sync state advances only after successful Graph Manager commits; rejections or failures leave both canonical state and sync metadata unchanged.
-- Outbound packages contain only committed envelopes and correct sequence ranges; no package skips a committed `global_seq` that the peer is authorized to receive.
-- All state surfaces (local or exported) are derived from committed data and remain consistent after restarts because they can be reconstructed solely from persisted storage.
+Rejected inbound envelopes:
 
-These guarantees must hold regardless of caller, execution context, input source, or peer behavior.
+* Do not mutate canonical state.
+* Do not advance sync state.
+* Are logged with deterministic error classification mapped to the sync integrity and cryptographic error classes from `01-protocol/09-errors-and-failure-modes.md`.
+* Do not leak internal state details to peers.
 
-## 9. Explicitly allowed behaviors
+## 7. Outbound synchronization
 
-The following behaviors are explicitly allowed:
+### 7.1 Package construction
 
-- Buffering validated remote envelopes per peer while waiting for Graph Manager capacity, provided ordering is preserved.
-- Temporarily suspending outbound or inbound sync for a peer when required to maintain ordering or durability guarantees.
-- Replaying acceptance logs to audit or debug state divergence, without mutating state.
-- Serving read-only sync progress summaries to internal observability or administrative tooling.
-- Rebuilding derived caches or indices at startup or during maintenance windows using only persisted data.
-- Rejecting remote envelopes that violate ordering, schema eligibility, or authorization once Graph Manager signals a rejection.
+Outbound sync packages are constructed exclusively from committed graph state and authoritative metadata. Each package follows the structure in Section 9 of `01-protocol/03-serialization-and-envelopes.md` and therefore includes:
 
-## 10. Explicitly forbidden behaviors
+* A contiguous sequence range covering `from_seq` through `to_seq`.
+* Domain attribution via `sync_domain` plus sender identity metadata.
+* Required protocol metadata including `sender_identity` and `signature`.
 
-The following behaviors are explicitly forbidden:
+No speculative or uncommitted data may be included.
 
-- Applying mutations to canonical graph state outside Graph Manager or assigning `global_seq` values within State Manager.
-- Advancing `sync_state` or transmitting sequence acknowledgments after a rejection or failure, contrary to `01-protocol/07-sync-and-consistency.md`.
-- Guessing missing metadata, inferring remote intent, or attempting to repair ordering gaps by fabricating envelopes or sequence numbers, all of which are prohibited by `01-protocol/00-protocol-overview.md`.
-- Accepting remote packages that have not passed Network Manager cryptographic verification.
-- Exposing partially applied or speculative state to internal or external consumers.
-- Allowing multiple writers to mutate `sync_state` concurrently or permitting untrusted components to observe mutable state without authorization.
-- Including uncommitted envelopes, raw private key material, or schema definitions inside outbound packages.
+### 7.2 Progress advancement
 
-## 11. Component interactions
+Outbound sync progress advances only after successful handoff to Network Manager and confirmation that the package left the State Manager boundary. Transmission failure does not advance progress, preserving the advancement rules defined in `01-protocol/07-sync-and-consistency.md`.
 
-### 11.1 Inputs
+### 7.3 Visibility enforcement
 
-State Manager consumes:
+Outbound packages must respect domain visibility and revocation rules described in `01-protocol/07-sync-and-consistency.md` and the violation codes defined in `01-protocol/09-errors-and-failure-modes.md`. The State Manager must never export data a peer is not eligible to receive.
 
-- Validated sync packages from Network Manager, including peer identity, domain, and declared sequence ranges.
-- Commit notifications and sequence assignments from Graph Manager.
-- Transactional storage handles from Storage Manager to persist `sync_state` and derived metadata.
-- Configuration data from Config Manager describing peer policies, domain visibility, and durability requirements.
+## 8. Persistence and durability
 
-### 11.2 Outputs
+### 8.1 Persistence contract
 
-State Manager produces:
+The State Manager persists all authoritative metadata via Storage Manager. It does not implement its own storage layer and does not bypass transactional boundaries, ensuring that `global_seq`, sync checkpoints, and recovery markers always satisfy the durability rules that `01-protocol/07-sync-and-consistency.md` assumes.
 
-- Remote `OperationContext` instances and associated envelopes for Graph Manager.
-- Outbound sync packages delivered to Network Manager.
-- Sync progress and backlog metrics to Event Manager, Observability, or administrative tooling.
-- Rejection or failure signals routed back to Network Manager for peer notification.
+### 8.2 Atomicity requirements
 
-### 11.3 Trust boundaries
+State metadata updates that depend on graph commits must be atomic with respect to commit observation. Partial updates are forbidden so that no package violates the rejection guarantees in `01-protocol/09-errors-and-failure-modes.md`.
 
-State Manager trusts:
+### 8.3 No shadow persistence
 
-- Network Manager for cryptographic authenticity and confidentiality of remote packages.
-- Graph Manager for schema validation, authorization, and transactional persistence.
-- Storage Manager for durable commits.
+The State Manager must not maintain shadow copies of authoritative state outside Storage Manager.
 
-State Manager treats remote peers and transport metadata as untrusted, enforces protocol rules before forwarding anything to Graph Manager, and never accepts directives that would weaken those guarantees.
+## 9. Startup behavior
 
-## 12. Failure handling
+### 9.1 Initialization sequence
 
-### 12.1 Ordering violations
+On startup, the State Manager performs the following steps in order:
 
-Packages that regress, overlap, or skip the expected sequence are rejected with the sync error class defined in `01-protocol/09-errors-and-failure-modes.md`. The rejection is logged, `sync_state` remains unchanged, and the peer must resend the correct package.
+1. Load persisted metadata from Storage Manager.
+2. Query Graph Manager or Storage Manager for highest committed sequence.
+3. Validate consistency between metadata and canonical state, ensuring sync checkpoints align with `01-protocol/07-sync-and-consistency.md`.
+4. Rebuild derived structures.
+5. Expose readiness signal only after successful validation.
 
-### 12.2 Structural or semantic failures
+### 9.2 Readiness signal
 
-If Graph Manager reports a structural, schema, ACL, or authorization failure while applying a remote envelope, the State Manager records the rejection reason, surfaces the canonical error code to the peer, and does not advance `sync_state`. Future envelopes from the peer continue from the last committed sequence.
+The State Manager exposes readiness only when:
 
-### 12.3 Persistence failures
+* All metadata is consistent with the invariants in `01-protocol/07-sync-and-consistency.md`.
+* No recovery errors are present.
+* All internal engines are initialized.
 
-If Storage Manager or Graph Manager reports a persistence failure, the State Manager treats the envelope as not applied, halts inbound processing for that peer and domain, and raises an internal alert. Processing resumes only after storage health is restored.
+## 10. Shutdown behavior
 
-### 12.4 Degraded operation
+### 10.1 Graceful shutdown
 
-When durability guarantees cannot be met (for example, the storage subsystem is unavailable or checkpoints cannot be written), the State Manager refuses to accept new remote envelopes and halts outbound sync. Previously committed state may continue to be exposed in read-only form if it is safe to do so.
+On shutdown, the State Manager:
 
-### 12.5 Recovery faults
+* Flushes any pending metadata updates.
+* Halts admission of new inbound data.
+* Freezes outbound sync progression.
+* Ensures persisted state reflects a consistent checkpoint compatible with `01-protocol/07-sync-and-consistency.md`.
 
-Any mismatch detected during recovery between persisted `sync_state` and the canonical graph commit height results in a fatal startup failure that requires administrative repair. Silent divergence is not permitted.
+### 10.2 Forced shutdown
 
-## 13. Security considerations
+If forced shutdown occurs, recovery behavior must detect incomplete checkpoints and fail fast if consistency cannot be proven.
 
-The State Manager is a core integrity boundary. Violations of ordering, atomicity, or determinism can cause state divergence, replay vulnerabilities, or exposure of unauthorized data. The component must never weaken cryptographic, authorization, or schema guarantees enforced upstream, must not leak additional state through rejection surfaces, and must ensure that peer behavior cannot coerce it into mutating state outside the protocol-defined rules.
+## 11. Failure handling
 
-## 14. Compliance criteria
+### 11.1 Ordering violations
 
-An implementation complies with this specification if it:
+Ordering violations result in immediate rejection and suspension of the offending peer domain until corrected. Rejections must be reported internally using the `ERR_SYNC_SEQUENCE_INVALID`, `ERR_SYNC_RANGE_MISMATCH`, or related classes defined in `01-protocol/09-errors-and-failure-modes.md`.
 
-- Routes all remote envelopes through the Network Manager ➔ State Manager ➔ Graph Manager pipeline described above.
-- Maintains `sync_state` exactly as defined in `01-protocol/07-sync-and-consistency.md`, advancing it only after Graph Manager commits.
-- Never mutates canonical graph objects outside Graph Manager and never assigns `global_seq` values internally.
-- Reconstructs state exclusively from persisted data after restart and rejects mismatches instead of guessing.
-- Emits outbound packages that contain only committed, authorized envelopes with correct metadata.
-- Enforces all forbidden behaviors listed in Section 10.
+### 11.2 Persistence failures
 
-Failure to satisfy any of these criteria renders the implementation non-compliant with the protocol.
+Persistence failures result in:
+
+* No state advancement.
+* Suspension of affected operations.
+* Escalation to observability and administrative channels using the resource error patterns from `01-protocol/09-errors-and-failure-modes.md`.
+
+### 11.3 Recovery failures
+
+Any inconsistency between persisted metadata and canonical state results in fatal startup failure. Automatic repair or inference is forbidden per the recovery rules in `01-protocol/09-errors-and-failure-modes.md`.
+
+### 11.4 Degraded operation
+
+When durability guarantees cannot be met, the State Manager must refuse new state transitions while continuing to serve safe read-only views if possible.
+
+## 12. State access and exposure
+
+### 12.1 Read-only guarantees
+
+All exposed state views are read-only and reflect only committed, durable state.
+
+### 12.2 Access restrictions
+
+Only trusted internal components may access State Manager read surfaces. No direct external access is permitted.
+
+## 13. Trust boundaries
+
+The State Manager trusts:
+
+* Network Manager for cryptographic verification and peer identity binding, as mandated in `01-protocol/04-cryptography.md` and bounded by the transport guarantees of `01-protocol/08-network-transport-requirements.md`.
+* Graph Manager for validation, authorization, sequencing, and persistence of the canonical objects described in `01-protocol/02-object-model.md`.
+* Storage Manager for durable storage semantics.
+
+All remote inputs are treated as untrusted until validated.
+
+## 14. Explicitly allowed behaviors
+
+* Buffering validated inbound envelopes while preserving order.
+* Temporarily suspending peers to preserve integrity.
+* Rebuilding derived structures from persisted data.
+* Serving read-only metadata to observability systems.
+* Rejecting invalid or out-of-order inputs deterministically.
+
+## 15. Explicitly forbidden behaviors
+
+* Mutating canonical graph objects directly.
+* Assigning or modifying global sequence identifiers.
+* Advancing sync state without successful commit.
+* Guessing or repairing missing metadata.
+* Exposing speculative or partial state.
+* Bypassing Network Manager or Graph Manager.
+
+## 16. Invariants and guarantees
+
+Across all components and contexts defined in this file, the following invariants hold:
+
+* Canonical graph mutation occurs only via Graph Manager.
+* State metadata is monotonic and authoritative.
+* Sync progression never regresses.
+* All exposed state is derived from committed, durable data.
+* Recovery is deterministic and fail-closed.
+
+These guarantees hold regardless of caller, execution context, input source, or peer behavior.
+
+## 17. Compliance criteria
+
+An implementation complies with this specification if and only if it satisfies all responsibilities, invariants, boundaries, and forbidden behavior constraints defined herein.
