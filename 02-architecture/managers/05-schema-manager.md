@@ -14,6 +14,18 @@ Schemas are stored as graph objects per the canonical Parent/Attribute represent
 
 This file specifies Schema Manager behavior only. It does not define schema authoring, schema mutation flows, envelope formats, ACL semantics, sync execution logic, or storage internals beyond what is required to implement this manager correctly.
 
+This specification consumes the protocol contracts defined in:
+* `01-protocol/00-protocol-overview.md`
+* `01-protocol/01-identifiers-and-namespaces.md`
+* `01-protocol/02-object-model.md`
+* `01-protocol/03-serialization-and-envelopes.md`
+* `01-protocol/06-access-control-model.md`
+* `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/09-errors-and-failure-modes.md`
+* `01-protocol/10-versioning-and-compatibility.md`
+
+Those files remain normative for all behaviors described here.
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
@@ -22,23 +34,23 @@ This specification is responsible for the following:
 * Enforcing that exactly one schema exists per app_id, preserving the namespace boundaries defined in `01-protocol/01-identifiers-and-namespaces.md`.
 * Validating schema structure, cardinality, and internal consistency before those rules can shape the `value_json` payloads described in `01-protocol/02-object-model.md`.
 * Rejecting malformed, incomplete, ambiguous, or conflicting schemas in the same failure class as `ERR_SCHEMA_*` outcomes from `01-protocol/09-errors-and-failure-modes.md`.
-* Compiling schemas into immutable in-memory structures.
+* Compiling schemas into immutable in-memory structures so downstream managers can rely on stable metadata per `01-protocol/00-protocol-overview.md`.
 * Maintaining per-app and per-kind mappings from type_key to numeric type_id so operations that choose either identifier form in `01-protocol/03-serialization-and-envelopes.md` can be processed deterministically.
 * Ensuring type_id stability across restarts and reloads, matching the immutability guarantees on `type_id` in `01-protocol/02-object-model.md`.
 * Exposing schema metadata to other managers through a read-only interface, including the ACL inputs identified in `01-protocol/06-access-control-model.md`.
 * Providing schema-based validation helpers to Graph Manager, which must run schema checks before persistence per `01-protocol/00-protocol-overview.md`.
 * Compiling and exposing sync domain configuration metadata to State Manager so the domain-scoped sync described in `01-protocol/07-sync-and-consistency.md` can be enforced.
 * Detecting and failing closed on schema integrity violations, surfacing the schema-specific failures enumerated in `01-protocol/09-errors-and-failure-modes.md`.
-* Participating in startup readiness determination.
-* Participating in controlled schema reload operations.
+* Participating in startup readiness determination as part of the manager lifecycle described in `01-protocol/00-protocol-overview.md`.
+* Participating in controlled schema reload operations without violating the compatibility posture of `01-protocol/10-versioning-and-compatibility.md`.
 
 This specification does not cover the following:
 
-* Creating, updating, or deleting schema graph objects.
-* Defining schema lifecycle policy beyond validation and reload semantics.
-* Evaluating ACLs, ownership, or visibility rules.
-* Performing graph writes except permitted creation of type_id mappings.
-* Executing sync, reconciliation, or conflict resolution.
+* Creating, updating, or deleting schema graph objects, which belong to general graph mutation flows enforced by Graph Manager.
+* Defining schema lifecycle policy beyond validation and reload semantics; those policies are governed by `01-protocol/10-versioning-and-compatibility.md`.
+* Evaluating ACLs, ownership, or visibility rules, which are defined solely in `01-protocol/06-access-control-model.md`.
+* Performing graph writes except permitted creation of type_id mappings, and even those must honor the immutability rules in `01-protocol/02-object-model.md`.
+* Executing sync, reconciliation, or conflict resolution, which stay within State Manager per `01-protocol/07-sync-and-consistency.md`.
 * Network transport, cryptographic verification, or peer negotiation (`01-protocol/04-cryptography.md`, `01-protocol/08-network-transport-requirements.md`).
 * Schema migration, backward compatibility handling, or data transformation (`01-protocol/10-versioning-and-compatibility.md`).
 * Application-level interpretation of schema semantics.
@@ -310,21 +322,21 @@ Domain mode is treated as metadata only. Enforcement is performed by State Manag
 
 The Schema Manager explicitly allows:
 
-* Multiple apps with independent schemas.
-* Deterministic type resolution.
-* Schema-declared sync domains.
-* Read-only schema access by other managers.
-* Controlled administrative reload.
+* Multiple apps with independent schemas, matching the isolation rules in `01-protocol/01-identifiers-and-namespaces.md`.
+* Deterministic type resolution so operations defined in `01-protocol/03-serialization-and-envelopes.md` can choose either identifier form.
+* Schema-declared sync domains, enabling the state machine described in `01-protocol/07-sync-and-consistency.md`.
+* Read-only schema access by other managers, preserving the manager responsibilities in `01-protocol/00-protocol-overview.md`.
+* Controlled administrative reload that does not bypass the compatibility guarantees documented in `01-protocol/10-versioning-and-compatibility.md`.
 
 ## 13. Forbidden behaviors
 
 The Schema Manager explicitly forbids:
 
-* Multiple schemas per app_id.
-* Runtime mutation of compiled schemas.
+* Multiple schemas per app_id, which would violate `01-protocol/01-identifiers-and-namespaces.md`.
+* Runtime mutation of compiled schemas outside explicit reloads.
 * Cross-app schema references (`01-protocol/01-identifiers-and-namespaces.md`).
-* Silent type_id remapping.
-* Schema inference from data.
+* Silent type_id remapping, which would contradict the immutability guarantees in `01-protocol/02-object-model.md`.
+* Schema inference from data, disallowed by the declaration-before-use posture in `01-protocol/00-protocol-overview.md`.
 * Authorization decisions (`01-protocol/06-access-control-model.md`).
 * Automatic migration or compatibility heuristics.
 
@@ -359,8 +371,8 @@ Any detected inconsistency between schema declarations and persisted indices is 
 
 * Graph Manager depends on Schema Manager for validation only, matching the processing order in `01-protocol/00-protocol-overview.md`.
 * State Manager depends on Schema Manager for domain metadata only, consistent with `01-protocol/07-sync-and-consistency.md`.
-* Storage Manager is used only for type_id persistence.
-* Health Manager consumes readiness and failure signals.
+* Storage Manager is used only for type_id persistence and must uphold the immutability constraints in `01-protocol/02-object-model.md`.
+* Health Manager consumes readiness and failure signals so system posture matches `01-protocol/09-errors-and-failure-modes.md`.
 
 No cyclic dependencies are permitted.
 
