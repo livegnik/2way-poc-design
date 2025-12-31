@@ -8,32 +8,39 @@
 
 This document defines the Key Manager component in the 2WAY backend. It specifies the authoritative handling of all local private key material and the narrowly scoped cryptographic operations permitted to be performed using those keys.
 
-It implements the storage and execution boundaries mandated by `01-protocol/04-cryptography.md` and the identity and key binding rules in `01-protocol/05-keys-and-identity.md`.
-
 Key Manager is responsible for key generation, durable storage, loading, and controlled use of private keys for signing and asymmetric encryption or decryption. It is a security critical manager with strict boundaries. It does not interpret protocol semantics, graph meaning, ACL rules, or sync logic. It performs cryptographic operations only when explicitly instructed by authorized backend components.
 
 This specification defines structure, responsibilities, invariants, lifecycle behavior, failure handling, and interaction contracts required to implement the Key Manager correctly.
+
+This specification consumes the protocol contracts defined in:
+* `01-protocol/04-cryptography.md`
+* `01-protocol/05-keys-and-identity.md`
+* `01-protocol/06-access-control-model.md`
+* `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/09-errors-and-failure-modes.md`
+
+Those files remain normative for all behaviors described here.
 
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following
 
-* Generating secp256k1 keypairs for node, identity, and app scopes.
-* Persisting private keys to disk using a deterministic and validated on disk format.
+* Generating secp256k1 keypairs for node, identity, and app scopes exactly as mandated by `01-protocol/04-cryptography.md`.
+* Persisting private keys to disk using a deterministic and validated on disk format so private material never leaves the local authority boundaries defined in `01-protocol/04-cryptography.md`.
 * Loading and validating private key material at startup and on demand.
-* Deriving public keys from locally held private keys.
+* Deriving public keys from locally held private keys before those keys are published into the graph per `01-protocol/05-keys-and-identity.md`.
 * Performing signing operations defined in `01-protocol/04-cryptography.md` for explicitly specified scopes and key identifiers.
 * Performing ECIES encryption for outbound payloads when a recipient public key is provided, as required by `01-protocol/04-cryptography.md`.
 * Performing ECIES decryption for inbound payloads addressed to locally held private keys, as required by `01-protocol/04-cryptography.md`.
-* Enforcing that private keys are never returned, serialized, logged, or emitted.
+* Enforcing that private keys are never returned, serialized, logged, or emitted, preserving the fail-closed posture in `01-protocol/04-cryptography.md`.
 * Acting as the sole component permitted to access private key material.
-* Ensuring the node key exists, is valid, and is usable before dependent managers may operate.
-* Refusing all cryptographic operations when invariants are violated.
+* Ensuring the node key exists, is valid, and is usable before dependent managers may operate, matching the Node key requirements in `01-protocol/05-keys-and-identity.md`.
+* Refusing all cryptographic operations when invariants are violated, surfacing failures that map to `01-protocol/09-errors-and-failure-modes.md`.
 
 This specification does not cover the following
 
-* Signature verification of remote envelopes or objects.
-* Protocol level decisions about when signing or encryption is required.
+* Signature verification of remote envelopes or objects, which belong to the verification flows defined in `01-protocol/04-cryptography.md`.
+* Protocol level decisions about when signing or encryption is required, which are enforced by network and sync logic in `01-protocol/07-sync-and-consistency.md`.
 * Graph object creation, persistence, or schema enforcement.
 * ACL evaluation or permission semantics.
 * Identity ownership, authorship, or trust interpretation.
@@ -53,9 +60,9 @@ Across all components and contexts defined in this file, the following invariant
 * Every cryptographic operation uses an explicitly specified scope and key identifier.
 * No implicit scope selection or fallback is permitted.
 * Invalid, missing, or malformed keys cause explicit failure.
-* The node key must exist and be valid before startup completes.
+* The node key must exist and be valid before startup completes, satisfying the node identity guarantees in `01-protocol/05-keys-and-identity.md`.
 * The Key Manager never determines authorship or authority and defers to identity semantics defined in `01-protocol/05-keys-and-identity.md`.
-* Only the Key Manager may perform signing or decryption using private keys.
+* Only the Key Manager may perform signing or decryption using private keys, keeping the private-key boundary enforced by `01-protocol/04-cryptography.md`.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
@@ -150,7 +157,7 @@ This directory must never be exposed via any API or static file server.
 
 ### 6.2 Encoding and format
 
-* Keys are stored in a validated deterministic format.
+* Keys are stored in a validated deterministic format that encodes the curve and key material exactly as required by `01-protocol/04-cryptography.md`.
 * The format must encode curve type, public key, and private key.
 * Public keys are always derivable from private keys.
 * Separate public key files are forbidden.
@@ -179,7 +186,7 @@ The Key Manager never writes to the graph directly.
 
 ### 7.2 Identity existence requirement
 
-* Signing or public key exposure is forbidden unless the identity Parent exists.
+* Signing or public key exposure is forbidden unless the identity Parent exists, matching the binding rules in `01-protocol/05-keys-and-identity.md`.
 * Exception is allowed only during identity creation flows explicitly orchestrated by higher layers.
 
 ### 7.3 Authority split
