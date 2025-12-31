@@ -14,13 +14,25 @@ This specification covers configuration sources, precedence rules, storage model
 
 This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
 
+This specification consumes the protocol contracts defined in:
+* `01-protocol/00-protocol-overview.md`
+* `01-protocol/02-object-model.md`
+* `01-protocol/03-serialization-and-envelopes.md`
+* `01-protocol/05-keys-and-identity.md`
+* `01-protocol/06-access-control-model.md`
+* `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/10-versioning-and-compatibility.md`
+* `01-protocol/11-dos-guard-and-client-puzzles.md`
+
+Those files remain normative for all behaviors described here.
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-* Load boot critical configuration from `.env` into an immutable in memory snapshot for the life of the process.
+* Load boot critical configuration from `.env` into an immutable in memory snapshot for the life of the process so bootstrap dependencies described in `01-protocol/00-protocol-overview.md` can initialize deterministically.
 * Load persistent configuration from SQLite `settings` and merge it with defaults and `.env` according to deterministic precedence rules.
-* Provide a single typed read interface for managers, services, and app backends to consume configuration.
+* Provide a single typed read interface for managers, services, and app backends to consume configuration, keeping all OperationContext consumers aligned with `01-protocol/03-serialization-and-envelopes.md`.
 * Provide a single controlled mutation interface for authorized callers to update SQLite backed configuration.
 * Validate configuration values and structure before they become visible to any consumer.
 * Maintain a schema registry for known keys, including types, constraints, defaults, reloadability, and export rules.
@@ -32,10 +44,10 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-* Creating the database file, database migrations, or general storage lifecycle, these are owned by Storage Manager.
-* Creating, storing, or exporting cryptographic secret material, these are owned by Key Manager or a dedicated secret store.
-* Defining graph schemas or ACL policies for protocol objects, these are owned by Graph Manager and ACL Manager.
-* Network transport behavior, onion service lifecycle, peer discovery, or message routing, these are owned by Network Manager.
+* Creating the database file, database migrations, or general storage lifecycle, these are owned by Storage Manager per the persistence boundaries in `01-protocol/00-protocol-overview.md`.
+* Creating, storing, or exporting cryptographic secret material, these are owned by Key Manager or a dedicated secret store per `01-protocol/04-cryptography.md`.
+* Defining graph schemas or ACL policies for protocol objects, these are owned by Graph Manager and ACL Manager per `01-protocol/02-object-model.md` and `01-protocol/06-access-control-model.md`.
+* Network transport behavior, onion service lifecycle, peer discovery, or message routing, these are owned by Network Manager per `01-protocol/08-network-transport-requirements.md`.
 * Installation flows, admin account creation, or plugin installation, these are owned by Installation and App related components. Config Manager only provides a controlled settings interface used by those components.
 
 ## 3. Invariants and guarantees
@@ -50,8 +62,8 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Unknown keys are rejected unless registered in the schema registry before load or reload.
 * Reload is serialized, two phase, and either fully commits or has no effect. Partial application is forbidden.
 * Veto by an owning manager during prepare prevents commit and preserves the prior snapshot.
-* `node.protocol.version` is resolved once from `.env`, cannot be overridden, and is the sole local source of truth for protocol negotiation.
-* Configuration is node local and is not stored in, derived from, or replicated via the graph.
+* `node.protocol.version` is resolved once from `.env`, cannot be overridden, and is the sole local source of truth for protocol negotiation per `01-protocol/10-versioning-and-compatibility.md`.
+* Configuration is node local and is not stored in, derived from, or replicated via the graph, preserving the authority boundaries defined in `01-protocol/00-protocol-overview.md`.
 
 These guarantees must hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
