@@ -12,12 +12,24 @@ This specification defines the responsibilities, boundaries, internal engines, e
 
 This specification defines authorization logic only. It does not define authentication, identity verification, graph mutation semantics, persistence, sync selection, transport behavior, encryption, signature verification, or logging implementation. Those concerns are handled by other protocol specifications such as `01-protocol/05-keys-and-identity.md`, `01-protocol/03-serialization-and-envelopes.md`, and `01-protocol/07-sync-and-consistency.md`.
 
+This specification consumes the protocol contracts defined in:
+* `01-protocol/00-protocol-overview.md`
+* `01-protocol/01-identifiers-and-namespaces.md`
+* `01-protocol/02-object-model.md`
+* `01-protocol/03-serialization-and-envelopes.md`
+* `01-protocol/05-keys-and-identity.md`
+* `01-protocol/06-access-control-model.md`
+* `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/09-errors-and-failure-modes.md`
+
+Those files remain normative for all behaviors described here.
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following
 
-* Acting as the single authorization authority for all read and write access to graph objects, as mandated in `01-protocol/00-protocol-overview.md`.
-* Evaluating access decisions for all graph operations, including create, read, update, and delete, matching `01-protocol/06-access-control-model.md`.
+* Acting as the single authorization authority for all read and write access to graph objects, as mandated in `01-protocol/00-protocol-overview.md` and restated in `01-protocol/06-access-control-model.md`.
+* Evaluating access decisions for all graph operations, including create, read, update, and delete, matching the supervised operation ordering in `01-protocol/03-serialization-and-envelopes.md` and the access layers in `01-protocol/06-access-control-model.md`.
 * Enforcing authorization consistently for:
   * Local frontend requests.
   * Backend system services.
@@ -33,19 +45,19 @@ This specification is responsible for the following
   * Object-level ACL overrides.
 * Enforcing app isolation and domain isolation per `01-protocol/01-identifiers-and-namespaces.md` and `01-protocol/06-access-control-model.md`.
 * Enforcing remote execution restrictions during sync application, including the remote envelope rules in `01-protocol/07-sync-and-consistency.md`.
-* Producing deterministic allow or deny decisions with stable rejection categories.
-* Failing closed on missing, ambiguous, malformed, or unsupported policy data.
+* Producing deterministic allow or deny decisions with stable rejection categories that map to `01-protocol/09-errors-and-failure-modes.md`.
+* Failing closed on missing, ambiguous, malformed, or unsupported policy data, following the rejection posture in `01-protocol/06-access-control-model.md` and `01-protocol/09-errors-and-failure-modes.md`.
 * Participating in every graph mutation path before any persistent write occurs, consistent with the sequencing in `01-protocol/00-protocol-overview.md`.
 * Participating in every restricted read path where visibility is constrained by policy, as required by `01-protocol/06-access-control-model.md`.
 
 This specification does not cover the following
 
-* Authentication or session resolution.
-* Identity verification or signature validation.
-* Graph mutation ordering, sequencing, or persistence.
-* Schema definition, compilation, or validation.
-* Sync domain selection or package construction.
-* Network transport, encryption, or peer authentication.
+* Authentication or session resolution, owned by Auth Manager per `01-protocol/00-protocol-overview.md`.
+* Identity verification or signature validation, governed by `01-protocol/05-keys-and-identity.md`.
+* Graph mutation ordering, sequencing, or persistence, which remain the responsibility of Graph Manager and Storage Manager per `01-protocol/00-protocol-overview.md`.
+* Schema definition, compilation, or validation defined in `01-protocol/02-object-model.md`.
+* Sync domain selection or package construction described in `01-protocol/07-sync-and-consistency.md`.
+* Network transport, encryption, or peer authentication, governed by Network Manager and `01-protocol/03-serialization-and-envelopes.md`.
 * Event emission, logging storage, or audit pipelines.
 
 ## 3. Invariants and guarantees
@@ -259,21 +271,21 @@ Any violation results in denial regardless of ACL content, and refusal reasons m
 
 The ACL Manager may:
 
-* Cache compiled ACL data and recent decisions.
-* Query group membership and relationships through authorized interfaces.
+* Cache compiled ACL data and recent decisions, provided cache hits never contradict the evaluation rules in `01-protocol/06-access-control-model.md`.
+* Query group membership and relationships through authorized interfaces exposed by Graph Manager, retaining the manager boundaries in `01-protocol/00-protocol-overview.md`.
 * Use schema-precompiled metadata that originated from the authorization inputs defined in `01-protocol/06-access-control-model.md`.
 
 ### 13.2 Forbidden behavior
 
 The ACL Manager must not:
 
-* Access the database directly.
-* Mutate graph state.
-* Perform network communication.
-* Authenticate identities.
+* Access the database directly, which would bypass Graph Manager and violate `01-protocol/00-protocol-overview.md`.
+* Mutate graph state, preserving the write-path exclusivity defined in `01-protocol/00-protocol-overview.md`.
+* Perform network communication, so transport trust boundaries in `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md` remain intact.
+* Authenticate identities, which is governed by Auth Manager and `01-protocol/05-keys-and-identity.md`.
 * Infer permissions from transport metadata, which is explicitly forbidden in `01-protocol/06-access-control-model.md`.
 * Bypass Schema Manager, Graph Manager, or State Manager.
-* Grant access based on incomplete or implicit data.
+* Grant access based on incomplete or implicit data, ensuring fail-closed behavior per `01-protocol/06-access-control-model.md`.
 
 ## 14. Manager interactions
 
