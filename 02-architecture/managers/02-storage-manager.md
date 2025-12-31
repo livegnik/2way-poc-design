@@ -12,15 +12,26 @@ This specification defines the complete responsibilities, internal structure, in
 
 Storage Manager is a passive subsystem. It never interprets protocol meaning. It persists state exactly as instructed by higher-level managers and guarantees durability, ordering, isolation, and integrity.
 
-Storage Manager enforces the canonical data and sequencing rules defined by the protocol documents: `01-protocol/02-object-model.md` (object categories and metadata invariants), `01-protocol/03-serialization-and-envelopes.md` (envelope atomicity and write boundaries), `01-protocol/07-sync-and-consistency.md` (ordering and sync state), and `01-protocol/09-errors-and-failure-modes.md` (failure guarantees).
+Storage Manager enforces the canonical data and sequencing rules defined by the protocol corpus; those references are listed explicitly below.
+
+This specification consumes the protocol contracts defined in:
+* `01-protocol/00-protocol-overview.md`
+* `01-protocol/01-identifiers-and-namespaces.md`
+* `01-protocol/02-object-model.md`
+* `01-protocol/03-serialization-and-envelopes.md`
+* `01-protocol/06-access-control-model.md`
+* `01-protocol/07-sync-and-consistency.md`
+* `01-protocol/09-errors-and-failure-modes.md`
+
+Those files remain normative for all behaviors described here.
 
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-* Owning the single backend SQLite database file and its WAL lifecycle.
-* Creating, migrating, and validating all global tables.
-* Creating and maintaining per-app table families for every registered app.
+* Owning the single backend SQLite database file and its WAL lifecycle, keeping persistence centralized per the manager boundaries established in `01-protocol/00-protocol-overview.md`.
+* Creating, migrating, and validating all global tables so canonical metadata defined in `01-protocol/02-object-model.md` and `01-protocol/07-sync-and-consistency.md` always has an authoritative store.
+* Creating and maintaining per-app table families for every registered app, matching the namespace guarantees described in `01-protocol/01-identifiers-and-namespaces.md`.
 * Enforcing transactional isolation, atomicity, and write serialization.
 * Persisting all graph objects exactly as provided by Graph Manager.
 * Persisting monotonic sequence counters, including `global_seq` and `domain_seq`.
@@ -36,8 +47,8 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-* Schema validation semantics, which belong to Schema Manager.
-* ACL evaluation or permission enforcement, which belong to ACL Manager.
+* Schema validation semantics, which belong to Schema Manager per `01-protocol/02-object-model.md`.
+* ACL evaluation or permission enforcement, which belong to ACL Manager per `01-protocol/06-access-control-model.md`.
 * Graph semantics, object meaning, or lifecycle interpretation.
 * Network transport, peer connectivity, or message handling.
 * Sync policy, domain logic, or replication strategy.
@@ -57,7 +68,7 @@ Across all components and contexts defined in this file, the following invariant
 * Storage Manager never interprets semantic meaning.
 * No component bypasses Storage Manager for persistence.
 * Failed writes leave no partial state or sequence movement, aligning with `01-protocol/09-errors-and-failure-modes.md`.
-* Startup either completes fully or aborts entirely.
+* Startup either completes fully or aborts entirely, honoring the fail-closed posture in `01-protocol/09-errors-and-failure-modes.md`.
 * Corruption is detected and causes fail closed behavior.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
@@ -248,7 +259,7 @@ Transaction helpers guarantee that the entire envelope defined in `01-protocol/0
 ## 9. Transactions and concurrency
 
 * Only one writer at a time.
-* Writes use immediate transactions.
+* Writes use immediate transactions to maintain the envelope atomicity described in `01-protocol/03-serialization-and-envelopes.md`.
 * Reads use snapshot isolation.
 * Savepoints are used for nested operations.
 * Busy timeouts are enforced.
@@ -259,7 +270,7 @@ Storage Manager never spins or retries silently.
 ## 10. Schema evolution and migrations
 
 * Schema versions are tracked explicitly.
-* Migrations are deterministic.
+* Migrations are deterministic and must preserve the canonical object layout in `01-protocol/02-object-model.md`.
 * Downgrades are unsupported.
 * Failure aborts startup.
 * App schema upgrades are coordinated with App Manager.
