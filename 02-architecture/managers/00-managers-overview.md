@@ -1,6 +1,6 @@
 # 00 Managers Overview
 
-## 1. Purpose, context, and scope
+## 1. Purpose and scope
 
 This document provides an implementation-ready overview of every backend manager in 2WAY and explains how the manager fabric fits together across responsibilities, invariants, lifecycle dependencies, and shared execution flows. It complements the detailed component specifications and the rest of the architecture corpus by aggregating the big-picture guidance needed before diving into the per-manager files. It does not redefine the individual contracts; instead it stitches them together so engineers and reviewers can see the system-wide shape and enforce the same fail-closed posture everywhere.
 
