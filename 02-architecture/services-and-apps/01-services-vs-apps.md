@@ -9,11 +9,11 @@ This document does not redefine schemas, ACL policy, serialization, cryptography
 
 This specification references the following documents:
 
+* `01-protocol/**`
 * `02-architecture/01-component-model.md`
 * `02-architecture/managers/00-managers-overview.md`
 * `02-architecture/managers/**`
 * `02-architecture/services-and-apps/05-operation-context.md`
-* `01-protocol/**`
 
 Those documents remain normative for their respective domains.
 
