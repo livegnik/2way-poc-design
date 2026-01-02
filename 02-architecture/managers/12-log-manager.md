@@ -42,7 +42,7 @@ This specification does not cover the following:
 
 Across all relevant contexts defined here, the following invariants hold:
 
-* Log Manager is the only component allowed to emit structured logs, satisfying the invariant in `02-architecture/01-component-model.md`.
+* Log Manager is the only component allowed to emit structured logs, satisfying the manager invariants described in `01-protocol/00-protocol-overview.md`.
 * All log records are immutable once accepted. They cannot be edited, deleted, or re-ordered; retention only expires records based on configured windows.
 * Every record is tagged with `OperationContext` identifiers (requester identity, app id, trace id, remote/local flag) when an OperationContext exists. Internal background records use a generated context token so downstream correlation remains deterministic per `01-protocol/00-protocol-overview.md`.
 * Audit and security logs fail closed. If the primary sink is unavailable, the request that produced the log is rejected unless the emitting manager explicitly overrides per `01-protocol/09-errors-and-failure-modes.md`.

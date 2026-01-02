@@ -25,7 +25,7 @@ This specification is responsible for the following:
 * Owning all publication surfaces for backend events and enforcing the invariant from `00-scope/00-scope-overview.md` that all state change notifications flow through Event Manager.
 * Accepting normalized event descriptors from Graph Manager, App Manager, Config Manager, Network Manager, Health Manager, DoS Guard Manager, and Log Manager after those managers complete their own validation and commit phases, ensuring sequencing rules in `01-protocol/07-sync-and-consistency.md` remain intact.
 * Binding event metadata to `OperationContext`-derived visibility rules so that subscribers can only see events they are authorized to observe under `01-protocol/06-access-control-model.md`.
-* Maintaining the single WebSocket delivery surface, including admission, subscription filtering, flow control, resume tokens, and delivery telemetry required to satisfy the frontend boundary described in `02-architecture/03-trust-boundaries.md`.
+* Maintaining the single WebSocket delivery surface, including admission, subscription filtering, flow control, resume tokens, and delivery telemetry required to satisfy the frontend boundary described in `01-protocol/05-keys-and-identity.md` and `01-protocol/08-network-transport-requirements.md`.
 * Providing a deterministic classification and routing engine for domain events, system lifecycle events, and abuse/telemetry events while preserving naming conventions mandated by `01-protocol/00-protocol-overview.md`.
 * Emitting audit signals to Log Manager whenever subscriptions change state, buffers overflow, delivery is suppressed, or component health transitions, ensuring observability posture matches `01-protocol/09-errors-and-failure-modes.md`.
 * Enforcing per-connection and global resource limits sourced from `event.*` configuration so hostile subscribers cannot exhaust backend memory.
@@ -359,9 +359,9 @@ Startup fails if required keys are missing or invalid. Reload follows Config Man
 
 ## 11. Security and trust boundary constraints
 
-* The WebSocket surface is a strict trust boundary described in `02-architecture/03-trust-boundaries.md`. Event Manager treats all incoming frames (ACKs, resume requests) as untrusted until validated.
+* The WebSocket surface is a strict trust boundary described in `01-protocol/05-keys-and-identity.md` and `01-protocol/08-network-transport-requirements.md`. Event Manager treats all incoming frames (ACKs, resume requests) as untrusted until validated.
 * Subscribers cannot observe objects, identifiers, or sequences they could not read via the normal API. All authorization decisions defer to ACL Manager capsules plus the subscriber's `OperationContext`, matching the access rules in `01-protocol/06-access-control-model.md`.
-* Event Manager never leaks peer topology, secret configuration, or transport metadata that the subscriber's `OperationContext` is not cleared to see, preserving the secrecy posture in `01-protocol/05-keys-and-identity.md` and `02-architecture/03-trust-boundaries.md`.
+* Event Manager never leaks peer topology, secret configuration, or transport metadata that the subscriber's `OperationContext` is not cleared to see, preserving the secrecy posture in `01-protocol/05-keys-and-identity.md`.
 * Resume tokens are cryptographically opaque (HMAC with a key stored in process memory). Clients cannot forge resume positions.
 
 ## 12. State, persistence, and backpressure constraints
