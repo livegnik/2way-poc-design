@@ -156,8 +156,6 @@ Structural mechanisms include:
 
 These guarantees hold regardless of peer behavior.
 
----
-
 ### 10. Failure behavior
 
 When violations occur, the system rejects input, preserves local integrity, and continues operating with reduced scope.
@@ -399,8 +397,6 @@ Any deviation requires an explicit Architecture Decision Record.
 Only properties explicitly defined within this repository are claimed by the design.
 
 No additional guarantees should be inferred from terminology, naming, or examples.
-
----
 
 ### 20. Status
 
