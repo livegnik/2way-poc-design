@@ -4,45 +4,40 @@
 
 # 2WAY System PoC Design Repository
 
-<br><br>
+> Normative design documentation for the 2WAY proof of concept—a local-first platform that enforces security and correctness structurally rather than by convention.
 
-## Table of contents
+---
 
-### Orientation
+## Contents
 
-- [1. 2WAY at a glance](#1-2way-at-a-glance)
-- [2. What 2WAY is](#2-what-2way-is)
-- [3. Why it exists](#3-why-it-exists)
-- [4. Core idea](#4-core-idea)
+- **Orientation**
+  - [1. 2WAY at a glance](#1-2way-at-a-glance)
+  - [2. What 2WAY is](#2-what-2way-is)
+  - [3. Why it exists](#3-why-it-exists)
+  - [4. Core idea](#4-core-idea)
+- **Security and correctness model**
+  - [5. Security model and threat framing](#5-security-model-and-threat-framing)
+  - [6. Structural impossibility](#6-structural-impossibility)
+  - [7. Degrees of separation and influence limits](#7-degrees-of-separation-and-influence-limits)
+  - [8. Sybil resistance through structure](#8-sybil-resistance-through-structure)
+  - [9. Denial-of-service containment](#9-denial-of-service-containment)
+  - [10. Failure behavior](#10-failure-behavior)
+  - [11. What the system guarantees](#11-what-the-system-guarantees)
+- **Building on 2WAY**
+  - [12. What the system enables but does not define](#12-what-the-system-enables-but-does-not-define)
+  - [13. Application model for developers](#13-application-model-for-developers)
+    - [13.1 What applications do](#131-what-applications-do)
+    - [13.2 What applications do not do](#132-what-applications-do-not-do)
+  - [14. Application domains and environments](#14-application-domains-and-environments)
+- **Repository scope and authority**
+  - [15. What this repository deliberately does not decide](#15-what-this-repository-deliberately-does-not-decide)
+  - [16. Who this repository is for](#16-who-this-repository-is-for)
+  - [17. Repository structure and authority](#17-repository-structure-and-authority)
+  - [18. Conformance](#18-conformance)
+  - [19. Scope boundary](#19-scope-boundary)
+  - [20. Status](#20-status)
 
-### Security and correctness model
-
-- [5. Security model and threat framing](#5-security-model-and-threat-framing)
-- [6. Structural impossibility](#6-structural-impossibility)
-- [7. Degrees of separation and influence limits](#7-degrees-of-separation-and-influence-limits)
-- [8. Sybil resistance through structure](#8-sybil-resistance-through-structure)
-- [9. Denial-of-service containment](#9-denial-of-service-containment)
-- [10. Failure behavior](#10-failure-behavior)
-- [11. What the system guarantees](#11-what-the-system-guarantees)
-
-### Building on 2WAY
-
-- [12. What the system enables but does not define](#12-what-the-system-enables-but-does-not-define)
-- [13. Application model for developers](#13-application-model-for-developers)
-  - [13.1 What applications do](#131-what-applications-do)
-  - [13.2 What applications do not do](#132-what-applications-do-not-do)
-- [14. Application domains and environments](#14-application-domains-and-environments)
-
-### Repository scope and authority
-
-- [15. What this repository deliberately does not decide](#15-what-this-repository-deliberately-does-not-decide)
-- [16. Who this repository is for](#16-who-this-repository-is-for)
-- [17. Repository structure and authority](#17-repository-structure-and-authority)
-- [18. Conformance](#18-conformance)
-- [19. Scope boundary](#19-scope-boundary)
-- [20. Status](#20-status)
-
-<br><br>
+---
 
 ## Orientation
 
@@ -91,6 +86,8 @@ Each node works on its own and can operate offline. Synchronization happens expl
 The graph is more than a way to store data. It is where security, isolation, and authority are enforced. What an application can see or change is determined by the graph, not by application code or network trust.
 
 Running locally is a security property. Correctness and control do not depend on being online or on trusting other nodes.
+
+---
 
 ## Security and correctness model
 
@@ -159,6 +156,8 @@ Structural mechanisms include:
 
 These guarantees hold regardless of peer behavior.
 
+---
+
 ### 10. Failure behavior
 
 When violations occur, the system rejects input, preserves local integrity, and continues operating with reduced scope.
@@ -178,6 +177,8 @@ Guaranteed by design:
 * Fail-closed behavior under ambiguity or attack
 
 These properties are enforced structurally, not by convention or policy.
+
+---
 
 ## Building on 2WAY
 
@@ -276,6 +277,8 @@ Applicable domains include:
 * Data-sharing platforms with strict isolation requirements
 
 These domains share a common requirement: centralized trust, implicit coordination, and silent failure are unacceptable.
+
+---
 
 ## Repository scope and authority
 
@@ -396,6 +399,20 @@ Any deviation requires an explicit Architecture Decision Record.
 Only properties explicitly defined within this repository are claimed by the design.
 
 No additional guarantees should be inferred from terminology, naming, or examples.
+
+---
+
+### 20. Status
+
+This repository describes a proof of concept [WIP].
+
+The design prioritizes correctness, clarity, and auditability over performance or scale.
+The PoC exists to validate the protocol model and architectural boundaries before any production implementation.
+ry are claimed by the design.
+
+No additional guarantees should be inferred from terminology, naming, or examples.
+
+---
 
 ### 20. Status
 
