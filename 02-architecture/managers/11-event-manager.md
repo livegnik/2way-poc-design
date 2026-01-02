@@ -1,3 +1,7 @@
+
+
+
+
 # 11 Event Manager
 
 ## 1. Purpose and scope

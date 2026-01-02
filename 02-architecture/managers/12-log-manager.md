@@ -1,3 +1,7 @@
+
+
+
+
 # 12 Log Manager
 
 ## 1. Purpose and scope
