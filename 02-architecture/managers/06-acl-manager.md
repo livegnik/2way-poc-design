@@ -26,7 +26,7 @@ Those files remain normative for all behaviors described here.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following
+This specification is responsible for the following:
 
 * Acting as the single authorization authority for all read and write access to graph objects, as mandated in `01-protocol/00-protocol-overview.md` and restated in `01-protocol/06-access-control-model.md`.
 * Evaluating access decisions for all graph operations, including create, read, update, and delete, matching the supervised operation ordering in `01-protocol/03-serialization-and-envelopes.md` and the access layers in `01-protocol/06-access-control-model.md`.
@@ -50,7 +50,7 @@ This specification is responsible for the following
 * Participating in every graph mutation path before any persistent write occurs, consistent with the sequencing in `01-protocol/00-protocol-overview.md`.
 * Participating in every restricted read path where visibility is constrained by policy, as required by `01-protocol/06-access-control-model.md`.
 
-This specification does not cover the following
+This specification does not cover the following:
 
 * Authentication or session resolution, owned by Auth Manager per `01-protocol/00-protocol-overview.md`.
 * Identity verification or signature validation, governed by `01-protocol/05-keys-and-identity.md`.

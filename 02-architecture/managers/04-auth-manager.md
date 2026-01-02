@@ -23,7 +23,7 @@ Those files remain normative for all behaviors described here.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following
+This specification is responsible for the following:
 
 * Resolving a local frontend session token into a backend `requester_identity_id`, in alignment with the `OperationContext` construction workflow in `01-protocol/00-protocol-overview.md`.
 * Producing an explicit authentication outcome for every local request so downstream managers can enforce the sequencing defined in `01-protocol/06-access-control-model.md`.
@@ -35,7 +35,7 @@ This specification is responsible for the following
 * Emitting authentication and admin-gating audit signals via Log Manager so that authentication-stage failures propagate into the observability posture described in `01-protocol/09-errors-and-failure-modes.md`.
 * Operating as a strict trust boundary between untrusted frontend input and trusted backend execution, keeping remote identity handling with Network Manager per `01-protocol/08-network-transport-requirements.md`.
 
-This specification does not cover the following
+This specification does not cover the following:
 
 * Authorization or permission evaluation. Owned by ACL Manager per `01-protocol/06-access-control-model.md`.
 * Graph mutation or schema validation. Owned by Graph Manager and Schema Manager per `01-protocol/02-object-model.md` and `01-protocol/03-serialization-and-envelopes.md`.

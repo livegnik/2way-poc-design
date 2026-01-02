@@ -23,7 +23,7 @@ Those files remain normative for all behaviors described here.
 
 ## 2. Responsibilities and boundaries
 
-This specification is responsible for the following
+This specification is responsible for the following:
 
 * Generating secp256k1 keypairs for node, identity, and app scopes exactly as mandated by `01-protocol/04-cryptography.md`.
 * Persisting private keys to disk using a deterministic and validated on disk format so private material never leaves the local authority boundaries defined in `01-protocol/04-cryptography.md`.
@@ -37,7 +37,7 @@ This specification is responsible for the following
 * Ensuring the node key exists, is valid, and is usable before dependent managers may operate, matching the Node key requirements in `01-protocol/05-keys-and-identity.md`.
 * Refusing all cryptographic operations when invariants are violated, surfacing failures that map to `01-protocol/09-errors-and-failure-modes.md`.
 
-This specification does not cover the following
+This specification does not cover the following:
 
 * Signature verification of remote envelopes or objects, which belong to the verification flows defined in `01-protocol/04-cryptography.md`.
 * Protocol level decisions about when signing or encryption is required, which are enforced by network and sync logic in `01-protocol/07-sync-and-consistency.md`.

@@ -2,7 +2,7 @@
 
 
 
-# 05. Schema Manager
+# 05 Schema Manager
 
 ## 1. Purpose and scope
 

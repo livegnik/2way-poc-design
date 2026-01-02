@@ -25,7 +25,7 @@ This specification is responsible for the following:
 * Owning the admission decision loop for inbound and outbound connections, in accordance with `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Issuing, validating, and expiring client puzzles (proof-of-work challenges) without exposing puzzle secrets or private keys.
 * Tracking request rates, connection counts, and transport-level telemetry to detect abusive behavior.
-* Communicating allow/deny/challenge decisions to Network Manager’s Bastion Engine without revealing backend implementation details.
+* Communicating allow/deny/challenge decisions to Network Manager's Bastion Engine without revealing backend implementation details.
 * Publishing DoS telemetry and critical events to Log Manager and Event Manager.
 * Adjusting difficulty dynamically based on Health Manager signals and configured limits (`dos.*` namespace).
 
@@ -39,7 +39,7 @@ This specification does not cover the following:
 
 Across all relevant contexts defined here, the following invariants hold:
 
-* Every inbound connection must pass through DoS Guard before reaching Network Manager’s admitted surfaces.
+* Every inbound connection must pass through DoS Guard before reaching Network Manager's admitted surfaces.
 * Client puzzles are opaque to Network Manager. DoS Guard generates and verifies them entirely within its own boundary.
 * Admission decisions (`allow`, `deny`, `challenge`) are deterministic given the same telemetry and configuration.
 * Puzzle difficulty increases monotonically for abusive identities until they return to compliant behavior.
@@ -52,7 +52,7 @@ Across all relevant contexts defined here, the following invariants hold:
 DoS Guard Manager enforces a fixed admission lifecycle aligned with `01-protocol/11-dos-guard-and-client-puzzles.md`:
 
 1. **Telemetry intake**: Network Manager provides connection metadata (IP, Tor circuit ID, claimed peer identity, connection counts, byte rates).
-2. **Policy evaluation**: DoS Guard compares telemetry against configured thresholds and historical behavior for the connection’s identity or endpoint.
+2. **Policy evaluation**: DoS Guard compares telemetry against configured thresholds and historical behavior for the connection's identity or endpoint.
 3. **Decision**: DoS Guard emits `allow`, `deny`, or `challenge` along with optional puzzle parameters.
 4. **Puzzle issuance (if required)**: DoS Guard generates puzzles using Key Manager-provided randomness or HMAC keys and returns them to Network Manager for transport to the client.
 5. **Puzzle verification**: Puzzle responses are submitted to DoS Guard for verification. Successful responses yield an `allow`; failures may escalate difficulty or emit `deny`.
@@ -69,7 +69,7 @@ DoS Guard Manager enforces a fixed admission lifecycle aligned with `01-protocol
 
 ### 5.2 Outputs
 
-* Admission decision objects: `{ connection_id, decision, difficulty, puzzle_spec? }` returned to Network Manager’s Bastion Engine.
+* Admission decision objects: `{ connection_id, decision, difficulty, puzzle_spec? }` returned to Network Manager's Bastion Engine.
 * Telemetry records routed to Log Manager describing challenges issued, solutions validated, denials, and abuse-suspect identities.
 * Event Manager notifications for critical security events (`security.dos_abuse_detected`, `security.dos_policy_changed`).
 * Configuration acknowledgements to Config Manager (success or veto).
@@ -112,7 +112,7 @@ Key configuration entries include:
 | `dos.health.readiness_multiplier` | Float | Yes | Multiplier applied to difficulty when Health Manager reports `not_ready`. |
 | `dos.telemetry.events_enabled` | Boolean | Yes | Enables Event Manager notifications. |
 
-Configuration reloads use Config Manager’s prepare/commit flow. DoS Guard must verify that new values are within safe ranges before acknowledging.
+Configuration reloads use Config Manager's prepare/commit flow. DoS Guard must verify that new values are within safe ranges before acknowledging.
 
 ## 9. Internal engines
 
@@ -183,5 +183,5 @@ Implementations must demonstrate:
 * Every connection passes through the admission lifecycle.
 * Puzzle generation and validation align with `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Failures default to `deny` in accordance with `01-protocol/09-errors-and-failure-modes.md`.
-* Configuration reloads follow Config Manager’s prepare/commit contract.
+* Configuration reloads follow Config Manager's prepare/commit contract.
 * No manager other than DoS Guard issues puzzles or admission directives.

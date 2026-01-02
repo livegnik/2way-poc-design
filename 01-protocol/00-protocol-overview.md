@@ -106,7 +106,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 * Any direct database write outside Storage Manager.
 * Any authorization decision based on transport metadata or remote assertions not validated against local identity and ACL state.
 * Partial application of an envelope, or advancing sync state after a rejection.
-* Accepting remote packages without cryptographic verification, or attempting to “guess” missing metadata to recover from failures.
+* Accepting remote packages without cryptographic verification, or attempting to "guess" missing metadata to recover from failures.
 
 ## 8. Failure posture
 

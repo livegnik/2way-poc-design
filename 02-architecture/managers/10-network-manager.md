@@ -2,7 +2,7 @@
 
 
 
-# 10. Network Manager
+# 10 Network Manager
 
 ## 1. Purpose and scope
 
@@ -27,7 +27,7 @@ This document does not define synchronization policy, graph semantics, authoriza
 
 ## 2. Responsibilities and boundaries
 
-### 2.1 This specification is responsible for the following
+This specification is responsible for the following:
 
 * Owning all inbound and outbound listeners, sessions, and connection state machines for supported transports, consolidating the consumer boundary defined in `01-protocol/08-network-transport-requirements.md`.
 * Abstracting transport implementations while preserving peer context and transport metadata, exactly as required by `01-protocol/08-network-transport-requirements.md`.
@@ -52,7 +52,7 @@ This document does not define synchronization policy, graph semantics, authoriza
 * Supporting multiple transport surfaces when configured, including the dual-surface model where a bastion surface is separated from an admitted data surface, without changing the trust boundary rules mandated in `01-protocol/08-network-transport-requirements.md`.
 * Surfacing network reachability facts to the State Manager and Event Manager without performing graph writes.
 
-### 2.2 This specification does not cover the following
+This specification does not cover the following:
 
 * Definition of cryptographic primitives, algorithms, key formats, key rotation, or key storage.
 * Definition of envelope schemas, sync semantics, replay rules, reconciliation logic, or ordering guarantees.
