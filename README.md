@@ -10,7 +10,7 @@ Normative design documentation for a decentralized, local-first application subs
 
 ## Table of Contents
 
-* [Overview](#overview)
+* [Abstract](#abstract)
 * [1. 2WAY at a glance](#1-2way-at-a-glance)
 * [2. What this repository is and how to read it](#2-what-this-repository-is-and-how-to-read-it)
 * [3. What 2WAY is](#3-what-2way-is)
@@ -32,7 +32,7 @@ Normative design documentation for a decentralized, local-first application subs
 
 ---
 
-## Overview
+## Abstract
 
 Most modern applications depend on centralized backends to provide identity, access control, ordering, and persistence. While effective in the short term, this architecture makes systems fragile over time. When operators change incentives, infrastructure disappears, or systems need to interoperate, users and data are forced to migrate, fork, or vanish.
 
