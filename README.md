@@ -10,7 +10,7 @@ Normative design documentation for a decentralized, local-first application subs
 
 ## Table of Contents
 
-* [Abstract](#abstract)
+* [Overview](#overview)
 * [1. 2WAY at a glance](#1-2way-at-a-glance)
 * [2. What this repository is and how to read it](#2-what-this-repository-is-and-how-to-read-it)
 * [3. What 2WAY is](#3-what-2way-is)
