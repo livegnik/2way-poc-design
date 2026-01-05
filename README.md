@@ -32,7 +32,7 @@ Normative design documentation for a decentralized, local-first application subs
 
 ---
 
-## Abstract
+## Overview
 
 Most modern applications depend on centralized backends to provide identity, access control, ordering, and persistence. While effective in the short term, this architecture makes systems fragile over time. When operators change incentives, infrastructure disappears, or systems need to interoperate, users and data are forced to migrate, fork, or vanish.
 
