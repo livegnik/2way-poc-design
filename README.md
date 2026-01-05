@@ -91,7 +91,7 @@ All material in this repository should be read in service of that question.
 
 ## 3. What 2WAY is
 
-2WAY replaces the traditional application backend with a shared, local-first data and security substrate that runs on every node. Each device carries the full authority stack—identity, permissions, ordering, and durability—so availability and policy never depend on a remote operator or cloud service.
+2WAY replaces the traditional application backend with a shared, local-first data and security substrate that runs on every node. Each device carries the full authority stack - identity, permissions, ordering, and durability - so availability and policy never depend on a remote operator or cloud service.
 
 Applications operate on a single, structured graph where identities, relationships, capabilities, and application records live side by side. The substrate enforces graph invariants, filters untrusted network input, and ensures that every node remains authoritative for its own portion of state while synchronizing with peers opportunistically.
 
@@ -222,7 +222,7 @@ Instead, it limits Sybil impact:
 * Influence does not propagate automatically: edges have bounded authority, and delegation must be explicitly recorded and accepted by both parties
 * Degrees of separation restrict unsolicited interaction, preventing Sybils from spamming nodes that never opted into a relationship path
 
-Large numbers of unanchored identities therefore remain inert—they can generate traffic, but they cannot mutate state, gain reach, or drain attention without first satisfying the same structural requirements as legitimate participants.
+Large numbers of unanchored identities therefore remain inert - they can generate traffic, but they cannot mutate state, gain reach, or drain attention without first satisfying the same structural requirements as legitimate participants.
 
 ## 10. Denial-of-service containment
 
@@ -248,7 +248,7 @@ When violations occur, the system fails closed by design:
 * Local integrity is preserved because every write requires explicit ownership and a serialized commit path
 * Operation continues with reduced scope: nodes isolate the faulty actor, quarantine incomplete state, and continue serving known-good peers
 
-Recovery is explicit, never implicit. Administrators or applications must produce corrective actions—revocations, replays, or migrations—that pass the same validation pipeline as any other write. No automatic reconciliation, overwrite, or trust escalation occurs, so debugging and audit trails remain deterministic.
+Recovery is explicit, never implicit. Administrators or applications must produce corrective actions - revocations, replays, or migrations - that pass the same validation pipeline as any other write. No automatic reconciliation, overwrite, or trust escalation occurs, so debugging and audit trails remain deterministic.
 
 ## 12. What the system guarantees
 
@@ -295,7 +295,7 @@ Applications do not:
 * Manage identity or keys directly; those responsibilities sit in the substrate’s device and identity managers
 * Implement custom sync protocols or reconciliation loops
 * Rebuild access control logic, since delegation and enforcement already live in the graph
-* Accept unvalidated network input—every event they see has already passed structural validation and authorization
+* Accept unvalidated network input - every event they see has already passed structural validation and authorization
 
 ## 15. Application domains
 
