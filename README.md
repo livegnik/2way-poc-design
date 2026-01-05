@@ -2,407 +2,351 @@
 
 
 
-# 2WAY System PoC Design Repository
+# 2WAY PoC Design Repository
 
-> Normative design documentation for the 2WAY proof of concept—a local-first platform that enforces security and correctness structurally rather than by convention.
-
----
-
-## Contents
-
-- **Orientation**
-  - [1. 2WAY at a glance](#1-2way-at-a-glance)
-  - [2. What 2WAY is](#2-what-2way-is)
-  - [3. Why it exists](#3-why-it-exists)
-  - [4. Core idea](#4-core-idea)
-- **Security and correctness model**
-  - [5. Security model and threat framing](#5-security-model-and-threat-framing)
-  - [6. Structural impossibility](#6-structural-impossibility)
-  - [7. Degrees of separation and influence limits](#7-degrees-of-separation-and-influence-limits)
-  - [8. Sybil resistance through structure](#8-sybil-resistance-through-structure)
-  - [9. Denial-of-service containment](#9-denial-of-service-containment)
-  - [10. Failure behavior](#10-failure-behavior)
-  - [11. What the system guarantees](#11-what-the-system-guarantees)
-- **Building on 2WAY**
-  - [12. What the system enables but does not define](#12-what-the-system-enables-but-does-not-define)
-  - [13. Application model for developers](#13-application-model-for-developers)
-    - [13.1 What applications do](#131-what-applications-do)
-    - [13.2 What applications do not do](#132-what-applications-do-not-do)
-  - [14. Application domains and environments](#14-application-domains-and-environments)
-- **Repository scope and authority**
-  - [15. What this repository deliberately does not decide](#15-what-this-repository-deliberately-does-not-decide)
-  - [16. Who this repository is for](#16-who-this-repository-is-for)
-  - [17. Repository structure and authority](#17-repository-structure-and-authority)
-  - [18. Conformance](#18-conformance)
-  - [19. Scope boundary](#19-scope-boundary)
-  - [20. Status](#20-status)
+Normative design documentation for a decentralized, local-first application substrate that enforces security and correctness structurally rather than by convention.
 
 ---
 
-## Orientation
+## Table of Contents
 
-### 1. 2WAY at a glance
+* [Abstract](#abstract)
+* [1. 2WAY at a glance](#1-2way-at-a-glance)
+* [2. What this repository is and how to read it](#2-what-this-repository-is-and-how-to-read-it)
+* [3. What 2WAY is](#3-what-2way-is)
+* [4. Why 2WAY exists](#4-why-2way-exists)
+* [5. Core idea: a shared, local-first graph](#5-core-idea-a-shared-local-first-graph)
+* [6. Security model and threat framing](#6-security-model-and-threat-framing)
+* [7. Structural impossibility](#7-structural-impossibility)
+* [8. Degrees of separation and influence limits](#8-degrees-of-separation-and-influence-limits)
+* [9. Sybil resistance through structure](#9-sybil-resistance-through-structure)
+* [10. Denial-of-service containment](#10-denial-of-service-containment)
+* [11. Failure behavior](#11-failure-behavior)
+* [12. What the system guarantees](#12-what-the-system-guarantees)
+* [13. What the system enables but does not define](#13-what-the-system-enables-but-does-not-define)
+* [14. Application model for developers](#14-application-model-for-developers)
+* [15. Application domains](#15-application-domains)
+* [16. Conformance](#16-conformance)
+* [17. Repository structure and authority](#17-repository-structure-and-authority)
+* [18. Scope boundary and status](#18-scope-boundary-and-status)
 
-A P2P platform that replaces central backends with locally enforced control over data and security.
+---
+
+## Abstract
+
+Most modern applications depend on centralized backends to provide identity, access control, ordering, and persistence. While effective in the short term, this architecture makes systems fragile over time. When operators change incentives, infrastructure disappears, or systems need to interoperate, users and data are forced to migrate, fork, or vanish.
+
+This repository defines 2WAY, a decentralized application substrate that separates application logic from authority over identity, permissions, and history*. By enforcing these concerns structurally rather than procedurally, 2WAY enables applications that remain coherent across failure, can interoperate without federation, and do not depend on the continued operation of a single provider.
+
+This repository is not an implementation. It is the authoritative design specification for a proof of concept (PoC). Its purpose is to define the structure, guarantees, limits, and failure behavior of the system precisely enough that multiple independent implementations could be built, tested, and audited against the same criteria.
+
+## 1. 2WAY at a glance
+
+2WAY is a peer-to-peer platform that replaces central backends with locally enforced control over data and security.
+
+The following properties are enforced by design:
 
 * Each device keeps its own data and decides what it accepts
 * Decisions are made using local rules and cryptographic keys
 * All changes are signed, recorded, and cannot be silently altered
 * Data from the network is never trusted by default
-* Apps and unknown users are limited unless explicitly allowed
-* Trust does not automatically spread through the system
+* Applications and unknown identities are limited unless explicitly allowed
+* Trust does not automatically propagate through the system
 * Compromise is contained instead of spreading
-* Security is enforced by how the system is built, not by convention
+* Security is enforced by structure, not convention
 * If permission is missing, the action is rejected
-* There is no central backend or global coordination
-* Invalid or unclear actions are refused
+* There is no central backend and no global coordination
+* Invalid, ambiguous, or incomplete actions are refused
+* Failure reduces capability rather than destroying state
 
-2WAY is designed to keep working correctly even when parts of the system fail or are compromised.
+2WAY is designed to continue operating correctly even when parts of the system are offline, compromised, or malicious.
 
-### 2. What 2WAY is
+## 2. What this repository is and how to read it
 
-2WAY replaces the traditional application backend with a shared, local data and security layer that runs on every device.
+This repository is the normative design source for the 2WAY proof of concept.
 
-Applications run on a common graph where identity, permissions, ordering, and history are enforced by the platform, not rebuilt per app. Each node is authoritative for its own state, synchronizes directly with peers, and treats all network data as untrusted.
+It defines:
 
-This repository defines the normative design for the 2WAY proof of concept (PoC). It specifies required behavior at the protocol and architecture level and is not a production implementation.
+* System scope and non-goals
+* Protocol-level invariants and guarantees
+* Architectural components and authority boundaries
+* The persistence and data model
+* Security assumptions and threat framing
+* End-to-end operational flows
+* PoC execution criteria and acceptance rules
 
-### 3. Why it exists
+It does not define:
 
-Modern application architectures fail when trust is concentrated. Identity, permissions, data ownership, and synchronization are rebuilt by each application on top of centralized backends that assume networks and peers are trustworthy. When those assumptions fail, small bugs or breaches can silently escalate into broad access, corrupted data, or loss of control. The primary failure 2WAY is designed to prevent is silent escalation from local compromise to system-wide damage.
+* A production deployment
+* Performance targets
+* A reference UI
+* An economic or governance model
+* A fixed peer discovery or bootstrap strategy
 
-At the same time, existing systems connect poorly at scale. As users, devices, and applications grow, systems become either globally reachable or heavily siloed, with no structural way to limit reach based on real relationships. Every new connection increases the blast radius. 2WAY uses an explicit graph to connect identities, devices, applications, and data, where distance matters. Reach and influence can be bounded by degrees of separation rather than global rules or central coordination.
+The PoC exists to answer a specific question:
 
-Finally, most systems do not age well. Data outlives applications, applications outlive teams, and access logic becomes tied to specific implementations. This makes reuse, migration, and interoperability fragile over time. 2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, while applications evolve or disappear, allowing systems to remain usable and interoperable across long time spans.
+> If identity, permissions, ordering, and synchronization are enforced structurally and locally, what classes of systems become possible that cannot be reliably built on centralized backends?
 
-### 4. Core idea
+All material in this repository should be read in service of that question.
 
-At the center of 2WAY is a shared, local-first graph.
+## 3. What 2WAY is
 
-The graph holds identities, devices, relationships, content, and application state. Ownership is explicit. History is never rewritten. Every change is checked, authorized, and ordered before it becomes part of the state.
+2WAY replaces the traditional application backend with a shared, local-first data and security substrate that runs on every node. Each device carries the full authority stack—identity, permissions, ordering, and durability—so availability and policy never depend on a remote operator or cloud service.
 
-Each node works on its own and can operate offline. Synchronization happens explicitly and in small steps. Consistency comes from clear ownership, strict ordering, and local validation, not from global agreement or central coordination.
+Applications operate on a single, structured graph where identities, relationships, capabilities, and application records live side by side. The substrate enforces graph invariants, filters untrusted network input, and ensures that every node remains authoritative for its own portion of state while synchronizing with peers opportunistically.
 
-The graph is more than a way to store data. It is where security, isolation, and authority are enforced. What an application can see or change is determined by the graph, not by application code or network trust.
+Applications do not own state. They describe schemas and propose mutations against the graph. The substrate deterministically validates every proposal, orders it relative to other writes, and either commits or rejects it; application logic reacts to the ordered feed rather than mutating storage directly.
 
-Running locally is a security property. Correctness and control do not depend on being online or on trusting other nodes.
+### Layered authority model
 
----
+```
+┌──────────────────────────────────────────┐
+│              Applications                │
+│  Interpretation · UI · Domain logic      │
+└──────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────┐
+│            2WAY Substrate                │
+│  Identity · Permissions · Ordering       │
+│  Graph state · Sync · Structural guards  │
+└──────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────┐
+│        Storage and Transport             │
+│  Local persistence · Networking          │
+└──────────────────────────────────────────┘
+```
 
-## Security and correctness model
+Authority flows downward. No layer may bypass the one below it.
 
-### 5. Security model and threat framing
+| Layer | Responsibilities | It cannot bypass |
+| --- | --- | --- |
+| Applications | Interpret ordered state, run UI/domain logic, propose new mutations | Substrate validation or ordering rules |
+| 2WAY Substrate | Own identity, permissions, ordering, structural guards, graph synchronization | Storage guarantees or transport constraints |
+| Storage & Transport | Persist append-only history, exchange messages with peers | Local authority of the substrate or per-device policy |
 
-2WAY is designed under adversarial assumptions.
+## 4. Why 2WAY exists
 
-The proof of concept explicitly considers and constrains:
+Modern systems fail when trust is concentrated. Operators end up controlling root keys, rewrite history at will, and silently change the rules that govern identity or data ownership. When a single breach or policy shift can revoke an entire product line, customers inherit the operator’s fragility.
 
-* Untrusted or malicious peers
-* Sybil identity creation
-* Unauthorized graph mutation
-* Replay and reordering attacks
-* Denial-of-service through malformed or excessive input
-* Partial compromise of nodes, applications, or devices
+Identity, permissions, and data ownership are rebuilt repeatedly on top of centralized backends that assume networks and peers are trustworthy. Secrets and ACLs are stored in the same place as business logic, so any compromise bypasses application intent entirely. Local failure escalates to global damage because nothing structurally prevents inappropriate writes or replay of stale authority.
 
-Across the design, absence of permission, ambiguity, or incomplete context results in rejection rather than fallback behavior. The system fails closed by default.
+At the same time, centralized systems connect poorly at scale. Systems become either globally reachable or heavily siloed, with no structural way to bound reach based on real relationships. Every new connection increases blast radius, and every federation bridge demands bespoke trust agreements that rarely survive organizational change.
 
-Security properties are enforced structurally and locally. No global trust, centralized authority, or trusted transport is assumed.
+Centralized systems also do not age well. Data outlives applications. Applications outlive teams. Access logic becomes tied to specific implementations, migrations require freeze-and-cutover events, and interoperability degrades over time because structure is entangled with software delivery.
 
-### 6. Structural impossibility
+2WAY separates durable structure from changing software. Identities, relationships, ordering, and permissions remain stable, portable, and inspectable. Applications evolve or disappear while authority, provenance, and history remain intact, so the system can be redeployed, audited, or extended without inheriting the liabilities of a central backend.
 
-Many prohibited behaviors in 2WAY are not merely disallowed by policy, but structurally impossible.
+## 5. Core idea: a shared, local-first graph
 
-Structural impossibility means that no valid execution path exists that would allow the behavior to occur, regardless of application intent, peer behavior, or network conditions.
+At the center of 2WAY is a shared graph that every node materializes locally. The graph is not a central database; it is a set of typed nodes, edges, and append-only histories that each device maintains, signs, and syncs on its own schedule.
 
-This principle underlies application isolation, access control enforcement, graph mutation rules, and state ordering throughout the system.
+The graph holds identities, devices, relationships, content, and application state. Ownership is explicit down to individual edges, so it is always clear whose authority governs a mutation. History is append-only and anchored in per-node logs; every change carries cryptographic authorship, parent references, and schema-bound payloads before it becomes part of committed state.
 
-### 7. Degrees of separation and influence limits
+Each node operates independently and can function offline. Writes land locally first, then propagate as signed deltas to peers that verify them against their own view. Synchronization is explicit, incremental, and bounded by authority: peers request the segments they trust, validate ordering deterministically, and merge only when invariants hold. Consistency arises from ownership, ordering, and validation, not from global agreement or best-effort replication.
 
-Visibility and influence are constrained through explicit graph distance.
+Running locally is a security property. Correctness does not depend on being online or on trusting peers, because the substrate refuses to apply mutations that lack the required keys, context, or ordering proofs regardless of where they originate.
 
-* Relationships define degrees of separation between identities
-* Services and applications may restrict reads, writes, and broadcasts based on maximum allowed distance
-* Identities outside the permitted radius are structurally ignored
+Flow of a single mutation:
 
-This bounds unsolicited reach and limits the impact of unknown or weakly anchored peers.
+```
+Application proposal
+        |
+        v
+[Schema validation]
+        |
+        v
+[Authorization + capability checks]
+        |
+        v
+[Deterministic ordering]
+        |
+        v
+[Commit to local log] --> [Optional sync to peers]
+```
 
-### 8. Sybil resistance through structure
+Every stage emits deterministic errors if prerequisites are missing, so peers observing the same proposal either commit it identically or reject it identically, keeping replicas aligned without a coordinator.
 
-2WAY does not attempt global Sybil prevention.
+## 6. Security model and threat framing
 
-Instead, it limits Sybil impact through graph structure:
+2WAY is designed under adversarial assumptions. Every node treats the network as a hostile transport, every application as untrusted until proven otherwise, and every identity as potentially malicious unless anchored in the graph with explicit authority.
 
-* Identities have no influence without meaningful graph anchoring
-* Trust, ratings, and membership are app-scoped and typed
-* Influence does not propagate across applications or domains by default
-* Degrees of separation restrict unsolicited interaction
+The PoC explicitly considers and constrains:
 
-Large numbers of unanchored identities therefore remain inert.
+* Untrusted or malicious peers that attempt to inject invalid data, replay stale state, or impersonate known devices
+* Sybil identity creation at scale without corresponding trust anchors
+* Unauthorized graph mutation, including attempts to bypass ownership or escalate permissions across authority boundaries
+* Replay and reordering attacks aimed at confusing state machines or re-executing previously rejected actions
+* Denial-of-service via malformed, excessive, or computationally expensive input
+* Partial compromise of nodes, applications, or devices, including stolen keys and tampered binaries
 
-The graph encodes relationships and constraints, not social truth or moral trust.
+Across the design, absence of permission, ambiguity, or incomplete context results in rejection. Validation occurs before authorization, authorization before ordering, and ordering before commit, so the system fails closed at multiple layers instead of relying on a final guard.
 
-### 9. Denial-of-service containment
+Security is enforced structurally and locally. No global trust, centralized authority, or trusted transport is assumed; each node must be able to withstand hostile peers indefinitely with only the guarantees encoded in the substrate.
 
-The PoC is designed to degrade predictably and fail closed under load or attack.
+## 7. Structural impossibility
+
+Many prohibited behaviors in 2WAY are not merely disallowed by policy, but structurally impossible. The substrate encodes authority boundaries, graph schema rules, and ordering invariants so that an operation either satisfies every prerequisite or it never reaches commit.
+
+Structural impossibility means that no valid execution path exists that would allow the behavior to occur, regardless of application intent, peer behavior, or network conditions. Attempted bypasses fail early because required edges, keys, or predecessors simply do not exist; the system cannot be coerced into creating them on demand.
+
+This principle underlies:
+
+* Application isolation
+* Access control enforcement
+* Graph mutation rules
+* State ordering guarantees
+
+These guarantees mean a compromised application can at worst issue invalid proposals that are rejected; it cannot retroactively grant itself privileges, rewrite history, or cross authority boundaries because the necessary structural hooks never exist in the first place.
+
+## 8. Degrees of separation and influence limits
+
+Visibility and influence are constrained through explicit graph distance. Every edge has direction, ownership, and purpose, allowing policies to express not just “who” but “how far.”
+
+* Relationships define degrees of separation between identities, so an application can reason about first-degree collaborators differently from distant observers
+* Reads, writes, and broadcasts may be restricted by maximum allowed distance, limiting how far proposals can travel or who can observe sensitive data
+* Identities outside the permitted radius are structurally ignored: their messages never enter validation pipelines because no path authorizes them
+
+This bounds unsolicited reach, limits the impact of unknown or weakly anchored peers, and forces influence to flow through explicit, inspectable relationships instead of global fan-out.
+
+## 9. Sybil resistance through structure
+
+2WAY does not attempt global Sybil prevention. Large networks cannot reliably distinguish real people from automated actors, so the design focuses on making Sybil floods structurally unproductive.
+
+Instead, it limits Sybil impact:
+
+* Identities have no influence without graph anchoring, so new keys must form explicit relationships with existing anchors before their writes become visible
+* Trust and reputation are application-scoped and derived from the shared graph, preventing one application’s trust model from auto-granting privileges elsewhere
+* Influence does not propagate automatically: edges have bounded authority, and delegation must be explicitly recorded and accepted by both parties
+* Degrees of separation restrict unsolicited interaction, preventing Sybils from spamming nodes that never opted into a relationship path
+
+Large numbers of unanchored identities therefore remain inert—they can generate traffic, but they cannot mutate state, gain reach, or drain attention without first satisfying the same structural requirements as legitimate participants.
+
+## 10. Denial-of-service containment
+
+The PoC is designed to degrade predictably and fail closed under load or attack. Throughput may drop, but correctness and isolation do not. Every expensive operation has a bounded scope and an obvious gatekeeper so that malicious traffic consumes the attacker’s resources, not the defender’s.
 
 Structural mechanisms include:
 
-* Early rejection of malformed or unverifiable input
-* Schema validation before authorization
-* Authorization before any state mutation
-* A single serialized write path for ordered state
-* Scoped synchronization to avoid unbounded scans
-* Peer-level throttling using client puzzles with difficulty adjusted to load
+| Mechanism | Result when under attack |
+| --- | --- |
+| Early rejection + schema enforcement | Invalid input is discarded before consuming CPU or I/O |
+| Authorization-before-mutation | Unauthorized writes never trigger business logic or disk usage |
+| Serialized write path | Only one ordered stream can progress, preventing write amplification |
+| Scoped sync windows | Synchronization cost grows with trust radius, not network size |
+| Adaptive client puzzles | Attackers must spend CPU to continue, giving defenders leverage |
 
-These guarantees hold regardless of peer behavior.
+These guarantees hold regardless of peer behavior and keep denial attempts localized: compromised nodes cannot coerce well-behaved nodes into global coordination or expensive retries.
 
-### 10. Failure behavior
+## 11. Failure behavior
 
-When violations occur, the system rejects input, preserves local integrity, and continues operating with reduced scope.
+When violations occur, the system fails closed by design:
 
-Recovery is explicit, never implicit.
-No automatic reconciliation, overwrite, or trust escalation occurs as a side effect of failure.
+* Input is rejected as soon as it violates schema, authority, or ordering rules; nothing speculative leaks into shared state
+* Local integrity is preserved because every write requires explicit ownership and a serialized commit path
+* Operation continues with reduced scope: nodes isolate the faulty actor, quarantine incomplete state, and continue serving known-good peers
 
-### 11. What the system guarantees
+Recovery is explicit, never implicit. Administrators or applications must produce corrective actions—revocations, replays, or migrations—that pass the same validation pipeline as any other write. No automatic reconciliation, overwrite, or trust escalation occurs, so debugging and audit trails remain deterministic.
+
+## 12. What the system guarantees
 
 Guaranteed by design:
 
-* Identity-bound authorship
-* Append-only, tamper-evident local history
-* Structural application isolation
-* Deterministic validation and ordering
-* Explicit authority delegation
-* Fail-closed behavior under ambiguity or attack
+* Identity-bound authorship, so every mutation is cryptographically tied to the device and identity that proposed it
+* Append-only, tamper-evident local history with parent references and durable digests, enabling independent audit and replay
+* Structural application isolation: applications observe the same ordered feed but cannot touch one another’s state without explicit delegation
+* Deterministic validation and ordering across nodes, ensuring that well-formed inputs produce the same result everywhere regardless of timing
+* Explicit authority delegation where permissions are granted through recorded graph edges, never through implicit roles or environment configuration
+* Fail-closed behavior under ambiguity or attack, so missing context or conflicting data results in rejection rather than guesswork
 
-These properties are enforced structurally, not by convention or policy.
+These properties are enforced structurally, not by convention, making them testable and auditable without relying on procedural controls.
 
----
+## 13. What the system enables but does not define
 
-## Building on 2WAY
+2WAY enforces structure and limits. It does not define meaning. The substrate guarantees how data is stored, validated, and authorized, but it never dictates why a relationship exists or how a domain interprets it. That interpretive layer belongs to applications, communities, and operators.
 
-### 12. What the system enables but does not define
+What can emerge without being defined:
 
-This section defines areas intentionally left to applications and users, rather than enforced by the platform.
+* Trust relationships without the system deciding trust: applications can derive confidence scores or circles of trust from shared edges without the platform imposing policy
+* Reputation signals interpreted per application, allowing different domains to score the same identity based on their own criteria
+* Social, economic, or organizational meaning layered on neutral data structures, enabling everything from collaborative workspaces to supply chains
+* Governance and moderation defined by applications, including custom sanction lists, appeals processes, or quorum requirements
+* Incentives and markets layered on neutral data, such as credits for resource sharing or bids for scarce graph namespaces
+* Diverse user interfaces and interaction models that consume the same ordered state but present radically different experiences
 
-The 2WAY platform enforces structure and limits.
-What that structure means is decided by applications and users.
+Structure is guaranteed. Meaning is not, which keeps the substrate general-purpose while still enabling high-trust workflows.
 
-What can emerge from use, but is not defined by the system:
+## 14. Application model for developers
 
-* Trust relationships that grow from direct connections, past interactions, and closeness in the graph, without the system deciding who to trust
-* Reputation or credibility signals based on recorded actions, where each application decides how to interpret them
-* Social, economic, or organizational meaning built on top of neutral, verifiable data
-* Resistance to large-scale fake identities because reach is limited and relationships must be explicit
-* Rules, moderation, and governance created by applications or communities, not baked into the platform
-* Incentives, rewards, penalties, or markets that use stored data, but are not required by the system
-* User interfaces and ways of interacting that differ by device, environment, and use case
-* Ways of coordinating and working together that rely on shared state and clear authority, without a fixed process
+Applications run on the substrate, not as the substrate. They resemble deterministic state machines that respond to graph events and emit new proposals rather than long-lived services that mediate every interaction.
 
-The system decides what is allowed and what is not.
-It does not decide what actions mean or why they matter.
+Applications:
 
-Structure is guaranteed. Meaning is not.
-
-### 13. Application model for developers
-
-2WAY is not an application framework and not a runtime in the traditional sense.
-It is a shared execution substrate that applications run on top of.
-
-Applications built on 2WAY do not manage their own backends, databases, or trust models. Instead, they execute within an environment where identity, data ownership, permissions, synchronization, and auditability are already enforced by the platform.
-
-From a developer's perspective:
-
-* An application defines its own data types, schemas, and logic
-* All application state is stored in the shared graph, under explicit ownership and access rules
-* Reads and writes are validated, authorized, ordered, and persisted by the platform before the application observes them
-* Synchronization with other devices or peers happens through the platform, not through application-managed networking
-* Applications never receive raw, implicit trust over external input
-
-This applies equally to backend services, frontend applications, background agents, embedded software, and headless systems.
-
-#### 13.1 What applications do
-
-Applications focus on domain logic:
-
-* Defining what data exists and how it relates
-* Defining who may read or modify that data
-* Reacting to state changes and events
-* Presenting, processing, or acting on data locally
-
-Applications may expose user interfaces, provide services to other applications, control devices, or run autonomously. The platform does not assume a specific interaction model.
-
-#### 13.2 What applications do not do
+* Define schemas and domain logic, including validation rules for their objects and the invariants they expect the substrate to enforce
+* React to validated, ordered state by processing the append-only feed and updating local caches or user interfaces
+* Present or act on local data, leveraging the fact that every node already stores the relevant slice of the graph
+* Propose mutations through well-defined interfaces, trusting the substrate to apply authority and ordering rules uniformly across peers
 
 Applications do not:
 
-* Run or trust a central backend
-* Manage identity or key material directly
-* Implement custom synchronization protocols
-* Rebuild access control or trust logic
-* Resolve conflicts by overwriting state
-* Accept network input without validation
+* Run central backends or maintain authoritative copies of shared state
+* Manage identity or keys directly; those responsibilities sit in the substrate’s device and identity managers
+* Implement custom sync protocols or reconciliation loops
+* Rebuild access control logic, since delegation and enforcement already live in the graph
+* Accept unvalidated network input—every event they see has already passed structural validation and authorization
 
-These concerns are handled once, consistently, by the platform.
+## 15. Application domains
 
-### 14. Application domains and environments
+2WAY applies wherever centralized trust, silent failure, or unbounded blast radius are unacceptable. Any workflow that requires verifiable history, local survivability, or bounded influence stands to benefit from structural enforcement rather than operational controls.
 
-2WAY applies to systems where local authority, explicit trust boundaries, and bounded failure matter, regardless of environment or scale.
+Applicable domains include, but are not limited to:
 
-Applications built on the platform rely on the same substrate everywhere. The same rules apply across online and offline operation, constrained and unconstrained hardware, and human-facing or autonomous systems. Applications inherit these guarantees automatically.
+* Web, mobile, desktop, and embedded systems that need consistent behavior on and offline without shipping bespoke sync engines
+* Messaging, collaboration, and shared workspaces where every edit, mention, or invitation must carry provenance and bounded reach
+* Identity, credential, and access management stacks that require distributed issuance, revocation, and auditability without a single CA
+* Supply chain and inter-vendor coordination, where mutually distrustful parties need to share state while retaining local authority
+* Regulated and audit-heavy environments such as finance, healthcare, or government, where append-only histories and explicit authority are legal requirements
+* Offline-first, mesh, and edge networks that must continue operating securely despite intermittent connectivity or hostile transports
+* Critical infrastructure and defense systems that cannot afford centralized control planes or silent compromise
 
-Applicable domains include:
+## 16. Conformance
 
-* Web and multi-application platforms
-* Mobile, desktop, and non-web applications
-* User-facing and headless systems
-* Peer-to-peer and federated systems
-* Messaging, contact, and social systems
-* Collaborative and shared-workspace tools
-* Enterprise and inter-organizational platforms
-* Identity, credential, and access management systems
-* Supply chain and inter-vendor coordination systems
-* Financial, accounting, and audit-focused systems
-* Regulated and compliance-driven environments
-* Critical infrastructure and operational technology
-* Industrial control and automation systems
-* Internet of Things and edge device networks
-* Embedded systems and firmware-managed devices
-* Resource-constrained devices and data centers
-* Offline-first and intermittently connected systems
-* Mesh networks and ad-hoc communication systems
-* Defense, aerospace, and satellite-based systems
-* Research, scientific, and field-deployed platforms
-* Data-sharing platforms with strict isolation requirements
+An implementation conforms to the 2WAY PoC design if and only if it satisfies every normative requirement in this repository. Passing tests or interoperability checks is insufficient if core invariants are weakened.
 
-These domains share a common requirement: centralized trust, implicit coordination, and silent failure are unacceptable.
+Conformance requires:
 
----
+* All defined invariants hold under all supported operating conditions, including offline operation and hostile peers
+* Forbidden behaviors are structurally impossible, not merely unlikely or prevented by policy
+* Validation, authorization, and ordering rules are enforced exactly as specified, with no fast paths or shortcuts that bypass structural guards
+* No state mutation bypasses defined boundaries; every write crosses the same serialized authority path regardless of origin
 
-## Repository scope and authority
+Any deviation requires an explicit Architecture Decision Record that documents the reasoning, scope, and compensating controls. Without that ADR, the implementation cannot claim conformance.
 
-### 15. What this repository deliberately does not decide
+## 17. Repository structure and authority
 
-The following are intentionally left undefined or application-specific:
+Lower-numbered folders define constraints that higher-numbered folders must not violate. Each directory is normative within its scope; when conflicts arise, the numerically lower folder wins unless an Architecture Decision Record explicitly overrides it. This ordering keeps foundational assumptions ahead of protocol, protocol ahead of architecture, and so on.
 
-* User interface and experience models
-* Social interpretation of trust or reputation
-* Economic incentives or token systems
-* Moderation, governance, or content policy
-* Peer discovery and bootstrap strategy
+| Folder | Authority focus | Typical questions it answers |
+| --- | --- | --- |
+| `00-scope` | System boundary and vocabulary | What is in/out of scope? What assumptions are mandatory? |
+| `01-protocol` | Wire format and invariants | How are identities, objects, and signatures encoded? |
+| `02-architecture` | Runtime composition | Which managers exist and how do they interact? |
+| `03-data` | Persistence model | How is state stored, versioned, and migrated locally? |
+| `04-interfaces` | APIs and event surfaces | How do components and applications integrate? |
+| `05-security` | Threat framing and controls | What adversaries are assumed and how are they contained? |
+| `06-flows` | End-to-end operations | How do bootstrap, sync, and recovery behave? |
+| `07-poc` | Execution scope | What must the proof of concept build, demo, and test? |
+| `08-decisions` | Recorded tradeoffs | Which ADRs modify previous rules and why? |
+| `09-appendix` / `10-examples` | Reference and non-normative guidance | What supporting material or illustrations exist? |
 
-Absence of a feature is not an oversight unless explicitly marked as such.
+This structure is normative. When extending or modifying the repository, new material must be placed in the folder whose authority matches the change, and any cross-cutting updates must respect lower-folder constraints. Deviations require the ADR process described above.
 
-The protocol constrains behavior. It does not impose policy.
+## 18. Scope boundary and status
 
-### 16. Who this repository is for
+Only properties explicitly defined in this repository are claimed. Terms such as “secure,” “trusted,” or “verified” have meaning only where the accompanying section spells out the conditions. Everything else is illustrative.
 
-* Systems engineers evaluating the protocol and architecture
-* Implementers building the PoC exactly as specified
-* Reviewers auditing correctness, isolation, and security properties
+No additional guarantees should be inferred from naming, examples, or terminology. Example flows show possibility, not obligation; code fragments in appendices are non-normative unless referenced from a normative section.
 
-Recommended reading paths:
-
-* **Conceptual orientation**: start with scope, then protocol
-* **Security audit**: start with security, then protocol and architecture, do not skip protocol
-* **Implementation**: read in numeric order, prioritizing the PoC definition
-* **Operational behavior**: focus on end-to-end flows
-
-The repository is structured to support all of these perspectives without reinterpretation.
-
-### 17. Repository structure and authority
-
-The repository is organized by conceptual dependency and authority level.
-Lower-numbered folders define constraints that higher-numbered folders must not bypass or contradict.
-
-The numbering is intentional and normative.
-
-```
-00-scope/
-  - Defines the scope boundary of the system.
-  - Goals, non-goals, terminology, assumptions, and hard constraints.
-  - All other material is interpreted relative to this folder.
-
-01-protocol/
-  - Normative protocol definition.
-  - Identity, object model, serialization, cryptography, access control,
-  synchronization semantics, network assumptions, error handling,
-  and compatibility rules.
-  - This folder defines what the protocol is.
-
-02-architecture/
-  - Normative architectural design.
-  - Component model, runtime topologies, trust boundaries, and data flow.
-  - Includes the backend kernel, managers, services, application boundaries,
-  and explicit denial-of-service guards.
-
-03-data/
-  - Normative persistence and data model.
-  - Storage layout, system and per-application structures,
-  indexing strategy, migrations, and explicit storage budgets.
-
-04-interfaces/
-  - Normative interface definitions.
-  - Local APIs, event surfaces, internal component interfaces,
-  and the system-wide error model.
-
-05-security/
-  - Normative security model.
-  - Threat assumptions, identity and key handling, authentication and authorization,
-  signed transport and synchronization integrity, encryption, rotation and recovery,
-  privacy, selective synchronization, abuse controls, and auditability.
-
-06-flows/
-  - Normative end-to-end operational flows.
-  - Includes success and failure paths for bootstrap, application installation,
-  graph mutation, messaging, synchronization, conflict handling,
-  key rotation, device lifecycle, and backup and restore.
-
-07-poc/
-  - Proof of concept definition and execution criteria.
-  - Feature coverage, build and run expectations, testing strategy,
-  demo scenarios, known limitations, and acceptance criteria.
-  - This folder is authoritative for implementation scope.
-
-08-decisions/
-  - Architecture Decision Records.
-  - Explicitly recorded tradeoffs, reversals, and resolved questions.
-  - Decisions here override earlier design text within their scope.
-
-09-appendix/
-  - Reference material.
-  - Glossary, reference configurations, open questions, and diagrams.
-  - Informational unless explicitly stated otherwise.
-
-10-examples/
-  - Illustrative examples.
-  - Non-normative demonstrations of how the protocol and architecture
-  may be used. Examples never define required behavior.
-```
-
-Later folders must not introduce concepts that violate constraints defined earlier.
-
-### 18. Conformance
-
-An implementation conforms to the 2WAY proof of concept design if and only if:
-
-* All defined invariants hold under all allowed operations
-* Forbidden behaviors are structurally impossible
-* Validation, authorization, and ordering rules are enforced exactly
-* No state mutation bypasses defined architectural boundaries
-
-Any deviation requires an explicit Architecture Decision Record.
-
-### 19. Scope boundary
-
-Only properties explicitly defined within this repository are claimed by the design.
-
-No additional guarantees should be inferred from terminology, naming, or examples.
-
-### 20. Status
-
-This repository describes a proof of concept [WIP].
-
-The design prioritizes correctness, clarity, and auditability over performance or scale.
-The PoC exists to validate the protocol model and architectural boundaries before any production implementation.
-
-No additional guarantees should be inferred from terminology, naming, or examples.
+This repository describes a work-in-progress proof of concept. Correctness, clarity, and auditability take priority over performance or scale, and open questions remain intentionally unresolved until validated through the PoC. Readers should treat the content as authoritative for design intent, but not as evidence that all tradeoffs have been finalized.
