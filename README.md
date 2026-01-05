@@ -36,7 +36,7 @@ Normative design documentation for a decentralized, local-first application subs
 
 Most modern applications depend on centralized backends to provide identity, access control, ordering, and persistence. While effective in the short term, this architecture makes systems fragile over time. When operators change incentives, infrastructure disappears, or systems need to interoperate, users and data are forced to migrate, fork, or vanish.
 
-This repository defines 2WAY, a decentralized application substrate that separates application logic from authority over identity, permissions, and history*. By enforcing these concerns structurally rather than procedurally, 2WAY enables applications that remain coherent across failure, can interoperate without federation, and do not depend on the continued operation of a single provider.
+This repository defines 2WAY, a decentralized application substrate that separates application logic from authority over identity, permissions, and history. By enforcing these concerns structurally rather than procedurally, 2WAY enables applications that remain coherent across failure, can interoperate without federation, and do not depend on the continued operation of a single provider.
 
 This repository is not an implementation. It is the authoritative design specification for a proof of concept (PoC). Its purpose is to define the structure, guarantees, limits, and failure behavior of the system precisely enough that multiple independent implementations could be built, tested, and audited against the same criteria.
 
