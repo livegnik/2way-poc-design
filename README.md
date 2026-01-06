@@ -39,6 +39,8 @@ Applications do not mutate storage directly. They describe schemas, propose grap
 
 This repository does not ship a finished product. It records the design intent, boundaries, guarantees, and failure behavior required for a proof of concept that multiple independent implementations could build against. Performance tuning, UI polish, and production bootstrapping are out of scope. The following sections explain how the substrate works, why it exists, how it contains adversaries, and what obligations any conformant build must meet.
 
+---
+
 ## 1. 2WAY at a glance
 
 2WAY replaces central backends with locally enforced structure. The platform guarantees:
@@ -49,6 +51,8 @@ This repository does not ship a finished product. It records the design intent, 
 - **Structural containment**: applications cannot cross authority boundaries because the substrate enforces graph ownership, permission edges, and ordering rules that cannot be bypassed by configuration.
 - **Deterministic rejection**: missing permission, ambiguous context, or invalid ancestry yields the same error everywhere, preventing silent divergence or opportunistic escalation.
 - **Progressive failure**: compromise or outage reduces capability instead of destroying state. Nodes isolate the fault, keep good history intact, and continue serving trusted peers.
+
+---
 
 ## 2. Repository guide
 
@@ -72,6 +76,8 @@ Lower-numbered directories carry higher authority, so scope constrains protocol,
 | `09-appendix` / `10-examples` | Reference material | What supporting context or illustrations exist? |
 
 Place new material in the folder that matches its authority, ensure higher folders never contradict lower ones, and use the ADR process for any intentional exception.
+
+---
 
 ## 3. What 2WAY is
 
@@ -115,6 +121,8 @@ Authority flows downward. Each layer relies on the guarantees of the one below i
 | 2WAY Substrate | Own identity, permissions, ordering, synchronization, and graph invariants | Storage guarantees or transport constraints |
 | Storage & Transport | Persist append-only history and exchange messages with peers | Local authority of the substrate or per-device policy |
 
+---
+
 ## 4. Why 2WAY exists
 
 Modern systems fail because they concentrate authority. Root keys, ACLs, and data ownership sit next to business logic in a single backend, so the operator can silently rewrite history, change rules, or disappear entirely. A breach, policy swing, or acquisition can revoke an entire product overnight, leaving customers with no trustworthy path to recover their data or prove their rights.
@@ -122,6 +130,8 @@ Modern systems fail because they concentrate authority. Root keys, ACLs, and dat
 Even when the backend behaves, it does not connect cleanly with others. Organizations either make every service globally reachable or silo everything behind brittle federation bridges. Each new integration expands the blast radius of a compromise, and every org change breaks the bespoke trust deals those bridges rely on. Meanwhile data always outlives the software that wrote it, yet migrations still require freeze-and-cutover events because authority and storage are welded to a specific deployment.
 
 2WAY exists to decouple durable structure from transient software. Identities, relationships, ordering, and permissions live in a shared, inspectable graph that every device enforces locally. Applications and operators can evolve or go offline without dragging authority with them. Compromise is contained to the device or trust radius that granted access, and when systems reconnect they do so by replaying signed, auditable history rather than trusting a central coordinator. This lets multiple implementations cooperate without inheriting one another's incentives or liabilities.
+
+---
 
 ## 5. Core idea: a shared, local-first graph
 
@@ -143,6 +153,8 @@ The proposal lifecycle is identical everywhere:
 
 If any step fails (missing reference, stale capability, conflicting order), the proposal never touches durable state. Rejection is deterministic, so well-behaved nodes converge without negotiating with one another or trusting the network.
 
+---
+
 ## 6. Security model and threat framing
 
 2WAY treats the environment as adversarial by default. The network is assumed hostile, peers may be malicious or misconfigured, and applications are untrusted until the graph explicitly grants them authority. Every device must be able to withstand long-term exposure to anonymous traffic without relying on a perimeter, VPN, or trusted transport.
@@ -160,6 +172,8 @@ Protection comes from structure rather than heuristics. Validation always happen
 
 Because every node enforces the same rules locally, an attacker who compromises one device cannot coerce its peers into accepting poisoned input. The worst-case outcome is isolation: honest nodes refuse the traffic, quarantine the faulty identity, and continue serving known-good relationships while preserving their own history.
 
+---
+
 ## 7. Structural impossibility
 
 2WAY does not rely on policy or best effort to block dangerous behavior. It encodes the rules of the system so tightly that many attacks have no valid execution path. If the graph lacks the required edges, ownership, or ancestry, the mutation cannot even be expressed, let alone committed.
@@ -173,6 +187,8 @@ This structural approach covers:
 
 As a result, even a compromised application or stolen key can only emit proposals that fail validation. It cannot fabricate privilege, rewrite history, or manufacture the structural hooks it would need to cross authority boundaries. Rejection is automatic and deterministic, not a matter of luck or operator vigilance.
 
+---
+
 ## 8. Degrees of separation and influence limits
 
 Authority in 2WAY is not global. Relationships in the graph include direction, ownership, and the purpose of the edge, so policies can describe not only who may act but how far their influence may travel. This allows nodes to treat near neighbors differently from distant observers without inventing ad-hoc filters.
@@ -185,6 +201,8 @@ Practical implications:
 * **Intentional expansion**: to grow reach, an identity must form explicit edges and be accepted by every hop, creating an audit trail of who granted influence and why.
 
 These constraints prevent trust from spreading automatically, keep unsolicited reach narrow, and force influence to flow through intentional, inspectable relationships instead of global fan-out.
+
+---
 
 ## 9. Sybil resistance through structure
 
@@ -200,6 +218,8 @@ Structural guardrails:
 
 Attackers can still generate packets, but without anchors, recognized capabilities, and degree-limited paths, they cannot mutate state, borrow reputation, or force attention from unwilling nodes.
 
+---
+
 ## 10. Denial-of-service containment
 
 2WAY expects sustained abuse and is built to keep attackers on the defensive. Throughput may dip, but data integrity and ordering do not because every trust boundary can say “no” cheaply before expensive work starts.
@@ -212,6 +232,8 @@ Client puzzles stay dynamic: difficulty increases automatically for sources that
 
 Because every device enforces these guardrails locally, damage stays contained. Compromised nodes may lose their own connectivity, but they cannot drag honest peers into coordination storms or force them to redo work simply by shouting louder.
 
+---
+
 ## 11. Failure behavior
 
 2WAY assumes things will go wrong: keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system responds by failing closed instead of guessing what the operator intended.
@@ -221,6 +243,8 @@ When a rule is violated (schema mismatch, missing capability, conflicting orderi
 Operation continues, just with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation wins over availability: better to drop a misbehaving connection than let it corrupt the graph.
 
 Recovery is deliberate and auditable. Administrators or applications must craft explicit corrective actions (revocations, replays, migrations, repairs) that pass exactly the same validation pipeline as any other write. There is no hidden “admin override” or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen, which keeps the audit trail honest and reproducible.
+
+---
 
 ## 12. What the system guarantees
 
@@ -234,6 +258,8 @@ Recovery is deliberate and auditable. Administrators or applications must craft 
 * **Fail-closed behavior**: missing context, conflicting data, or ambiguous authority yields rejection rather than guesswork, so attacks die at the boundary.
 
 Because these guarantees live in structure, they are testable, auditable, and portable across implementations. If an implementation cannot demonstrate each property, it does not conform.
+
+---
 
 ## 13. What the system enables but does not define
 
@@ -249,6 +275,8 @@ Because the data model is neutral, all of the following can emerge without being
 * **Diverse user interfaces** that consume the same ordered state but present different experiences.
 
 Structure is guaranteed; meaning is intentionally left open.
+
+---
 
 ## 14. Application model for developers
 
@@ -269,6 +297,8 @@ Implications for developer experience:
 * Network input visible to applications has already passed validation, so application logic sees deterministic, trustworthy events.
 * Testing becomes simpler because applications can replay ordered logs locally to reproduce user-visible state without mocking remote services.
 
+---
+
 ## 15. Application domains
 
 2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines.
@@ -285,6 +315,8 @@ Representative domains:
 
 These use cases share a common need: structural guarantees about who can act, how data is ordered, and how history survives, regardless of which applications come and go.
 
+---
+
 ## 16. Conformance
 
 Conformance is binary. An implementation either satisfies every normative requirement in this repository or it does not. Passing tests or demonstrating interoperability is meaningless if core invariants have been weakened along the way.
@@ -297,6 +329,8 @@ To claim conformance, an implementation must demonstrate that:
 * **No state mutation crosses boundaries out of band**; every write flows through the same serialized authority path regardless of origin.
 
 Any deviation requires an Architecture Decision Record (ADR) that documents the reasoning, scope, and compensating controls. Without an ADR, the implementation is simply out of spec.
+
+---
 
 ## 17. Scope boundary and status
 
