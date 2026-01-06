@@ -202,17 +202,15 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 10. Denial-of-service containment
 
-The PoC is designed to degrade predictably under load or attack. Throughput may fall, but correctness and isolation remain intact. Every expensive operation has a gatekeeper so that malicious traffic consumes the attacker's resources, not the defender's.
+2WAY expects sustained abuse and is built to keep attackers on the defensive. Throughput may dip, but data integrity and ordering do not because every trust boundary can say “no” cheaply before expensive work starts.
 
-| Mechanism | Result when under attack |
-| --- | --- |
-| Early rejection and schema enforcement | Invalid input dies before consuming CPU, memory, or disk |
-| Authorization-before-mutation | Unauthorized writes never trigger domain logic or persistence |
-| Serialized write path | Only one ordered stream progresses, preventing write amplification |
-| Scoped sync windows | Synchronization cost scales with trust radius, not global network size |
-| Adaptive client puzzles | Attackers must spend CPU to continue, giving defenders leverage |
+The system keeps denial attempts unproductive by combining fast rejection (schema checks, permission gates, serialized writes, scoped sync windows) with adaptive cost shifting. When pressure rises, the node simply makes the requester spend more effort before each packet lands, so the attacker burns CPU while the defender stays mostly idle.
 
-Compromised nodes cannot force well-behaved peers into expensive retries or global coordination; damage remains localized.
+At a high level, untrusted traffic is handled in a shallow, easily restarted zone, while authenticated traffic moves deeper only after it clears admission. That separation means abusive bursts die at the boundary while established peers keep exchanging signed history.
+
+Client puzzles stay dynamic: difficulty increases automatically for sources that misbehave and relaxes for peers that remain cooperative. Proofs expire quickly and cannot be replayed, so solving one puzzle never opens the door for someone else.
+
+Because every device enforces these guardrails locally, damage stays contained. Compromised nodes may lose their own connectivity, but they cannot drag honest peers into coordination storms or force them to redo work simply by shouting louder.
 
 ## 11. Failure behavior
 
