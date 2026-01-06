@@ -145,18 +145,20 @@ If any step fails—missing reference, stale capability, conflicting order—the
 
 ## 6. Security model and threat framing
 
-2WAY assumes hostile transports, adversarial peers, and compromised applications. Every node acts as if the network is malicious, every application is untrusted until proven otherwise, and every identity is suspect unless anchored with explicit authority in the graph.
+2WAY treats the environment as adversarial by default. The network is assumed hostile, peers may be malicious or misconfigured, and applications are untrusted until the graph explicitly grants them authority. Every device must be able to withstand long-term exposure to anonymous traffic without relying on a perimeter, VPN, or trusted transport.
 
-The design constrains:
+This posture covers:
 
-* Untrusted peers attempting to inject invalid data, replay stale history, or impersonate devices
-* Mass identity fabrication (Sybil attempts) that lacks graph anchoring
-* Unauthorized graph mutations that try to bypass ownership or escalate permissions
-* Replay and reordering attacks aimed at confusing deterministic state machines
-* Denial-of-service via malformed, excessive, or computationally expensive input
-* Partial compromise of nodes, including stolen keys, tampered binaries, or misbehaving applications
+* **Untrusted peers and transports** that inject invalid data, replay stale history, tamper with ordering, or impersonate devices.
+* **Mass identity fabrication (Sybil attempts)** that flood the network with new keys hoping to borrow reputation or trigger expensive work.
+* **Unauthorized graph mutation** that tries to cross ownership boundaries, escalate permissions, or tamper with schema-defined rules.
+* **Replay and reordering attacks** aimed at confusing deterministic state machines or resurrecting revoked authority.
+* **Denial-of-service** delivered through malformed payloads, unbounded fan-out, or resource-intensive validation paths.
+* **Partial compromise of nodes or applications**, including stolen keys, tampered binaries, misbehaving plugins, or insider abuse.
 
-Validation precedes authorization, authorization precedes ordering, ordering precedes commit. Missing context always yields rejection, so the default posture is fail-closed rather than best-effort.
+Protection comes from structure rather than heuristics. Validation always happens before authorization, authorization before ordering, and ordering before commit. Each gate is deterministic and stateful, so missing context, ambiguous ownership, or conflicting history produces an immediate rejection. No shortcut allows a message to skip ahead “just this once.”
+
+Because every node enforces the same rules locally, an attacker who compromises one device cannot coerce its peers into accepting poisoned input. The worst-case outcome is isolation: honest nodes refuse the traffic, quarantine the faulty identity, and continue serving known-good relationships while preserving their own history.
 
 ## 7. Structural impossibility
 
