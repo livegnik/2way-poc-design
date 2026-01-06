@@ -117,11 +117,11 @@ Authority flows downward. Each layer relies on the guarantees of the one below i
 
 ## 4. Why 2WAY exists
 
-Centralized systems accumulate implicit trust: operators hold root keys, rewrite history silently, and change access rules without recourse. A single breach or policy shift can revoke products, orphan data, or force mass migrations. Secrets, ACLs, and business logic share the same blast radius.
+Modern systems fail because they concentrate authority. Root keys, ACLs, and data ownership sit next to business logic in a single backend, so the operator can silently rewrite history, change rules, or disappear entirely. A breach, policy swing, or acquisition can revoke an entire product overnight, leaving customers with no trustworthy path to recover their data or prove their rights.
 
-They also connect poorly. Either everything is globally reachable, or everything is siloed. Complex federation agreements rarely survive organizational change, and every bridge increases the damage an attacker can inflict. Data outlives software, yet ownership remains entangled with whichever backend happens to be running today.
+Even when the backend behaves, it does not connect cleanly with others. Organizations either make every service globally reachable or silo everything behind brittle federation bridges. Each new integration expands the blast radius of a compromise, and every org change breaks the bespoke trust deals those bridges rely on. Meanwhile data always outlives the software that wrote it, yet migrations still require freeze-and-cutover events because authority and storage are welded to a specific deployment.
 
-2WAY separates durable structure from transient deployment. Identities, relationships, ordering, and permissions remain stable, portable, and inspectable even as applications evolve or disappear. Because authority is local and structural, compromise is contained to the device or trust radius that granted it, and systems can reconnect or extend without inheriting the liabilities of a central backend.
+2WAY exists to decouple durable structure from transient software. Identities, relationships, ordering, and permissions live in a shared, inspectable graph that every device enforces locally. Applications and operators can evolve or go offline without dragging authority with them. Compromise is contained to the device or trust radius that granted access, and when systems reconnect they do so by replaying signed, auditable history rather than trusting a central coordinator. This lets multiple implementations cooperate without inheriting one another's incentives or liabilities.
 
 ## 5. Core idea: a shared, local-first graph
 
