@@ -214,13 +214,13 @@ Because every device enforces these guardrails locally, damage stays contained. 
 
 ## 11. Failure behavior
 
-When violations occur, the system fails closed:
+2WAY assumes things will go wrong: keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system responds by failing closed instead of guessing what the operator intended.
 
-* Input that breaks schema, authority, or ordering rules is rejected before it touches shared state.
-* Local integrity holds because every write requires explicit ownership and a serialized commit path.
-* Operation continues with reduced scope: nodes quarantine the faulty actor, isolate incomplete state, and keep serving trusted peers.
+When a rule is violated—schema mismatch, missing capability, conflicting ordering—the input is rejected before it touches durable state. No speculative writes stick around hoping to be fixed later. Each write still passes through the same serialized path, so local integrity holds even if the app above it is compromised.
 
-Recovery is explicit. Administrators or applications must craft corrective actions (revocations, replays, migrations) that pass the same validation pipeline as any other write. No automatic reconciliation or implicit trust escalation occurs, keeping audit trails deterministic.
+Operation continues, just with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation wins over availability: better to drop a misbehaving connection than let it corrupt the graph.
+
+Recovery is deliberate and auditable. Administrators or applications must craft explicit corrective actions—revocations, replays, migrations, repairs—that pass exactly the same validation pipeline as any other write. There is no hidden “admin override” or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen, which keeps the audit trail honest and reproducible.
 
 ## 12. What the system guarantees
 
