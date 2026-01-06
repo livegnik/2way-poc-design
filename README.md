@@ -29,7 +29,7 @@ Normative design documentation for a decentralized, fully open source (MIT-licen
 
 ## Introduction
 
-2WAY defines a decentralized application substrate that separates identity, permissions, ordering, and history from fast-changing application code. This repository is the normative specification for the proof of concept; every invariant, guarantee, and constraint discussed elsewhere in the project is rooted here.
+2WAY defines a fully open source and decentralized application substrate that separates identity, permissions, ordering, and history from fast-changing application code. This repository is the normative specification for the proof of concept; every invariant, guarantee, and constraint discussed elsewhere in the project is rooted here.
 
 Modern software stacks depend on centralized backends to decide who users are, which actions are permitted, how data is ordered, and how long any of that survives. Those backends become single points of incentive, fragility, and failure. When operators change priorities, infrastructure disappears, or multiple deployments must cooperate, users inherit migration debt and policy churn they never consented to.
 
