@@ -75,11 +75,15 @@ Place new material in the folder that matches its authority, ensure higher folde
 
 ## 3. What 2WAY is
 
-2WAY is a shared, local-first data and security substrate that runs on every participating node. Each device carries the full authority stack (identity, permissions, ordering, and durability) so availability and policy never hinge on a cloud service.
+2WAY is a shared, local-first application substrate that replaces the traditional backend. Every participating device runs the same authority stack (identity, permissions, ordering, and durability) so availability and policy never hinge on a central service.
 
-Applications see a single, structured graph that spans identities, relationships, capabilities, and domain records. They do not own state. Instead, they submit proposals that the substrate validates against schemas, enforces with local authority, and orders deterministically. Accepted results flow back as an append-only feed that applications interpret for their own caches or user experiences.
+Each node maintains its own append-only log, validates every proposed change against local rules, and syncs only the data it is willing to accept. Nodes can operate offline for extended periods, then reconcile when peers are available without ever ceding control over history or policy.
 
-The substrate does not trust network input or peer behavior. Unknown identities cannot force their way into local storage because every step (validation, authorization, ordering, commit) is enforced before bytes touch durable history.
+All domain data lives in a single structured graph that spans identities, relationships, capabilities, and application records. Ownership is explicit down to individual edges, so every mutation states whose authority governs it. The substrate enforces graph rules, checks signatures, orders accepted writes, and persists the result locally.
+
+Applications run beside, not inside, the substrate. They describe schemas, react to the ordered feed of accepted changes, and propose new mutations through deterministic interfaces. They never own storage, manage keys, or bypass validation; they simply interpret and influence the shared graph according to the permissions they hold.
+
+Because these guarantees apply on every device, network input and peer behavior remain untrusted until proven valid. Unsigned, ambiguous, or out-of-order data is rejected before it reaches durable state, so compromise on one node cannot coerce another into rewriting history or leaking authority.
 
 ### Layered authority model
 
