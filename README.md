@@ -224,16 +224,16 @@ Recovery is deliberate and auditable. Administrators or applications must craft 
 
 ## 12. What the system guarantees
 
-The substrate guarantees:
+2WAY makes a small set of promises, all enforced structurally rather than by convention:
 
-* Identity-bound authorship: every mutation is cryptographically tied to the device and identity that proposed it.
-* Append-only, tamper-evident local history with parent references and durable digests suitable for independent replay or audit.
-* Structural application isolation: applications consume the same ordered feed but cannot touch each other's state without explicit delegation.
-* Deterministic validation and ordering across nodes, ensuring well-formed inputs produce identical outcomes everywhere.
-* Explicit authority delegation: permissions are granted through recorded graph edges, never through environment configuration or implied roles.
-* Fail-closed behavior under ambiguity or attack, so missing context or conflicting data yields rejection rather than guesswork.
+* **Identity-bound authorship**: every mutation is cryptographically tied to the device and identity that proposed it, so provenance is never ambiguous.
+* **Append-only, tamper-evident history**: each node keeps its own ordered log with parent references and durable digests, enabling independent replay or audit.
+* **Deterministic validation and ordering**: well-formed inputs produce identical outcomes on every node regardless of arrival timing or network behavior.
+* **Structural application isolation**: applications observe the same feed but cannot touch each other's state without explicit delegation recorded in the graph.
+* **Explicit authority delegation**: permissions originate only from recorded edges, not from environment variables, config files, or implied roles.
+* **Fail-closed behavior**: missing context, conflicting data, or ambiguous authority yields rejection rather than guesswork, so attacks die at the boundary.
 
-These guarantees are structural, testable, and auditable without procedural controls.
+Because these guarantees live in structure, they are testable, auditable, and portable across implementations. If an implementation cannot demonstrate each property, it does not conform.
 
 ## 13. What the system enables but does not define
 
