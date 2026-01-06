@@ -237,16 +237,16 @@ Because these guarantees live in structure, they are testable, auditable, and po
 
 ## 13. What the system enables but does not define
 
-2WAY enforces structure but deliberately avoids prescribing meaning. The substrate guarantees how data is stored, validated, and authorized; interpretation belongs to applications, communities, and operators.
+2WAY enforces structure but refuses to dictate meaning. It guarantees how identities relate, how permissions are enforced, and how history is recorded, yet it stays silent about why those relationships exist or what a domain should do with them. Interpretation belongs to the communities that use the substrate.
 
-What can emerge without being hard-coded:
+Because the data model is neutral, all of the following can emerge without being hard-coded:
 
-* Trust relationships derived from shared edges without the platform declaring global trust.
-* Reputation signals interpreted per application, allowing different scoring models for the same identity.
-* Social, economic, or organizational semantics layered on neutral data structures.
-* Governance and moderation tailored by applications, including sanction lists, appeals processes, or quorum rules.
-* Incentives and markets, such as credits for resource sharing or bids for scarce namespaces.
-* Diverse user interfaces that consume the same ordered state but present different experiences.
+* **Trust relationships** derived from shared edges without the platform declaring global trust.
+* **Reputation signals** interpreted per application, allowing different scoring models for the same identity.
+* **Social, economic, or organizational semantics** layered on neutral data structures.
+* **Governance and moderation** tailored by applications, including sanction lists, appeals processes, or quorum rules.
+* **Incentives and markets**, such as credits for resource sharing or bids for scarce namespaces.
+* **Diverse user interfaces** that consume the same ordered state but present different experiences.
 
 Structure is guaranteed; meaning is intentionally left open.
 
