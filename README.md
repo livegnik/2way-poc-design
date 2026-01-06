@@ -252,19 +252,22 @@ Structure is guaranteed; meaning is intentionally left open.
 
 ## 14. Application model for developers
 
-Developers treat applications as deterministic state machines that react to the ordered graph feed and emit new proposals. A typical workflow is:
+Developers treat applications as deterministic state machines that react to the ordered graph feed and emit new proposals. They do not stand up servers that arbitrate every interaction; they write logic that interprets local state and responds to user input.
 
-1. Define schemas, domain logic, and validation rules that describe the objects the application cares about.
-2. Subscribe to the ordered feed that the substrate maintains locally, updating caches, UI state, or side effects purely from accepted events.
-3. Let users interact with local data (every node already stores the relevant graph slice) without waiting on a remote backend.
-4. Propose mutations through substrate interfaces; the platform enforces authority, ordering, and durability uniformly across peers.
+A typical workflow:
+
+1. **Define schemas and invariants** for the objects the application cares about, including how they relate to other identities and capabilities.
+2. **Subscribe to the ordered feed** that the substrate maintains locally, updating caches, UI state, or side effects using only accepted events.
+3. **Let users interact with local data**—every node already stores the relevant slice—without waiting on a remote backend or reconciling divergent drafts.
+4. **Propose mutations through substrate interfaces**; the platform enforces authority, ordering, and durability uniformly across peers, so applications never roll their own ACLs or sync logic.
 
 Implications for developer experience:
 
 * Applications never run central backends or maintain authoritative copies of shared state.
-* Identity and key management stay inside the device and identity managers; applications rely on provided abstractions.
-* Custom sync protocols, reconciliation loops, or ACL rebuilds are unnecessary because the substrate already enforces them structurally.
-* All network input visible to applications has already passed validation, so application logic sees deterministic, trustworthy events.
+* Identity and key management remain inside the substrate; applications call provided APIs instead of handling secrets directly.
+* Custom sync protocols, reconciliation loops, or ACL rebuilds are unnecessary; the substrate already enforces them structurally.
+* Network input visible to applications has already passed validation, so application logic sees deterministic, trustworthy events.
+* Testing becomes simpler because applications can replay ordered logs locally to reproduce user-visible state without mocking remote services.
 
 ## 15. Application domains
 
