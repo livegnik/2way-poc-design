@@ -271,15 +271,19 @@ Implications for developer experience:
 
 ## 15. Application domains
 
-Any workflow that requires verifiable history, local survivability, bounded influence, or offline-first guarantees benefits from 2WAY's structure. Examples include:
+2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle—because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes—this structure shines.
 
-* Web, mobile, desktop, and embedded software that must behave consistently on- and offline without bespoke sync engines.
-* Messaging, collaboration, and shared workspaces where every edit, mention, or invitation needs provenance and bounded reach.
-* Identity, credential, and access management stacks that require distributed issuance, revocation, and auditability without a single CA.
-* Supply-chain and inter-vendor coordination where mutually distrustful parties must share state while retaining local authority.
-* Regulated or audit-heavy environments such as finance, healthcare, or government that require append-only histories and explicit authority.
-* Offline-first, mesh, and edge networks that must keep operating securely despite intermittent connectivity or hostile transports.
-* Critical infrastructure and defense systems that cannot tolerate centralized control planes or silent compromise.
+Representative domains:
+
+* **Web, mobile, desktop, and embedded apps** that must behave consistently on and offline without bespoke sync engines.
+* **Messaging, collaboration, and shared workspaces** where every edit, mention, or invitation needs provenance and bounded reach.
+* **Identity, credential, and access management** stacks that require distributed issuance, revocation, and auditability without a single CA.
+* **Supply-chain and inter-vendor coordination** where mutually distrustful parties share state while retaining local authority.
+* **Regulated or audit-heavy environments** such as finance, healthcare, or government that require append-only histories and explicit authority.
+* **Offline-first, mesh, and edge networks** that must keep operating securely despite intermittent connectivity or hostile transports.
+* **Critical infrastructure and defense systems** that cannot tolerate centralized control planes or silent compromise.
+
+These use cases share a common need: structural guarantees about who can act, how data is ordered, and how history survives, regardless of which applications come and go.
 
 ## 16. Conformance
 
