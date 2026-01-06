@@ -125,21 +125,23 @@ Even when the backend behaves, it does not connect cleanly with others. Organiza
 
 ## 5. Core idea: a shared, local-first graph
 
-The heart of 2WAY is a typed graph that every node materializes locally. It is not a central database; it is a set of nodes, edges, and append-only histories that each device maintains, signs, and synchronizes on its own schedule.
+2WAY revolves around a single typed graph that every node materializes on its own hardware. There is no upstream database to query or replica set to join. Each device keeps its portion of the graph, signs the history it authors, and exchanges only the changes it is willing to accept.
 
-The graph stores identities, devices, relationships, content, capabilities, and application records. Ownership is explicit, down to individual edges, so any mutation clearly states whose authority governs it. History is append-only and rooted in per-node logs. Every change carries cryptographic authorship, parent references, and schema-bound payloads before it enters committed state.
+The graph is the fact store for the entire system. It holds identities, devices, relationships, capabilities, application records, and the permissions that bind them together. Every node or edge has a clear owner, so a mutation always states which identity is responsible and which part of the structure it may influence.
 
-Nodes function independently and offline. Writes land locally, then propagate as signed deltas to peers that re-validate them against their own context. Synchronization is incremental and bounded by trust: peers only request segments they are willing to accept, check ordering deterministically, and merge when invariants hold. Consistency emerges from ownership and validation, not from global consensus.
+All history is append-only and rooted in per-device logs. Every change carries authorship, parent references, schema identifiers, and payload hashes. Peers can replay another device's log and independently decide whether that sequence satisfies the same invariants they enforce locally; no opaque coordinator is required.
 
-The proposal lifecycle is deterministic everywhere:
+Because the graph lives on every node, the system is truly local-first. Writes land on the originating device, then propagate as signed deltas when peers come into contact. Synchronization is incremental and scoped by trust: peers request ranges they explicitly want, verify ordering deterministically, and merge only when every prerequisite holds. Long periods offline are normal; reconnection is just another validation and merge pass.
 
-1. Application proposes a change using domain schemas.
-2. Schema validation ensures payload shape and references exist.
-3. Authorization checks verify keys, capabilities, and graph ownership.
-4. Deterministic ordering resolves conflicts relative to other accepted writes.
-5. The mutation commits to the local append-only log and, optionally, syncs to peers that repeat the same process.
+The proposal lifecycle is identical everywhere:
 
-If any prerequisite is missing, the proposal is rejected before it touches shared state.
+1. An application proposes a change with a schema that states what must exist and how it may evolve.
+2. Schema validation ensures references exist, types match, and the payload respects domain-specific invariants.
+3. Authorization checks verify that the signer owns the relevant nodes or holds capabilities that grant the mutation.
+4. Deterministic ordering selects where the proposal fits relative to other accepted writes, preventing race conditions.
+5. The mutation commits to the local append-only log and, if desired, streams to peers, which replay the exact same pipeline.
+
+If any step fails—missing reference, stale capability, conflicting order—the proposal never touches durable state. Rejection is deterministic, so well-behaved nodes converge without negotiating with one another or trusting the network.
 
 ## 6. Security model and threat framing
 
