@@ -300,6 +300,6 @@ Any deviation requires an Architecture Decision Record (ADR) that documents the 
 
 ## 17. Scope boundary and status
 
-Only properties explicitly defined in this repository are claimed. Terms such as "secure," "trusted," or "verified" have meaning only where the accompanying section spells out conditions. Examples show possibility, not obligation; code fragments in appendices are non-normative unless referenced by a normative section.
+This repository claims only what it states explicitly. Terms like “secure,” “trusted,” or “verified” carry meaning only when a section defines the exact conditions under which they apply. Examples illustrate possibilities, not mandates. Appendices, diagrams, or snippets are non-normative unless they are cited from a normative section.
 
-This is a work-in-progress proof of concept. Clarity, auditability, and structural correctness take priority over performance or scale, and some trade-offs remain intentionally unresolved until validated. Treat this repository as authoritative for design intent, but not as evidence that all future choices have been finalized.
+The proof of concept remains a work in progress. Clarity, auditability, and structural correctness outrank performance, scale, or polish. Some trade-offs are intentionally unresolved until multiple implementations exercise the design. Treat this repository as the authoritative record of intent today, but not as a guarantee that future ADRs or revisions will keep every detail the same.
