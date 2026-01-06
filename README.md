@@ -280,7 +280,16 @@ Structure is guaranteed; meaning is intentionally left open.
 
 ## 14. Application model for developers
 
-Developers treat applications as deterministic state machines that react to the ordered graph feed and emit new proposals. They do not stand up servers that arbitrate every interaction; they write logic that interprets local state and responds to user input.
+Developers treat applications as deterministic state machines that react to the ordered graph feed and emit new proposals. They do not stand up servers that arbitrate every interaction; they write logic that interprets local state and responds to user input. Every surface (desktop, mobile, embedded, automation) executes the same rules because the substrate delivers the same ordered history everywhere.
+
+Building on 2WAY means inheriting identity, permissions, ordering, and durability instead of reimplementing them. Applications focus on domain intent while the substrate handles authority edges, append-only logging, and replay. Teams ship features without provisioning databases, queuing systems, or bespoke sync jobs, yet retain deterministic audit trails that survive device swaps or offline use.
+
+This model appeals to developers because it:
+
+* **Collapses backend operations**: there is no control plane to babysit, only deterministic code that runs beside the substrate on each device.
+* **Keeps users productive offline**: every node already owns the relevant slice of state, so workflows continue even when networks disappear.
+* **Enables reproducible debugging**: developers can replay ordered logs to reproduce bugs or validate migrations without mocking remote services.
+* **Lets multiple implementations coexist**: as long as they obey the schemas and invariants, different runtimes or UI stacks remain interoperable.
 
 A typical workflow:
 
@@ -296,6 +305,8 @@ Implications for developer experience:
 * Custom sync protocols, reconciliation loops, or ACL rebuilds are unnecessary; the substrate already enforces them structurally.
 * Network input visible to applications has already passed validation, so application logic sees deterministic, trustworthy events.
 * Testing becomes simpler because applications can replay ordered logs locally to reproduce user-visible state without mocking remote services.
+* Feature delivery becomes incremental: schema updates, capability grants, and UI changes can ship independently because all peers enforce the same invariants.
+* Cross-platform clients stay consistent by construction since they interpret the same ordered facts, not divergent replicas.
 
 ---
 
