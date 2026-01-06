@@ -141,7 +141,7 @@ The proposal lifecycle is identical everywhere:
 4. Deterministic ordering selects where the proposal fits relative to other accepted writes, preventing race conditions.
 5. The mutation commits to the local append-only log and, if desired, streams to peers, which replay the exact same pipeline.
 
-If any step fails—missing reference, stale capability, conflicting order—the proposal never touches durable state. Rejection is deterministic, so well-behaved nodes converge without negotiating with one another or trusting the network.
+If any step fails (missing reference, stale capability, conflicting order), the proposal never touches durable state. Rejection is deterministic, so well-behaved nodes converge without negotiating with one another or trusting the network.
 
 ## 6. Security model and threat framing
 
@@ -196,7 +196,7 @@ Structural guardrails:
 * **Application-scoped trust**: reputation lives in the shared graph but is interpreted per application, so a credential or score in one domain does not grant privileges anywhere else.
 * **Explicit delegation**: edges that convey authority must be recorded by both parties, include bounded capabilities, and can be revoked like any other mutation.
 * **Degree limits**: hop budgets prevent unsolicited fan-out. Nodes that never opted into a path toward an identity will never see its traffic.
-* **Cost mirrors intent**: forming real relationships requires work—introductions, shared history, mutual acceptance—making it expensive for attackers to scale beyond nuisance traffic.
+* **Cost mirrors intent**: forming real relationships requires work (introductions, shared history, mutual acceptance), making it expensive for attackers to scale beyond nuisance traffic.
 
 Attackers can still generate packets, but without anchors, recognized capabilities, and degree-limited paths, they cannot mutate state, borrow reputation, or force attention from unwilling nodes.
 
@@ -216,11 +216,11 @@ Because every device enforces these guardrails locally, damage stays contained. 
 
 2WAY assumes things will go wrong: keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system responds by failing closed instead of guessing what the operator intended.
 
-When a rule is violated—schema mismatch, missing capability, conflicting ordering—the input is rejected before it touches durable state. No speculative writes stick around hoping to be fixed later. Each write still passes through the same serialized path, so local integrity holds even if the app above it is compromised.
+When a rule is violated (schema mismatch, missing capability, conflicting ordering), the input is rejected before it touches durable state. No speculative writes stick around hoping to be fixed later. Each write still passes through the same serialized path, so local integrity holds even if the app above it is compromised.
 
 Operation continues, just with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation wins over availability: better to drop a misbehaving connection than let it corrupt the graph.
 
-Recovery is deliberate and auditable. Administrators or applications must craft explicit corrective actions—revocations, replays, migrations, repairs—that pass exactly the same validation pipeline as any other write. There is no hidden “admin override” or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen, which keeps the audit trail honest and reproducible.
+Recovery is deliberate and auditable. Administrators or applications must craft explicit corrective actions (revocations, replays, migrations, repairs) that pass exactly the same validation pipeline as any other write. There is no hidden “admin override” or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen, which keeps the audit trail honest and reproducible.
 
 ## 12. What the system guarantees
 
@@ -258,7 +258,7 @@ A typical workflow:
 
 1. **Define schemas and invariants** for the objects the application cares about, including how they relate to other identities and capabilities.
 2. **Subscribe to the ordered feed** that the substrate maintains locally, updating caches, UI state, or side effects using only accepted events.
-3. **Let users interact with local data**—every node already stores the relevant slice—without waiting on a remote backend or reconciling divergent drafts.
+3. **Let users interact with local data** (every node already stores the relevant slice) without waiting on a remote backend or reconciling divergent drafts.
 4. **Propose mutations through substrate interfaces**; the platform enforces authority, ordering, and durability uniformly across peers, so applications never roll their own ACLs or sync logic.
 
 Implications for developer experience:
@@ -271,7 +271,7 @@ Implications for developer experience:
 
 ## 15. Application domains
 
-2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle—because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes—this structure shines.
+2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines.
 
 Representative domains:
 
