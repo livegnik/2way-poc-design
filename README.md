@@ -312,17 +312,25 @@ Implications for developer experience:
 
 ## 15. Application domains
 
-2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines.
+2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines. Developers who deliver tools to multi-party environments can lean on the substrate to guarantee who authored what, even when their software stack evolves or devices operate without connectivity.
+
+Adopting 2WAY in these domains means developers can promise users that data keeps working without centralized arbitration, that provenance is auditable without third parties, and that collaboration boundaries remain explicit even as teams or vendors change. The substrate supplies the scaffolding for durable trust so application logic can focus on workflows, automation, or UI.
 
 Representative domains:
 
-* **Web, mobile, desktop, and embedded apps** that must behave consistently on and offline without bespoke sync engines.
-* **Messaging, collaboration, and shared workspaces** where every edit, mention, or invitation needs provenance and bounded reach.
-* **Identity, credential, and access management** stacks that require distributed issuance, revocation, and auditability without a single CA.
-* **Supply-chain and inter-vendor coordination** where mutually distrustful parties share state while retaining local authority.
-* **Regulated or audit-heavy environments** such as finance, healthcare, or government that require append-only histories and explicit authority.
-* **Offline-first, mesh, and edge networks** that must keep operating securely despite intermittent connectivity or hostile transports.
-* **Critical infrastructure and defense systems** that cannot tolerate centralized control planes or silent compromise.
+* **Web, mobile, desktop, and embedded apps** that must behave consistently on and offline without bespoke sync engines, letting teams ship one deterministic model everywhere.
+* **Messaging, collaboration, and shared workspaces** where every edit, mention, or invitation needs provenance and bounded reach, eliminating trust in per-app ACL layers.
+* **Identity, credential, and access management** stacks that require distributed issuance, revocation, and auditability without a single CA, so authority follows the graph rather than a deployment.
+* **Supply-chain and inter-vendor coordination** where mutually distrustful parties share state while retaining local authority, preventing any participant from silently rewriting shared data.
+* **Regulated or audit-heavy environments** such as finance, healthcare, or government that require append-only histories and explicit authority, making audits replayable straight from the substrate.
+* **Offline-first, mesh, and edge networks** that must keep operating securely despite intermittent connectivity or hostile transports, because every node already owns the rules it enforces.
+* **Critical infrastructure and defense systems** that cannot tolerate centralized control planes or silent compromise, benefiting from deterministic failure containment and local decision making.
+
+Developers targeting these spaces gain:
+
+* **Predictable compliance stories**: append-only logs, explicit delegations, and deterministic validation map directly to regulatory controls.
+* **Faster multi-party integrations**: once schemas and capabilities are aligned, new organizations can participate without renegotiating backend trust.
+* **User-level empowerment**: applications can expose auditing, recovery, and delegation features as first-class UX because the substrate enforces them already.
 
 These use cases share a common need: structural guarantees about who can act, how data is ordered, and how history survives, regardless of which applications come and go.
 
