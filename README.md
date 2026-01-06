@@ -287,16 +287,16 @@ These use cases share a common need: structural guarantees about who can act, ho
 
 ## 16. Conformance
 
-An implementation conforms to the 2WAY PoC design only if it satisfies every normative requirement in this repository. Passing tests or interoperability checks is insufficient when core invariants are weakened.
+Conformance is binary. An implementation either satisfies every normative requirement in this repository or it does not. Passing tests or demonstrating interoperability is meaningless if core invariants have been weakened along the way.
 
-Conformance requires:
+To claim conformance, an implementation must demonstrate that:
 
-* All defined invariants hold under every supported operating condition, including hostile peers and offline operation.
-* Forbidden behaviors remain structurally impossible; policy alone is not acceptable.
-* Validation, authorization, and ordering rules execute exactly as specified, with no fast paths that bypass structural guards.
-* No state mutation bypasses defined boundaries; every write flows through the same serialized authority path regardless of origin.
+* **All defined invariants hold** under every supported operating condition, including offline operation and hostile peers.
+* **Forbidden behaviors remain structurally impossible**; relying on policy, logging, or operator vigilance is not an acceptable substitute for structural guards.
+* **Validation, authorization, and ordering rules execute exactly as specified**, with no fast paths, heuristics, or “trusted modes” that bypass them.
+* **No state mutation crosses boundaries out of band**; every write flows through the same serialized authority path regardless of origin.
 
-Any deviation must be documented with an Architecture Decision Record (ADR) that explains scope, reasoning, and compensating controls. Without that ADR, an implementation cannot claim conformance.
+Any deviation requires an Architecture Decision Record (ADR) that documents the reasoning, scope, and compensating controls. Without an ADR, the implementation is simply out of spec.
 
 ## 17. Scope boundary and status
 
