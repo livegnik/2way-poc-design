@@ -162,16 +162,16 @@ Because every node enforces the same rules locally, an attacker who compromises 
 
 ## 7. Structural impossibility
 
-Many behaviors are not merely disallowed, they cannot occur because no valid execution path exists. Authority boundaries, graph schemas, ownership edges, and ordering rules are encoded so that an operation either satisfies every prerequisite or never reaches commit.
+2WAY does not rely on policy or best effort to block dangerous behavior. It encodes the rules of the system so tightly that many attacks have no valid execution path. If the graph lacks the required edges, ownership, or ancestry, the mutation cannot even be expressed, let alone committed.
 
-Structural impossibility underpins:
+This structural approach covers:
 
-* Application isolation: proposals cannot target foreign state without explicit delegation edges.
-* Access control enforcement: capabilities are graph objects that must exist before any write is considered.
-* Graph mutation rules: only the owning device can author changes for its portion of the graph.
-* State ordering guarantees: ancestry and deterministic ordering prevent retroactive edits or inconsistent histories.
+* **Application isolation**: proposals cannot point at foreign state unless the graph already records a delegation that allows it.
+* **Access control enforcement**: capabilities are first-class graph objects that must exist before any write is considered; without them the proposal is malformed.
+* **Graph mutation rules**: only the owning device can author changes for its portion of the graph because no other key can form the required parent references.
+* **State ordering guarantees**: ancestry links and deterministic ordering ensure history remains append-only; retroactive edits simply have nowhere to land.
 
-Even a compromised application can only issue invalid proposals that the substrate rejects; it cannot manufacture privilege, rewrite history, or create the structural hooks it would need to cross authority boundaries.
+As a result, even a compromised application or stolen key can only emit proposals that fail validation. It cannot fabricate privilege, rewrite history, or manufacture the structural hooks it would need to cross authority boundaries. Rejection is automatic and deterministic, not a matter of luck or operator vigilance.
 
 ## 8. Degrees of separation and influence limits
 
