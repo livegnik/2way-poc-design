@@ -188,14 +188,17 @@ These constraints prevent trust from spreading automatically, keep unsolicited r
 
 ## 9. Sybil resistance through structure
 
-2WAY does not assume global Sybil prevention. Instead, it makes large-scale identity floods unproductive.
+Global Sybil prevention is not realistic for large, open networks. 2WAY focuses instead on making identity floods pointless by requiring every actor to earn their reach through visible, consented relationships.
 
-* Identities without anchors have no influence. Until new keys form explicit relationships with trusted anchors, their writes remain invisible.
-* Trust and reputation live inside applications and derive from the shared graph, so acceptance in one domain never auto-grants privileges elsewhere.
-* Delegation is explicit: edges carry bounded authority, and both parties must record the relationship before it takes effect.
-* Degree limits cap unsolicited interaction, preventing Sybils from spamming nodes that never opted into a path toward them.
+Structural guardrails:
 
-Attackers can generate traffic, but without the structural prerequisites they cannot mutate state, expand reach, or coerce attention.
+* **Anchoring required**: new keys have no influence until they form explicit edges with trusted anchors. Without that path, their proposals never leave the network buffer.
+* **Application-scoped trust**: reputation lives in the shared graph but is interpreted per application, so a credential or score in one domain does not grant privileges anywhere else.
+* **Explicit delegation**: edges that convey authority must be recorded by both parties, include bounded capabilities, and can be revoked like any other mutation.
+* **Degree limits**: hop budgets prevent unsolicited fan-out. Nodes that never opted into a path toward an identity will never see its traffic.
+* **Cost mirrors intent**: forming real relationships requires work—introductions, shared history, mutual acceptance—making it expensive for attackers to scale beyond nuisance traffic.
+
+Attackers can still generate packets, but without anchors, recognized capabilities, and degree-limited paths, they cannot mutate state, borrow reputation, or force attention from unwilling nodes.
 
 ## 10. Denial-of-service containment
 
