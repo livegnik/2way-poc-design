@@ -175,13 +175,16 @@ As a result, even a compromised application or stolen key can only emit proposal
 
 ## 8. Degrees of separation and influence limits
 
-Reach and visibility are bounded through explicit graph distance. Edges record direction, ownership, and purpose, enabling policies that describe not only who may act but how far their influence travels.
+Authority in 2WAY is not global. Relationships in the graph include direction, ownership, and the purpose of the edge, so policies can describe not only who may act but how far their influence may travel. This allows nodes to treat near neighbors differently from distant observers without inventing ad-hoc filters.
 
-* Relationships establish degrees of separation, allowing different rules for first-degree collaborators versus distant observers.
-* Reads, writes, and broadcasts can specify maximum hop counts, limiting unsolicited proposals or data exposure.
-* Identities beyond the permitted radius are structurally ignored: without a path, their messages never enter validation pipelines.
+Practical implications:
 
-These limits prevent trust from spreading automatically, keep unsolicited reach narrow, and force influence to flow through intentional, inspectable relationships.
+* **Degrees of separation**: applications can enforce first-degree rules for collaborators, looser policies for second-degree observers, and outright silence for unknown nodes.
+* **Bounded broadcast and replication**: reads, writes, invitations, and announcements can specify maximum hop counts, preventing unsolicited proposals from traveling farther than intended.
+* **Structural ignore**: identities outside the permitted radius have no path to the local device, so their messages never enter validation pipelines and consume zero trust budget.
+* **Intentional expansion**: to grow reach, an identity must form explicit edges and be accepted by every hop, creating an audit trail of who granted influence and why.
+
+These constraints prevent trust from spreading automatically, keep unsolicited reach narrow, and force influence to flow through intentional, inspectable relationships instead of global fan-out.
 
 ## 9. Sybil resistance through structure
 
