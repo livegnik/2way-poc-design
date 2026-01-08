@@ -64,14 +64,14 @@ Across all relevant components and execution contexts defined in this file, the 
 
 Auth Manager operates as a pure execution engine with explicit phases. These phases are derived from legacy architecture flows and remain valid.
 
-### 4.1 Phase 1, Input acquisition
+### 4.1 Input acquisition
 
 * Receive raw request metadata from HTTP or WebSocket layer.
 * Extract session token from header or cookie.
 * Receive trusted route classification and app context from the interface layer.
 * Treat all extracted data as untrusted input.
 
-### 4.2 Phase 2, Token validation
+### 4.2 Token validation
 
 * Validate token presence.
 * Validate token format.
@@ -82,14 +82,14 @@ Auth Manager operates as a pure execution engine with explicit phases. These pha
 
 Any failure terminates execution and produces a rejected authentication result.
 
-### 4.3 Phase 3, Admin gating evaluation
+### 4.3 Admin gating evaluation
 
 * Executed only after successful authentication.
 * Apply admin-only route constraints if applicable.
 * Determine admin eligibility from trusted local configuration or identity metadata.
 * Failure produces a rejected authentication result.
 
-### 4.4 Phase 4, Authentication result emission
+### 4.4 Authentication result emission
 
 * Produce a complete authentication result.
 * Bind identity and flags for `OperationContext` construction.

@@ -98,30 +98,30 @@ Records that correspond to committed graph operations must include `global_seq` 
 
 Log Manager executes a strict ingestion pipeline. Phases must not be reordered or bypassed.
 
-### 5.1 Phase 1, Submission
+### 5.1 Submission
 
 * Managers invoke the Log Manager interface with a fully populated record template and their current OperationContext, matching the construction rules in `01-protocol/00-protocol-overview.md`.
 * Submission occurs via in-process channels. Direct file writes, stdout writes, or network calls are forbidden.
 * The submission API enforces backpressure. If the per-component queue is full, the caller receives an explicit `log_queue_full` error and is responsible for retry semantics defined in their spec.
 
-### 5.2 Phase 2, Validation
+### 5.2 Validation
 
 * Log Manager validates the record structure against the schema described in Section 4. Missing required fields, invalid severities, or cross-app leakage cause rejection and synchronous error reporting to the caller.
 * Validation ensures the OperationContext belongs to the emitting manager's declared app scope, preventing unauthorized log injection and enforcing the domain rules in `01-protocol/06-access-control-model.md`.
 * Validation failures are recorded as `operational.log_validation_failed` entries so the condition is observable.
 
-### 5.3 Phase 3, Normalization
+### 5.3 Normalization
 
 * Log Manager assigns `record_id`, stamps timestamps, canonicalizes field ordering, and computes `integrity_hash` for sinks that require tamper detection.
 * Records are written into the in-memory journal ring buffer sized by `log.ingest.journal_size`. The journal provides the source of truth for fan-out to sinks and short-lived query APIs.
 
-### 5.4 Phase 4, Routing
+### 5.4 Routing
 
 * The routing engine consults `log.*` configuration to determine sinks (stdout, rolling files, Event Manager feed, telemetry adapters).
 * Sinks are evaluated in priority order: audit file -> security file -> stdout -> diagnostic file -> Event Manager.
 * Each sink acknowledges success or declares failure with explicit error codes. Failures are emitted as `operational.log_sink_failed` records and, for mandatory sinks, cause the originating request to fail closed.
 
-### 5.5 Phase 5, Persistence and notification
+### 5.5 Persistence and notification
 
 * File sinks append JSON lines plus chain hashes, as described in Section 12.
 * The Event Manager bridge emits `system.log_record_created` or `security.log_alert` events referencing the log `record_id` but never attaches the payload for confidential classes. Subscribers fetch the record via the query API under ACL restrictions.
