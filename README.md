@@ -1,6 +1,10 @@
 # 2WAY PoC Design Repository
 
-Normative design documentation for a decentralized, fully open source (MIT-licensed), local-first application substrate that enforces security and correctness structurally rather than by convention.
+2WAY is a local-first, peer-to-peer, open-source application protocol and backend designed to eliminate repeated reimplementation of identity, access control, synchronization, and trust in application development.
+
+This repository contains the normative design documentation, defining how security and application state correctness are enforced by the system rather than reimplemented by each app.
+
+In 2WAY, applications are defined by schemas, optional domain logic, and user interfaces. Identity, data storage, access control, cryptography, and peer-to-peer synchronization are provided by the protocol and backend.
 
 ---
 
