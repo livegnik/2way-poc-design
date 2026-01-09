@@ -163,12 +163,12 @@ If any step fails (missing reference, stale capability, conflicting order), the 
 
 ## 6. Protocol object model
 
-`01-protocol/02-object-model.md` defines the canonical grammar of the shared graph. Every persisted fact is one of five categories—Parent, Attribute, Edge, Rating, or ACL—and every record carries immutable metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`). That metadata lets any peer replay history, verify authorship, and enforce ordering without consulting a coordinator or inventing new storage classes.
+`01-protocol/02-object-model.md` defines the canonical grammar of the shared graph. Every persisted fact is one of five categories (Parent, Attribute, Edge, Rating, or ACL) and every record carries immutable metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`). That metadata lets any peer replay history, verify authorship, and enforce ordering without consulting a coordinator or inventing new storage classes.
 
 This minimal vocabulary is expressive enough to encode any application schema:
 
 * **Parents** anchor entities that deserve identity: users, devices, contracts, workflow stages, data feeds, moderation queues. Schemas define Parent types, so developers can mint whatever anchors their domain requires without touching protocol code.
-* **Attributes** attach typed payloads to Parents. A single anchor can carry multiple Attributes—profile fields, encrypted blobs, configuration knobs, even versioned schema definitions—letting optional features coexist without migrations outside the domain.
+* **Attributes** attach typed payloads to Parents. A single anchor can carry multiple Attributes (profile fields, encrypted blobs, configuration knobs, even versioned schema definitions) letting optional features coexist without migrations outside the domain.
 * **Edges** articulate relationships: membership, delegation, dependencies, references between revisions, supply-chain hops, automation triggers. Edges can point to another Parent or to a specific Attribute, which keeps both coarse and fine-grained links uniform.
 * **Ratings** capture evaluations (votes, trust scores, endorsements, moderation outcomes) as first-class facts. They enrich any object without mutating it, so applications can apply their own semantics while the platform preserves provenance.
 * **ACLs** are just Parents plus constrained Attributes, meaning authorization structures live in the same graph, inherit the same ordering, and are auditable with the same tools.
@@ -187,7 +187,7 @@ Because structural validation happens first, malformed proposals (missing requir
 
 ## 7. Backend component model
 
-If the object model defines what can be stored, `02-architecture/01-component-model.md` defines who is allowed to touch it. The backend is a single long-lived process composed of singleton managers—the protocol kernel—and optional services layered on top. Every manager owns one domain, exposes narrow APIs, and refuses to perform work outside that charter. Services orchestrate workflows but never bypass managers or mutate state directly.
+If the object model defines what can be stored, `02-architecture/01-component-model.md` defines who is allowed to touch it. The backend is a single long-lived process composed of singleton managers (the protocol kernel) and optional services layered on top. Every manager owns one domain, exposes narrow APIs, and refuses to perform work outside that charter. Services orchestrate workflows but never bypass managers or mutate state directly.
 
 ### Manager roster and responsibilities
 
@@ -222,7 +222,7 @@ Services never talk to other services directly, never read private keys, and nev
 
 ### Trust boundaries and failure handling
 
-Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else—including other services—as untrusted. Network Manager and Auth Manager are the boundary guardians: they accept hostile traffic, authenticate it, and only then hand requests to services with minimal pre-processing. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains; Graph Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error.
+Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else (including other services) as untrusted. Network Manager and Auth Manager are the boundary guardians: they accept hostile traffic, authenticate it, and only then hand requests to services with minimal pre-processing. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains; Graph Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error.
 
 Because every write flows `Service → Graph Manager → Storage Manager`, and every validation step calls into Schema, ACL, DoS Guard, and Key Managers explicitly, there are no parallel authority paths to forget. Changing the set of services does not weaken guarantees; changing a manager requires an Architecture Decision Record because it rewires system invariants. This strict component model is what lets multiple implementations enforce the same rules even if their runtime packaging differs.
 
