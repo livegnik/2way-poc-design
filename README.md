@@ -16,18 +16,20 @@ In 2WAY, applications are defined by schemas, optional domain logic, and user in
 * [3. What 2WAY is](#3-what-2way-is)
 * [4. Why 2WAY exists](#4-why-2way-exists)
 * [5. Core idea: a shared, local-first graph](#5-core-idea-a-shared-local-first-graph)
-* [6. Security model and threat framing](#6-security-model-and-threat-framing)
-* [7. Structural impossibility](#7-structural-impossibility)
-* [8. Degrees of separation and influence limits](#8-degrees-of-separation-and-influence-limits)
-* [9. Sybil resistance through structure](#9-sybil-resistance-through-structure)
-* [10. Denial-of-service containment](#10-denial-of-service-containment)
-* [11. Failure behavior](#11-failure-behavior)
-* [12. What the system guarantees](#12-what-the-system-guarantees)
-* [13. What the system enables but does not define](#13-what-the-system-enables-but-does-not-define)
-* [14. Application model for developers](#14-application-model-for-developers)
-* [15. Application domains](#15-application-domains)
-* [16. Conformance](#16-conformance)
-* [17. Scope boundary and status](#17-scope-boundary-and-status)
+* [6. Protocol object model](#6-protocol-object-model)
+* [7. Backend component model](#7-backend-component-model)
+* [8. Security model and threat framing](#8-security-model-and-threat-framing)
+* [9. Structural impossibility](#9-structural-impossibility)
+* [10. Degrees of separation and influence limits](#10-degrees-of-separation-and-influence-limits)
+* [11. Sybil resistance through structure](#11-sybil-resistance-through-structure)
+* [12. Denial-of-service containment](#12-denial-of-service-containment)
+* [13. Failure behavior](#13-failure-behavior)
+* [14. What the system guarantees](#14-what-the-system-guarantees)
+* [15. What the system enables but does not define](#15-what-the-system-enables-but-does-not-define)
+* [16. Application model for developers](#16-application-model-for-developers)
+* [17. Application domains](#17-application-domains)
+* [18. Conformance](#18-conformance)
+* [19. Scope boundary and status](#19-scope-boundary-and-status)
 
 ---
 
@@ -159,7 +161,35 @@ If any step fails (missing reference, stale capability, conflicting order), the 
 
 ---
 
-## 6. Security model and threat framing
+## 6. Protocol object model
+
+The shared graph becomes concrete through the canonical object categories defined in `01-protocol/02-object-model.md`. Every persistent fact is represented as a Parent, Attribute, Edge, Rating, or ACL structure; no other categories exist. Each object carries immutable metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, and `sync_flags`) so any peer can replay history deterministically and tie every mutation to the device that authored it.
+
+Core guardrails include:
+
+- **Strict application scoping**: `app_id` scopes every reference. Attributes, Edges, Ratings, and ACL attachments can point only to objects in the same application domain, enforcing structural isolation before schema or ACL rules execute.
+- **Anchored ownership**: Parents anchor all other categories. Attributes bind typed data to a Parent, Edges describe relationships from one Parent to another Parent or Attribute, Ratings record evaluations targeting a single object, and ACLs are encoded as Parents with constrained Attributes so authorization data lives inside the same graph.
+- **Explicit references only**: Every pointer uses the triple `<app_id, category, id>`. Implicit inheritance, inferred scope, or caller-local shortcuts are forbidden, so unresolved references, duplicate selectors, or rebinding attempts fail deterministically.
+
+The object model runs ahead of schema evaluation, ACL checks, and ordering. Proposed mutations must present the required selectors (for example `src_parent_id` or `target_attr_id`) plus immutable authorship metadata. The model either accepts the structure as-is or rejects it without touching durable state, preserving provenance and referential integrity within each domain.
+
+---
+
+## 7. Backend component model
+
+Where the object model constrains data, `02-architecture/01-component-model.md` constrains the runtime. The backend is split into singleton managers that form the protocol kernel and optional services that orchestrate domain workflows. Managers own every invariant; services never bypass them.
+
+Key expectations:
+
+- **Authoritative managers**: Graph Manager is the only component that mutates graph state, Storage Manager is the sole database interface, ACL Manager owns permission decisions, Key Manager owns secret handling, Network Manager alone exchanges data with peers, and so on. Violating these boundaries invalidates every higher-layer guarantee.
+- **Services through OperationContext**: System services and per-app extension services translate user or automation intent into manager calls. They must supply complete OperationContext so ACL, schema, logging, and sync layers can evaluate requests deterministically. Services may aggregate reads or emit events, but they never access SQLite directly, mutate sync state, or cross app domains on their own.
+- **Bounded trust and recovery**: Managers trust only validated inputs from other managers, services trust managers but not external callers, and app extensions remain untrusted relative to the kernel. Every failure path is deterministic: invalid input is rejected, nothing commits partially, and persistent state is sufficient for restart.
+
+This component discipline yields a backend where every mutation flows through a single serialized path, schema and ACL enforcement is impossible to skip, and applications or services can be added or removed without introducing parallel authority paths.
+
+---
+
+## 8. Security model and threat framing
 
 2WAY treats the environment as adversarial by default. The network is assumed hostile, peers may be malicious or misconfigured, and applications are untrusted until the graph explicitly grants them authority. Every device must be able to withstand long-term exposure to anonymous traffic without relying on a perimeter, VPN, or trusted transport.
 
@@ -178,7 +208,7 @@ Because every node enforces the same rules locally, an attacker who compromises 
 
 ---
 
-## 7. Structural impossibility
+## 9. Structural impossibility
 
 2WAY does not rely on policy or best effort to block dangerous behavior. It encodes the rules of the system so tightly that many attacks have no valid execution path. If the graph lacks the required edges, ownership, or ancestry, the mutation cannot even be expressed, let alone committed.
 
@@ -193,7 +223,7 @@ As a result, even a compromised application or stolen key can only emit proposal
 
 ---
 
-## 8. Degrees of separation and influence limits
+## 10. Degrees of separation and influence limits
 
 Authority in 2WAY is not global. Relationships in the graph include direction, ownership, and the purpose of the edge, so policies can describe not only who may act but how far their influence may travel. This allows nodes to treat near neighbors differently from distant observers without inventing ad-hoc filters.
 
@@ -208,7 +238,7 @@ These constraints prevent trust from spreading automatically, keep unsolicited r
 
 ---
 
-## 9. Sybil resistance through structure
+## 11. Sybil resistance through structure
 
 Global Sybil prevention is not realistic for large, open networks. 2WAY focuses instead on making identity floods pointless by requiring every actor to earn their reach through visible, consented relationships.
 
@@ -224,7 +254,7 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ---
 
-## 10. Denial-of-service containment
+## 12. Denial-of-service containment
 
 2WAY expects sustained abuse and is built to keep attackers on the defensive. Throughput may dip, but data integrity and ordering do not because every trust boundary can say “no” cheaply before expensive work starts.
 
@@ -238,7 +268,7 @@ Because every device enforces these guardrails locally, damage stays contained. 
 
 ---
 
-## 11. Failure behavior
+## 13. Failure behavior
 
 2WAY assumes things will go wrong: keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system responds by failing closed instead of guessing what the operator intended.
 
@@ -250,7 +280,7 @@ Recovery is deliberate and auditable. Administrators or applications must craft 
 
 ---
 
-## 12. What the system guarantees
+## 14. What the system guarantees
 
 2WAY makes a small set of promises, all enforced structurally rather than by convention:
 
@@ -265,7 +295,7 @@ Because these guarantees live in structure, they are testable, auditable, and po
 
 ---
 
-## 13. What the system enables but does not define
+## 15. What the system enables but does not define
 
 2WAY enforces structure but refuses to dictate meaning. It guarantees how identities relate, how permissions are enforced, and how history is recorded, yet it stays silent about why those relationships exist or what a domain should do with them. Interpretation belongs to the communities that use the substrate.
 
@@ -282,7 +312,7 @@ Structure is guaranteed; meaning is intentionally left open.
 
 ---
 
-## 14. Application model for developers
+## 16. Application model for developers
 
 Developers treat applications as deterministic state machines that react to the ordered graph feed and emit new proposals. They do not stand up servers that arbitrate every interaction; they write logic that interprets local state and responds to user input. Every surface (desktop, mobile, embedded, automation) executes the same rules because the substrate delivers the same ordered history everywhere.
 
@@ -314,7 +344,7 @@ Implications for developer experience:
 
 ---
 
-## 15. Application domains
+## 17. Application domains
 
 2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines. Developers who deliver tools to multi-party environments can lean on the substrate to guarantee who authored what, even when their software stack evolves or devices operate without connectivity.
 
@@ -340,7 +370,7 @@ These use cases share a common need: structural guarantees about who can act, ho
 
 ---
 
-## 16. Conformance
+## 18. Conformance
 
 Conformance is binary. An implementation either satisfies every normative requirement in this repository or it does not. Passing tests or demonstrating interoperability is meaningless if core invariants have been weakened along the way.
 
@@ -355,8 +385,10 @@ Any deviation requires an Architecture Decision Record (ADR) that documents the 
 
 ---
 
-## 17. Scope boundary and status
+## 19. Scope boundary and status
 
 This repository claims only what it states explicitly. Terms like “secure,” “trusted,” or “verified” carry meaning only when a section defines the exact conditions under which they apply. Examples illustrate possibilities, not mandates. Appendices, diagrams, or snippets are non-normative unless they are cited from a normative section.
 
 The proof of concept remains a work in progress. Clarity, auditability, and structural correctness outrank performance, scale, or polish. Some trade-offs are intentionally unresolved until multiple implementations exercise the design. Treat this repository as the authoritative record of intent today, but not as a guarantee that future ADRs or revisions will keep every detail the same.
+
+---
