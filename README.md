@@ -163,48 +163,91 @@ If any step fails (missing reference, stale capability, conflicting order), the 
 
 ## 6. Protocol object model
 
-The shared graph becomes concrete through the canonical object categories defined in `01-protocol/02-object-model.md`. Every persistent fact is represented as a Parent, Attribute, Edge, Rating, or ACL structure; no other categories exist. Each object carries immutable metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, and `sync_flags`) so any peer can replay history deterministically and tie every mutation to the device that authored it.
+`01-protocol/02-object-model.md` defines the canonical grammar of the shared graph. Every persisted fact is one of five categories—Parent, Attribute, Edge, Rating, or ACL—and every record carries immutable metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`). That metadata lets any peer replay history, verify authorship, and enforce ordering without consulting a coordinator or inventing new storage classes.
 
-Core guardrails include:
+This minimal vocabulary is expressive enough to encode any application schema:
 
-- **Strict application scoping**: `app_id` scopes every reference. Attributes, Edges, Ratings, and ACL attachments can point only to objects in the same application domain, enforcing structural isolation before schema or ACL rules execute.
-- **Anchored ownership**: Parents anchor all other categories. Attributes bind typed data to a Parent, Edges describe relationships from one Parent to another Parent or Attribute, Ratings record evaluations targeting a single object, and ACLs are encoded as Parents with constrained Attributes so authorization data lives inside the same graph.
-- **Explicit references only**: Every pointer uses the triple `<app_id, category, id>`. Implicit inheritance, inferred scope, or caller-local shortcuts are forbidden, so unresolved references, duplicate selectors, or rebinding attempts fail deterministically.
+* **Parents** anchor entities that deserve identity: users, devices, contracts, workflow stages, data feeds, moderation queues. Schemas define Parent types, so developers can mint whatever anchors their domain requires without touching protocol code.
+* **Attributes** attach typed payloads to Parents. A single anchor can carry multiple Attributes—profile fields, encrypted blobs, configuration knobs, even versioned schema definitions—letting optional features coexist without migrations outside the domain.
+* **Edges** articulate relationships: membership, delegation, dependencies, references between revisions, supply-chain hops, automation triggers. Edges can point to another Parent or to a specific Attribute, which keeps both coarse and fine-grained links uniform.
+* **Ratings** capture evaluations (votes, trust scores, endorsements, moderation outcomes) as first-class facts. They enrich any object without mutating it, so applications can apply their own semantics while the platform preserves provenance.
+* **ACLs** are just Parents plus constrained Attributes, meaning authorization structures live in the same graph, inherit the same ordering, and are auditable with the same tools.
 
-The object model runs ahead of schema evaluation, ACL checks, and ordering. Proposed mutations must present the required selectors (for example `src_parent_id` or `target_attr_id`) plus immutable authorship metadata. The model either accepts the structure as-is or rejects it without touching durable state, preserving provenance and referential integrity within each domain.
+With these pieces, developers can compose trees, meshes, or any hybrid graph simply by instantiating Parents, attaching Attributes/Ratings, and wiring Edges. The object model never dictates meaning; it guarantees that whatever schema a developer defines will inherit identity, authorship, and deterministic ordering.
+
+That freedom relies on three non-negotiable guardrails enforced by Graph Manager before Schema Manager or ACL Manager do their work:
+
+- **Strict application scoping** keeps domains from bleeding into one another. `app_id` scopes every reference, so Attributes, Edges, Ratings, and ACL attachments can point only to objects inside the same domain. Cross-app access must be encoded through explicit delegation objects, not implied references.
+- **Anchored ownership** makes every object answer to a Parent. Attributes bind typed data to a single Parent, Edges and Ratings originate from authoritative Parents, and ACLs are encoded entirely using Parent/Attribute records. There is no way to smuggle in foreign ownership metadata.
+- **Explicit references only**: every pointer is the triple `<app_id, category, id>`. No implicit inheritance, inferred scope, or caller-local lookups are permitted, so unresolved references, duplicate selectors, or rebinding attempts fail deterministically before touching storage.
+
+Because structural validation happens first, malformed proposals (missing required selectors, referencing nonexistent anchors, attempting to mutate immutable metadata) die in the shallow end: Graph Manager rejects them, nothing commits, and Log Manager records deterministic reasons. When a proposal passes this gate, downstream schema validation, ACL evaluation, and ordering can operate on trusted structure. The result is a small set of primitives that can encode any application data model while still guaranteeing provenance, referential integrity, and cross-app isolation.
 
 ---
 
 ## 7. Backend component model
 
-Where the object model constrains data, `02-architecture/01-component-model.md` constrains the runtime. The backend is split into singleton managers that form the protocol kernel and optional services that orchestrate domain workflows. Managers own every invariant; services never bypass them.
+If the object model defines what can be stored, `02-architecture/01-component-model.md` defines who is allowed to touch it. The backend is a single long-lived process composed of singleton managers—the protocol kernel—and optional services layered on top. Every manager owns one domain, exposes narrow APIs, and refuses to perform work outside that charter. Services orchestrate workflows but never bypass managers or mutate state directly.
 
-Key expectations:
+### Manager roster and responsibilities
 
-- **Authoritative managers**: Graph Manager is the only component that mutates graph state, Storage Manager is the sole database interface, ACL Manager owns permission decisions, Key Manager owns secret handling, Network Manager alone exchanges data with peers, and so on. Violating these boundaries invalidates every higher-layer guarantee.
-- **Services through OperationContext**: System services and per-app extension services translate user or automation intent into manager calls. They must supply complete OperationContext so ACL, schema, logging, and sync layers can evaluate requests deterministically. Services may aggregate reads or emit events, but they never access SQLite directly, mutate sync state, or cross app domains on their own.
-- **Bounded trust and recovery**: Managers trust only validated inputs from other managers, services trust managers but not external callers, and app extensions remain untrusted relative to the kernel. Every failure path is deterministic: invalid input is rejected, nothing commits partially, and persistent state is sufficient for restart.
+Each manager is authoritative for its slice of behavior. Together they form the write path that every mutation must traverse:
 
-This component discipline yields a backend where every mutation flows through a single serialized path, schema and ACL enforcement is impossible to skip, and applications or services can be added or removed without introducing parallel authority paths.
+- **Config Manager** loads static/runtime configuration and exposes read-only access to other managers.
+- **Storage Manager** is the sole interface to the durable store (SQLite in the PoC). All reads/writes, transactions, and durability guarantees flow through it.
+- **Key Manager** owns node, user, and app key lifecycle: generation, storage (PEM), signing, decryption. No other component ever handles private keys.
+- **Auth Manager** validates front-end credentials, establishes sessions, and resolves user/device identity.
+- **Schema Manager** stores canonical schema definitions, resolves type IDs, and performs schema validation on proposed mutations.
+- **ACL Manager** evaluates permissions using OperationContext plus graph data and issues allow/deny decisions.
+- **Graph Manager** serializes all graph mutations, enforces the object model invariants, assigns global sequence numbers, and commits accepted writes via Storage Manager.
+- **State Manager** coordinates sync domains, reconciliation windows, and conflict handling so peers exchange ordered history safely.
+- **Network Manager** manages transports, peer authentication, message exchange, encryption, and framing.
+- **Event Manager** publishes internal events so services, apps, or tooling can react to state changes deterministically.
+- **Log Manager** owns structured logging for audit, diagnostics, and incident response.
+- **Health Manager** tracks liveness/health metrics and exposes them for ops tooling.
+- **DoS Guard Manager** enforces throttling, puzzles, and abuse controls at the boundary.
+- **App Manager** registers applications, loads extension services, and binds them to OperationContext constraints.
+
+These invariants are structural: Graph mutations that bypass Graph Manager, direct SQLite access without Storage Manager, or permission checks outside ACL Manager are specification violations, not implementation bugs.
+
+### Services and OperationContext
+
+System services and per-app extension services translate user intent into manager calls. They:
+
+1. Accept API or automation input (always untrusted).
+2. Build an `OperationContext` containing caller identity, app scope, requested capability, and tracing data.
+3. Invoke managers strictly through their public interfaces (Graph for writes, Schema for validation, ACL for authorization, Storage for permitted reads, Event for publication, Log for audit).
+
+Services never talk to other services directly, never read private keys, and never persist data on their own. App extension services are sandboxed to their app domain; removing an app simply unregisters its services without touching the kernel.
+
+### Trust boundaries and failure handling
+
+Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else—including other services—as untrusted. Network Manager and Auth Manager are the boundary guardians: they accept hostile traffic, authenticate it, and only then hand requests to services with minimal pre-processing. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains; Graph Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error.
+
+Because every write flows `Service → Graph Manager → Storage Manager`, and every validation step calls into Schema, ACL, DoS Guard, and Key Managers explicitly, there are no parallel authority paths to forget. Changing the set of services does not weaken guarantees; changing a manager requires an Architecture Decision Record because it rewires system invariants. This strict component model is what lets multiple implementations enforce the same rules even if their runtime packaging differs.
 
 ---
 
 ## 8. Security model and threat framing
 
-2WAY treats the environment as adversarial by default. The network is assumed hostile, peers may be malicious or misconfigured, and applications are untrusted until the graph explicitly grants them authority. Every device must be able to withstand long-term exposure to anonymous traffic without relying on a perimeter, VPN, or trusted transport.
+Legacy stacks typically trust the network, a perimeter, or a central operator. 2WAY assumes none of that holds. Every node treats the transport as hostile, assumes peers can lie or go dark indefinitely, and refuses to trust an application until the graph records explicit capabilities. The result is a security posture that survives compromised devices, rogue apps, and long stretches of offline operation without depending on a coordinating backend.
 
-This posture covers:
+Threats considered routine:
 
-* **Untrusted peers and transports** that inject invalid data, replay stale history, tamper with ordering, or impersonate devices.
-* **Mass identity fabrication (Sybil attempts)** that flood the network with new keys hoping to borrow reputation or trigger expensive work.
-* **Unauthorized graph mutation** that tries to cross ownership boundaries, escalate permissions, or tamper with schema-defined rules.
-* **Replay and reordering attacks** aimed at confusing deterministic state machines or resurrecting revoked authority.
-* **Denial-of-service** delivered through malformed payloads, unbounded fan-out, or resource-intensive validation paths.
-* **Partial compromise of nodes or applications**, including stolen keys, tampered binaries, misbehaving plugins, or insider abuse.
+- **Malicious or misconfigured peers** injecting malformed objects, replaying stale history, tampering with ordering, or impersonating identities.
+- **Sybil floods** that mint endless keys to borrow reputation, force expensive validation, or hide abuse behind throwaway identities.
+- **Unauthorized graph mutation** that attempts to cross ownership boundaries, escalate permissions, or bypass schema-defined invariants.
+- **Replay and ordering attacks** that try to confuse deterministic state machines or resurrect revoked authority.
+- **Denial attempts** via malformed payloads, unbounded fan-out, and resource-starving validation paths.
+- **Partial compromise of apps or nodes**, including stolen keys, tampered binaries, unvetted extensions, and insider abuse.
 
-Protection comes from structure rather than heuristics. Validation always happens before authorization, authorization before ordering, and ordering before commit. Each gate is deterministic and stateful, so missing context, ambiguous ownership, or conflicting history produces an immediate rejection. No shortcut allows a message to skip ahead “just this once.”
+What makes the model durable is that protection flows from structure, not perimeter gear or best-effort logging:
 
-Because every node enforces the same rules locally, an attacker who compromises one device cannot coerce its peers into accepting poisoned input. The worst-case outcome is isolation: honest nodes refuse the traffic, quarantine the faulty identity, and continue serving known-good relationships while preserving their own history.
+- **Fixed validation order**: schema checks, ACL evaluation, deterministic ordering, and append-only commit run in a strict sequence on every device. Nothing skips ahead, even for “trusted” code.
+- **Per-node enforcement**: every peer owns its keys, history, and rejection pipeline. Compromise of one node yields isolation, not systemic privilege.
+- **Deterministic rejection**: missing context, ambiguous ownership, or conflicting history immediately fails the request before any durable state changes, making attacks noisy and short-lived.
+
+For app developers, this means you inherit a security substrate that does not rely on keeping attackers out. Instead, it contains them with structural guarantees: if the graph lacks the necessary edges or capabilities, the action simply cannot be expressed. That gives you Sybil resistance through anchoring, rate- and resource-limiting at the DoS Guard Manager, and the confidence that offline devices stay safe until they can reconnect and replay history under the same rules.
 
 ---
 
