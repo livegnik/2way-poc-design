@@ -1,14 +1,18 @@
+
+
+
 # 03 App Backend Extensions
 
 ## 1. Purpose and scope
 
-App backend extensions are optional in-process services that belong to a single registered application slug and `app_id`. They expand an application's backend behavior without weakening the trust boundaries enforced by managers, system services, or interface layers. This specification defines how extensions are authored, packaged, registered, loaded, observed, and unloaded so independent teams can deliver backend code that coexists with the 2WAY platform without renegotiating contracts with every release.
+App backend extensions are optional in-process services that belong to a single registered application slug and `app_id`. They let independent app teams expand backend behavior without weakening the trust boundaries enforced by managers, system services, or the interface layer. Extensions never replace managers; they provide app-specific orchestration while remaining inside the platform's fail-closed posture.
 
-This document sets the implementation requirements for extension lifecycle, OperationContext discipline, capability catalogs, scheduler integration, configuration exchange, schema contributions, and observability. It also defines how extensions interact with App Manager, system services, and protocol managers while maintaining fail-closed behavior. App extensions must follow all guarantees in the component model and protocol specifications; this document clarifies the additional rules that apply because extensions are application owned rather than platform owned.
+This specification defines how extensions are authored, registered, packaged, loaded, observed, and unloaded so they coexist with the 2WAY platform without renegotiating contracts on every release. It codifies lifecycle, configuration, schema, capability, observability, and failure semantics that match the rest of the architecture corpus, enabling reviewers to audit application-owned logic using the same criteria as system-owned logic.
 
 This specification references the following documents:
 
 * `01-protocol/00-protocol-overview.md`
+* `01-protocol/01-identifiers-and-namespaces.md`
 * `01-protocol/02-object-model.md`
 * `01-protocol/03-serialization-and-envelopes.md`
 * `01-protocol/04-cryptography.md`
@@ -17,250 +21,215 @@ This specification references the following documents:
 * `01-protocol/07-sync-and-consistency.md`
 * `01-protocol/08-network-transport-requirements.md`
 * `01-protocol/09-errors-and-failure-modes.md`
+* `01-protocol/10-versioning-and-compatibility.md`
 * `01-protocol/11-dos-guard-and-client-puzzles.md`
 * `02-architecture/01-component-model.md`
 * `02-architecture/services-and-apps/01-services-vs-apps.md`
-* `02-architecture/services-and-apps/02-system-services.md`
 * `02-architecture/services-and-apps/05-operation-context.md`
 * `02-architecture/managers/00-managers-overview.md`
 * `04-interfaces/**`
 * `05-security/**`
 
-## 2. Architectural role and definitions
+### 1.1 Responsibilities and boundaries
 
-App backend extensions occupy the middle layer between frontend applications and protocol managers. They inherit the service contract defined in `02-architecture/services-and-apps/01-services-vs-apps.md`, but unlike system services they:
+This specification is responsible for the following:
 
-* Are owned, versioned, and distributed by a single application (`app_id != app_0`).
-* Are optional. An app may supply zero or one backend extension service. Removing the app removes the extension.
-* Must run entirely within the application's trust boundary. App Manager enforces a one-to-one mapping between an extension and its owning app slug.
+* Defining the mandatory extension model for a conforming node, including the lifecycle, surfaces, dependency requirements, and execution boundaries for every backend extension.
+* Defining strict ownership rules between extensions, managers, system services, and the interface layer so app-owned code never weakens the guarantees in `01-protocol/00-protocol-overview.md` and `02-architecture/01-component-model.md`.
+* Defining OperationContext, capability catalog, configuration, schema, packaging, and observability requirements so extensions integrate with managers using the same posture as system services.
+* Defining admission, DoS Guard, and Health Manager expectations that gate extension readiness and resource usage.
+* Defining a reusable checklist that implementers can follow to prove an extension meets all contractual obligations before shipment.
 
-Key terms used in this specification:
+This specification does not cover the following:
+
+* Manager internal design, database layout, cryptographic algorithms, or network transport mechanics, which remain owned by protocol managers as detailed in `02-architecture/managers/00-managers-overview.md`.
+* Frontend UI implementations or transport encoding details, which belong to `04-interfaces/**` unless explicitly called out for missing shapes.
+* App-specific product logic that does not cross the backend boundary defined in this document.
+
+### 1.2 Invariants and guarantees
+
+Across all components and execution contexts described in this file, the following invariants hold:
+
+* Extensions never bypass managers. All mutations flow through Graph Manager, preserving the structural -> schema -> ACL -> persistence ordering mandated by `01-protocol/03-serialization-and-envelopes.md`.
+* All authorization flows through ACL Manager using the capability posture in `01-protocol/06-access-control-model.md`; extensions never authorize directly.
+* Every entry point constructs an immutable OperationContext before calling managers, matching `01-protocol/00-protocol-overview.md` and `02-architecture/services-and-apps/05-operation-context.md`.
+* Namespace isolation follows `01-protocol/01-identifiers-and-namespaces.md`. Extensions operate only on their owning `app_id` and never impersonate `app_0`.
+* All failures are handled fail closed with canonical error classes from `01-protocol/09-errors-and-failure-modes.md`. Partial writes, best-effort retries, or out-of-band repairs are forbidden.
+* Removal, upgrade, or rollback of an extension never corrupts graph state because Graph Manager remains the sole write authority under `01-protocol/02-object-model.md`.
+
+## 2. Backend extension contract
+
+### 2.1 Architectural role and definitions
+
+App backend extensions sit between frontend applications and protocol managers. They share the service contract defined in `02-architecture/services-and-apps/01-services-vs-apps.md`, yet remain optional and app-owned. Key terms:
 
 | Term | Definition |
 | --- | --- |
-| **Extension manifest** | The metadata describing the extension module (slug, `app_id`, version, capabilities, dependencies, scheduler jobs, storage needs). Stored in App Manager's registry. |
-| **Extension service** | The in-process code module implementing backend logic for the owning app. Invokes managers via OperationContext just like system services. |
-| **Extension surface** | The HTTP/WebSocket endpoints, RPC helpers, or scheduled jobs exposed by the extension through the interface layer in `04-interfaces/**`. |
-| **Extension package** | The signed bundle that contains the extension binary, schemas, configuration defaults, and manifest. Delivered to App Manager during installation or update. |
+| **Extension manifest** | Metadata describing the extension module (slug, `app_id`, version, capability catalog, dependencies, scheduler jobs, configuration requirements, DoS Guard hints). Stored in App Manager's registry. |
+| **Extension service** | The in-process code module implementing backend logic for the owning app. It invokes managers exclusively via OperationContext, never through private back channels. |
+| **Extension surface** | HTTP, WebSocket, scheduler, or helper RPC entry points registered through the interface layer described in `04-interfaces/**`. |
+| **Extension package** | The signed distributable that contains the extension code, manifest, schemas, defaults, and migrations. |
 
-Extensions are never authoritative for protocol invariants. Managers own data integrity, cryptography, ACLs, and transport. Extensions orchestrate workflows on behalf of their app using only public manager APIs and published system service helpers.
+### 2.2 Ownership and namespace rules
 
-## 3. Responsibilities and boundaries
+* Every extension belongs to exactly one registered `app_id != app_0` and runs wholly inside that application's trust boundary. App Manager enforces slug uniqueness and binds OperationContext metadata per `01-protocol/01-identifiers-and-namespaces.md`.
+* Extensions may expose APIs, jobs, or events that belong exclusively to their owning app. Cross-app behavior must traverse graph data structures and ACL policy; no direct cross-app RPC is allowed.
+* Extensions cannot claim ownership of graph objects outside their app domain unless schema delegation and ACL policy explicitly permit it, mirroring the object rules in `01-protocol/02-object-model.md`.
 
-### 3.1 Allowed responsibilities
+### 2.3 Interaction boundaries with managers and system services
 
-Extensions may:
+* Managers never depend on extensions. Extensions consume manager APIs (Config, Schema, ACL, Graph, Event, Log, Health, DoS Guard, Network, State, App) exactly as documented in `02-architecture/managers/00-managers-overview.md`.
+* Extensions never access SQLite, storage paths, cryptographic keys, sockets, or sync metadata directly. Graph Manager remains the only write path and Network + State Managers remain the only transport authorities, matching `01-protocol/03-serialization-and-envelopes.md`, `01-protocol/04-cryptography.md`, and `01-protocol/08-network-transport-requirements.md`.
+* Extensions do not implement ad hoc listeners or side channels. All network-facing behavior is routed through interface definitions in `04-interfaces/**`, which in turn use Network Manager and DoS Guard admissions per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 
-* Expose APIs that belong exclusively to their owning application (for example, `/apps/{slug}/vault/*`).
-* Run scheduled jobs that mutate or read the owning app's graph domain, provided all work flows through OperationContext and Graph Manager.
-* Consume platform services (Config, Storage, Log, Event, Health, DoS Guard, Network, State) through their published APIs.
-* Register capability catalogs, ACL templates, or derived data models that live inside the owning app domain.
-* Reuse system service helper APIs when explicitly documented (for example, Feed Service helper RPCs).
+### 2.4 OperationContext and capability encoding
 
-### 3.2 Forbidden responsibilities
+* Every API, helper, or job constructs a complete OperationContext before calling managers, using the fields and immutability guarantees in `02-architecture/services-and-apps/05-operation-context.md`.
+* OperationContext always sets `app_id` to the owning application, stamps capability identifiers namespaced under the app (for example, `app.crm.ticket.create`), and records requester identity, device identity, trust posture, correlation IDs, and DoS Guard cost hints.
+* Automation jobs run with `actor_type=app_service` so ACL Manager can distinguish them from user traffic. Missing or partial contexts are rejected with canonical errors derived from `01-protocol/09-errors-and-failure-modes.md`.
 
-Extensions must never:
+### 2.5 Interface surfaces
 
-* Claim `app_0` or any other app's identifier.
-* Provide manager-like functions (key storage, ACL enforcement, schema compilation, sync orchestration) outside their app domain.
-* Read or write SQLite, key files, sockets, or sync metadata directly.
-* Bypass DoS Guard, Health Manager, or the interface layer to expose custom sockets or listeners.
-* Invoke other extensions directly. All cross-app collaboration goes through manager-enforced graph objects or published system services.
-* Install background daemons, OS services, or tasks outside the backend process.
+Extensions expose three surface categories and must declare them before activation:
 
-Any attempt to cross these boundaries must be rejected before code runs. App Manager, Config Manager, and the runtime loader enforce these prohibitions.
+1. **HTTP and WebSocket endpoints** wired through `04-interfaces/**`, documenting URI templates, media types, payload schemas, OperationContext prerequisites, and DoS Guard cost classes in line with `01-protocol/08-network-transport-requirements.md`.
+2. **Internal helper RPCs** callable only by system services explicitly whitelisted in the manifest. Helpers still take OperationContext arguments and call managers; they never bypass ACL or schema enforcement.
+3. **Scheduled jobs** registered with the backend scheduler. Manifests specify cadence (`cron`, `fixed_delay`, or event-driven), concurrency caps, capability identifiers, DoS Guard hints, and abort timeouts. Jobs abort automatically when Health Manager reports `not_ready`.
 
-## 4. Lifecycle and state machine
+### 2.6 Input handling and validation posture
 
-Extensions follow a deterministic lifecycle managed by App Manager:
+* All external input is untrusted. Extensions perform local validation (shape, size, cheap semantic checks) before invoking managers, keeping the fail-closed posture defined in `01-protocol/09-errors-and-failure-modes.md`.
+* Schema Manager validates types before Graph Manager persists any mutation, and ACL Manager authorizes reads/writes before data leaves the extension, preserving the ordering in `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/06-access-control-model.md`.
+* Extensions propagate manager error codes without rewriting them, except to attach human-readable context, so protocol-level rejection classes stay visible to callers.
 
-1. **Registration**: The app submits an extension manifest via App Manager. Manifest validation checks slug ownership, semantic versioning, dependency declarations, and capability catalog completeness.
-2. **Installation**: App Manager stages the extension package, uses Schema Manager to load declared types, validates configuration defaults with Config Manager, and performs security scans referenced in `05-security/**`. Installation fails closed; nothing is loaded until all checks succeed.
-3. **Activation**: App Manager loads the extension module into the backend process, injects dependency handles, and registers surfaces with the interface layer and scheduler. Health Manager marks the extension `initializing`.
-4. **Ready**: The extension reports readiness after configuration is applied, schemas are confirmed, OperationContext templates exist, and scheduler registrations succeed.
-5. **Running**: Extension handles API calls, jobs, and internal requests. Health Manager monitors readiness/liveness. App Manager can request `quiesce`, `stop`, or `restart`.
-6. **Quiesce/Stop**: During uninstall, upgrade, or failure, App Manager instructs the extension to stop accepting new work, drain outstanding jobs, flush logs, and release resources.
-7. **Removal**: App uninstall removes its extension by unregistering surfaces, removing scheduler jobs, deleting configuration keys, and marking schema contributions as inactive if no longer needed (Graph objects remain intact).
+### 2.7 Mandatory dependencies and resource obligations
 
-State transitions are observable through App Manager and Health Manager APIs so tooling can orchestrate upgrades without race conditions.
+* The minimum dependency set for declaring readiness includes App, Config, Schema, Graph, ACL, Log, Event, Health, and DoS Guard Managers, plus Network and State Managers for any remote-aware surface. Extensions never instantiate managers themselves.
+* Extensions declare resource budgets (CPU, memory, storage) and DoS Guard hints so Health Manager and DoS Guard can enforce throttles before exhaustion, mirroring `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Derived caches are optional, non-authoritative, rebuilt from graph reads, and must recheck authorization on every read.
 
-## 5. OperationContext and capability requirements
+## 3. Lifecycle, deployment, and runtime coordination
 
-Extensions obey the same OperationContext contract as system services, with additional app-specific rules:
+### 3.1 Lifecycle states and internal execution phases
 
-* Every entry point (HTTP, WebSocket, RPC helper, scheduler job) constructs an immutable OperationContext that sets `app_id` to the owning application. Context includes user identity, device identity, capability intent, trust posture, correlation IDs, and cost hints per `02-architecture/services-and-apps/05-operation-context.md`.
-* Capability names must be namespaced under the owning app (for example, `capability=app.crm.ticket.create`). Capability catalogs are published via Graph Manager and guarded by ACL Manager according to `01-protocol/06-access-control-model.md`.
-* Extension jobs acting as automation mark `actor_type=app_service` and include the app slug in OperationContext metadata so audit trails distinguish app automation from user requests.
-* Extensions reject any request lacking a valid OperationContext even if the call originates from the same device. Partial contexts are logged as `ERR_APP_EXTENSION_CONTEXT`, referencing the rejection semantics in `01-protocol/09-errors-and-failure-modes.md`.
-* Extensions are prohibited from mutating OperationContext mid flight. If additional metadata is needed (for example, feeder hints), it must be attached before manager calls or passed as separate arguments.
+App Manager enforces the lifecycle states **Registration -> Installation -> Activation -> Ready -> Running -> Quiesce -> Removal**. Within activation, extensions follow deterministic internal phases that mirror legacy engine diagrams:
 
-## 6. Interface surfaces
+1. **Initialization**: Dependency injection, configuration snapshot validation, schema availability checks.
+2. **Surface registration**: Interface routes and scheduler jobs register with interface and scheduler layers, respecting `01-protocol/08-network-transport-requirements.md`.
+3. **Admission**: DoS Guard cost hints and quotas register per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+4. **Execution**: Requests, jobs, and helper RPCs run while Health Manager reports `ready`.
+5. **Drain**: New work is rejected, outstanding jobs complete, backpressure surfaces to App Manager.
+6. **Shutdown**: Resources release, telemetry flushed, Health Manager marks the extension stopped.
 
-Extensions expose three surface categories:
+State transitions are observable through App Manager and Health Manager APIs. Any missing dependency forces `ready=false` and blocks activation.
 
-1. **HTTP/WebSocket endpoints** routed through the interface layer defined in `04-interfaces/**`. Each endpoint documents:
-   * URI template, verb, media types, payload schema references, and maximum payload size.
-   * Required OperationContext fields and capability names.
-   * Expected DoS Guard cost class (`light`, `medium`, `heavy`) plus any advisory tokens (for example, maximum rate per identity).
-   * Deterministic responses and protocol error codes (`01-protocol/09-errors-and-failure-modes.md`).
+### 3.2 Admission, scheduling, and backpressure
 
-2. **Internal RPC helpers** callable only by system services explicitly whitelisted in the extension manifest. RPC helpers never bypass ACL checks and always accept an OperationContext argument.
+* Extension surfaces register DoS Guard hints (cost classes, identity tokens, max concurrency) to ensure Network Manager throttles before code execution, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Extensions emit backpressure signals (queue depth, latency, cache pressure) via Health Manager so App Manager and DoS Guard can slow inbound work when budgets approach limits.
+* Scheduler jobs declare concurrency limits and budgets. Budget violations trigger throttling or Health Manager degradation, and jobs halt when dependencies are `not_ready`.
 
-3. **Scheduled jobs** registered with the backend scheduler. Job manifests include cadence (`cron` or fixed delay), concurrency cap, capability name, resource cost, DoS Guard hints, and abort timeout. Jobs stop automatically when Health Manager marks the node `not_ready`.
+### 3.3 Dependency health and readiness
 
-All surfaces must be defined before activation so interface documentation, DoS Guard quotas, and Health Manager readiness gating can be configured ahead of time.
+* Extensions monitor Health Manager for dependency readiness. If any dependency transitions to `not_ready`, the extension immediately stops the impacted surfaces and fails closed, following `01-protocol/09-errors-and-failure-modes.md`.
+* Readiness reports (`initializing`, `ready`, `degraded`, `not_ready`, `stopped`) must reflect the ability to handle new work without data loss. Misreporting readiness violates the OperationContext guarantees that DoS Guard depends on.
 
-## 7. Inputs, outputs, and dependencies
+## 4. Packaging, registration, and compatibility
 
-### 7.1 Inputs
+### 4.1 Package contents
 
-Extensions consume the following inputs:
+Extension packages delivered to App Manager include:
 
-* Requests routed through the interface layer after Auth Manager builds an OperationContext skeleton.
-* App-specific configuration namespaces (`app.<slug>.*`) supplied by Config Manager.
-* Owning app schemas and ACL templates validated by Schema Manager and ACL Manager.
-* Manager handles (Graph, Storage, Event, Log, State, Network, Health, DoS Guard, Config, App, Key) injected by the runtime. Extensions never instantiate managers.
-* Telemetry from system services (for example, Feed Service helper results) when such services publish extension-safe APIs.
+* Manifest file covering slug, `app_id`, semantic version, required platform version, capability catalog, dependency graph, scheduler jobs, configuration defaults, and DoS Guard hints.
+* Signed binaries or modules. Signing and verification follow `01-protocol/04-cryptography.md`, and unsigned packages are rejected per `01-protocol/05-keys-and-identity.md`.
+* Schema definitions scoped to the owning app plus migration envelopes that respect the sequencing posture in `01-protocol/07-sync-and-consistency.md`.
+* Interface documentation references pointing to `04-interfaces/**` entries.
 
-### 7.2 Outputs
+### 4.2 Registration and upgrade policy
 
-Extensions produce:
+* Registration loads the manifest into App Manager, validates slug ownership, dependency declarations, scheduler manifests, and capability catalogs.
+* Installation stages the package, loads schemas through Schema Manager, validates configuration defaults via Config Manager, and runs the security reviews mandated in `05-security/**`. Installation fails closed; nothing runs until all checks succeed.
+* Upgrades use prepare/commit semantics. App Manager stages the new version, validates compatibility, swaps modules atomically on success, and replays readiness checks. Rollbacks reinstall the previous signed version and rely on deterministic state reconstruction from Graph Manager.
 
-* Graph envelopes for objects belonging to their app domain, serialized via `01-protocol/03-serialization-and-envelopes.md`.
-* Events published through Event Manager with namespaced identifiers (`app.<slug>.event.*`). Events only reference objects, never embed private payloads.
-* Structured logs via Log Manager, containing OperationContext identifiers, capability names, and rejection codes.
-* Health Manager readiness and liveness signals scoped to the extension.
-* DoS Guard telemetry events when the extension detects abusive patterns tied to its app domain.
+### 4.3 Compatibility matrix
 
-### 7.3 Mandatory dependencies
-
-The following minimum set of managers must be available for an extension to declare readiness:
-
-* App Manager (identity binding, lifecycle control).
-* Config Manager (configuration snapshot validation).
-* Schema Manager and Graph Manager (schema enforcement and persistence).
-* ACL Manager (authorization).
-* Log, Event, and Health Managers (observability).
-* DoS Guard Manager (admission enforcement hints).
-* Network and State Managers for any remote or sync-aware flows.
-
-Extensions may depend on additional system services; dependencies are declared in the manifest, and App Manager enforces ordering during activation.
-
-## 8. Packaging, upgrades, and compatibility
-
-### 8.1 Package contents
-
-An extension package delivered to App Manager must include:
-
-* Manifest file (slug, `app_id`, semantic version, required platform version, capability catalog, dependency graph, scheduler job table, configuration defaults, DoS Guard hints).
-* Extension binaries or modules (signed, reproducible build artifacts).
-* Schema definitions (if any) scoped to the owning app and versioned.
-* Interface documentation references (links to `04-interfaces/**` entries or embedded drafts if not yet published).
-* Migration scripts expressed as Graph envelopes (never raw SQL).
-
-Packages are signed using the owning app's release keys managed by Key Manager per `01-protocol/04-cryptography.md`. Unsigned or tampered packages are rejected.
-
-### 8.2 Upgrade policy
-
-* Upgrades follow prepare/commit semantics. App Manager stages the new version, validates compatibility (schema diffs, capability catalog evolution, configuration migrations), then swaps modules atomically.
-* Rolling back is only supported by reinstalling a previous signed version. Extensions must be stateless or capable of replaying derived state from Graph Manager so rollbacks do not corrupt data.
-* Version compatibility rules:
-  * `major` bumps may introduce breaking schema or API changes and require explicit admin confirmation.
-  * `minor` bumps add backward compatible capabilities or surfaces.
-  * `patch` bumps contain bug fixes only.
-* Extensions must publish migration hooks that translate stored configuration and scheduler manifests during upgrade.
-
-### 8.3 Compatibility matrix
-
-Manifest declares:
+Manifests declare:
 
 | Field | Description |
 | --- | --- |
-| `requires.platform.min_version` | Minimum backend platform version required. Loader refuses activation below this version. |
-| `requires.managers` | List of managers or system services and the minimum capabilities they must expose. |
-| `requires.permissions` | Capability names that must exist before extension can run (for example, `system.feed.publish`). |
-| `supports.frontend.min_version` | Minimum frontend app version supported. Used for interface validation, not enforced by the backend. |
+| `requires.platform.min_version` | Minimum backend platform version required. Loader refuses activation below this value, matching `01-protocol/10-versioning-and-compatibility.md`. |
+| `requires.managers` | Managers and minimum capability sets the extension expects. |
+| `requires.permissions` | Capability names that must exist before activation. |
+| `supports.frontend.min_version` | Informational hint for frontend coordination, not enforced by the backend. |
 
-App Manager persists the matrix and surfaces incompatible extensions via Health Manager.
+Compatibility validation mirrors the negotiation rules in `01-protocol/10-versioning-and-compatibility.md`.
 
-## 9. Configuration, schema, and storage obligations
+## 5. Configuration, schema, and storage obligations
 
-### 9.1 Configuration namespace
+### 5.1 Configuration namespace
 
-* Extension configuration keys live under `app.<slug>.*`. Keys must define type, default, min/max, reload semantics, and whether dynamic reload is supported.
-* Config Manager validates snapshots before exposing them. Extensions implement `prepare_config(snapshot)` and `commit_config()` hooks mirroring manager behavior. Rejecting a snapshot keeps the previous version active.
-* Sensitive configuration (secrets) must be stored as encrypted graph attributes managed via Key Manager, never as plaintext configuration values.
+* Extension configuration keys live under `app.<slug>.*`. Config Manager validates snapshots before exposing them, enforcing the sequencing discipline in `01-protocol/00-protocol-overview.md`.
+* Extensions implement `prepare_config(snapshot)` and `commit_config()` hooks mirroring manager behavior. Rejecting a snapshot keeps the previous version active and marks health degraded.
+* Secrets live only as encrypted graph attributes mediated by Key Manager. Plaintext secrets in configuration or caches are forbidden.
 
-### 9.2 Schema ownership
+### 5.2 Schema ownership
 
-* Schemas contributed by an extension are owned by the app domain and versioned using semantic identifiers (`app.<slug>.object.v1`). Schema Manager enforces compatibility.
-* Extensions declare migration strategies (automatic envelope replay, manual job) and register capabilities required to run migrations.
-* Cross-app references require explicit ACL policy and Schema Manager validation. Extensions cannot create new trust boundaries; they must leverage ACL Manager edges defined in `01-protocol/06-access-control-model.md`.
+* Schemas contributed by an extension are owned by the app domain, versioned, and validated through Schema Manager, preserving the structures defined in `01-protocol/02-object-model.md`.
+* Migration strategies are expressed as Graph envelopes that run through Graph Manager and Schema Manager validation, never via direct SQL.
+* Cross-app references require explicit ACL policy and Schema Manager validation. Extensions cannot create new trust boundaries; they leverage ACL edges defined in `01-protocol/06-access-control-model.md`.
 
-### 9.3 Storage and caching
+### 5.3 Storage and caching
 
-* Derived caches must rebuild from Graph Manager reads. Caches are optional and cannot store secrets or ACL protected payloads without rechecking authorization on every read.
-* Extensions cannot allocate filesystem space outside the sandboxed directories assigned by the runtime. Temporary files must be declared in the manifest with size limits.
+* Derived caches rebuild deterministically from Graph reads, recheck ACL policy on every access, and store only references or computed counters.
+* Extensions cannot allocate filesystem space outside the sandboxed directories assigned by the runtime. Temporary files declare size limits in the manifest and respect DoS Guard budgets.
 
-## 10. Runtime coordination and resource management
+## 6. Observability, telemetry, and diagnostics
 
-### 10.1 Admission and quotas
+### 6.1 Logging
 
-* Extension surfaces register DoS Guard hints (cost class, stateful tokens, max outstanding requests). DoS Guard enforces puzzles or throttles before the extension code runs, aligning with `01-protocol/11-dos-guard-and-client-puzzles.md`.
-* Extensions must expose backpressure signals to App Manager (for example, queue depth). When pressure exceeds declared thresholds, App Manager may instruct the extension to respond with `429 Too Many Requests` or escalate DoS difficulty.
-* Scheduler jobs declare concurrency limits and budgets. Job overruns cause Health Manager to mark the extension degraded and may result in automatic pause.
+* Every action emits structured logs through Log Manager, including OperationContext identifiers, capability names, manager outcomes, rejection codes, and latency buckets, so incidents map back to `01-protocol/09-errors-and-failure-modes.md`.
+* Sensitive payloads are redacted before logging. Logs include a `redacted=true` flag so downstream tooling understands intentional truncation.
 
-### 10.2 Dependency health
+### 6.2 Events
 
-* Extensions watch Health Manager for dependency readiness. If any declared dependency goes `not_ready`, the extension must stop the corresponding surface and fail closed.
-* Extensions publish readiness states: `initializing`, `ready`, `degraded`, `not_ready`, `stopped`. Readiness must reflect the ability to handle new work without data loss.
+* Extensions publish namespaced events (for example, `app.<slug>.event.*`) via Event Manager after Graph commits. Events reference committed objects, never embed private payloads, and rely on ACL capsules for audience enforcement.
+* Event descriptors include capability identifiers and severity so operators can correlate extension behavior with DoS Guard telemetry.
 
-### 10.3 Resource budgets
+### 6.3 Health and metrics
 
-* CPU, memory, and storage budgets declared in the manifest allow the runtime to isolate extensions. Exceeding budgets triggers throttling or shutdown.
-* Extensions cannot spawn threads outside the runtime pool. Long running work must use asynchronous jobs scheduled through the backend scheduler.
+* Extensions register readiness and liveness probes with Health Manager. Metrics include request counts, rejection reasons, queue depth, job runtime, cache rebuild counts, and DoS Guard hint utilization.
+* Health transitions drive admission. When an extension reports `not_ready`, Network Manager and frontend routers stop forwarding new work to it in accordance with `01-protocol/11-dos-guard-and-client-puzzles.md`.
 
-## 11. Observability and diagnostics
+### 6.4 Diagnostics hooks
 
-* **Logging**: All actions produce structured logs with OperationContext identifiers, capability names, request IDs, execution latency, and manager outcomes. Logs must be emitted via Log Manager and tagged with `app=<slug>`.
-* **Events**: Extensions emit events through Event Manager for domain specific notifications. Event descriptors include object references, capability used, and severity.
-* **Metrics/Health**: Extensions register readiness and liveness probes with Health Manager (for example, `app.<slug>.extension`). Metrics include request counts, success/failure ratios, DoS hints consumed, job runtimes, queue depths, and cache rebuild counts.
-* **Diagnostics hooks**: Extensions support admin-triggered diagnostics endpoints (e.g., `POST /system/ops/extensions/{slug}/diagnostics`). Diagnostics dumps include current configuration version, outstanding jobs, dependency health, last error summary, and DoS telemetry snapshots. Sensitive payloads must be redacted.
+* Extensions expose admin diagnostics endpoints (for example, `POST /system/ops/extensions/{slug}/diagnostics`) routed through Operations Console. Dumps include configuration versions, outstanding jobs, dependency health, and DoS telemetry snapshots, with sensitive data redacted.
+* Diagnostics adhere to the admin authorization model so only identities with the correct capability edges can trigger them.
 
-Observability requirements ensure that operators can debug extensions using the same tooling as system services.
+## 7. Security and trust boundaries
 
-## 12. Security and trust boundaries
+* Extensions inherit the untrusted caller posture described in `02-architecture/01-component-model.md`; managers treat them as any other caller even though they run in-process.
+* Mutual authentication is mandatory between the loader and App Manager. Only signed packages from the owning app are accepted.
+* Extensions never access cryptographic keys directly. Key Manager mediates all signing, encryption, and random number generation per `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
+* Authorization always flows through ACL Manager. Cached ACL decisions must be revalidated before reuse, preserving the guarantees in `01-protocol/06-access-control-model.md`.
+* External dependencies (for example, outbound webhooks) route through Network Manager so DoS Guard can throttle and so network trust boundaries in `01-protocol/08-network-transport-requirements.md` stay intact.
 
-* Extensions inherit the untrusted caller posture described in `02-architecture/01-component-model.md`. Managers validate every request before acting.
-* Mutual authentication is mandatory between the extension loader and App Manager. Only signed packages from the owning app are accepted.
-* Extensions never access cryptographic keys directly. Key Manager mediates all crypto operations, including signature, encryption, and random number generation.
-* Authorization always flows through ACL Manager. Extensions cannot cache ACL decisions without revalidation.
-* Secrets (tokens, credentials) are stored only as encrypted graph attributes with ACL protections. Logs or events never contain raw secrets.
-* Extensions must document every external dependency (for example, remote API) and run them through Network Manager so DoS Guard can apply outbound throttles.
-* Extensions participate in security reviews defined in `05-security/**`, including threat modeling, secure coding checklists, and penetration tests before release.
+## 8. Failure handling and recovery
 
-## 13. Failure handling and recovery
+* Failures reject work atomically with canonical error codes (`ERR_APP_EXTENSION_CONTEXT`, `ERR_APP_EXTENSION_CAPABILITY`, etc.), aligning with `01-protocol/09-errors-and-failure-modes.md`.
+* Background work may retry idempotent operations using bounded exponential backoff. Retries respect the ordering guarantees in `01-protocol/07-sync-and-consistency.md`.
+* Crash recovery reconstructs state entirely from Graph Manager, Config Manager, and other manager-owned stores. Derived caches rebuild deterministically before readiness returns.
+* Upgrade or rollback failures trigger App Manager to reinstall the previous signed version, emit health degradation events, and leave graph state untouched.
+* Uninstall stops the extension immediately, flushes telemetry, unregisters scheduler jobs and routes, and confirms no background work remains. Graph data persists for archival or reinstall purposes.
 
-* **Fail closed**: On ambiguous conditions (missing dependency, invalid configuration, schema mismatch), extensions reject the request with a specific protocol error (for example, `ERR_APP_EXTENSION_CONFIG`) and log the cause.
-* **Automatic retries**: Background jobs may retry idempotent work using bounded exponential backoff. Retries must respect operation ordering to preserve `01-protocol/07-sync-and-consistency.md`.
-* **Crash recovery**: After a crash, the extension must reconstruct state exclusively from Graph Manager, Config Manager, and manager owned stores. Derived caches rebuild deterministically.
-* **Dependency failure**: If a dependency goes offline, the extension notes degraded state and halts affected surfaces. It may expose read-only functionality if safe and documented, but write paths must remain disabled until dependencies recover.
-* **Upgrade failure**: If activation of a new version fails, App Manager rolls back to the previous signed version and emits `app.<slug>.extension.rollback`. The extension must keep backward compatible data formats to support this scenario.
-* **Removal**: Uninstalling an app stops the extension immediately. The extension must flush telemetry, stop scheduler jobs, invalidate outstanding invites or tokens, and confirm no background threads remain. Graph data persists for archival or reinstall purposes.
+## 9. Implementation checklist
 
-## 14. Compliance checklist
-
-Before publishing or upgrading an extension, the owning app must prove the following:
-
-1. **Manifest completeness**: Manifest describes version, dependencies, configuration keys, scheduler jobs, resource budgets, capability catalog, and DoS Guard hints. Validated by App Manager.
-2. **OperationContext discipline**: Every entry point constructs immutable OperationContext objects with `app_id=<owning app>`, capability names, tracing metadata, and trust posture, per `02-architecture/services-and-apps/05-operation-context.md`.
-3. **Manager-only access**: All state mutations flow through Schema, ACL, and Graph Manager in the required order. No direct storage, network, or crypto access exists.
-4. **Interface documentation**: HTTP/WebSocket surfaces documented in `04-interfaces/**`, including payload schemas, media types, OperationContext requirements, DoS Guard hints, and deterministic error codes.
+1. **Manifest completeness**: Manifest covers slug, `app_id`, dependencies, configuration keys, scheduler jobs, resource budgets, capability catalog, and DoS Guard hints. Validated by App Manager.
+2. **OperationContext discipline**: Every entry point constructs immutable OperationContext objects with `app_id=<owning app>`, required capability names, tracing metadata, and trust posture before calling managers.
+3. **Manager-only access**: All state mutations flow through Schema, ACL, and Graph Managers in the structural -> schema -> ACL -> persistence order. No raw storage, network, or crypto access exists.
+4. **Interface documentation**: HTTP/WebSocket surfaces documented in `04-interfaces/**`, including payload schemas, OperationContext requirements, DoS Guard hints, and deterministic error codes.
 5. **Configuration and schema validation**: Configuration keys declared in Config Manager, schema contributions loaded via Schema Manager, migrations scripted as Graph envelopes.
 6. **Observability**: Log, Event, and Health Manager integrations implemented. Diagnostics hooks provide actionable insights without exposing secrets.
-7. **Security review**: Extension passed threat modeling and secure code review per `05-security/**`. All secrets stored via Key Manager, no plaintext secrets in configuration or logs.
-8. **Lifecycle hooks**: Start, stop, quiesce, upgrade, and rollback hooks implemented. Extension can unload cleanly without affecting other applications.
+7. **Security review**: Extension passed threat modeling and secure code review per `05-security/**`. Secrets stored via Key Manager; no plaintext secrets exist in configuration or logs.
+8. **Lifecycle hooks**: Start, stop, quiesce, upgrade, rollback, and uninstall hooks implemented. Extension can unload cleanly without affecting other applications.
 9. **DoS posture**: Surfaces register DoS hints, respect puzzles, and emit abuse telemetry to DoS Guard. Scheduler jobs publish outbound resource estimates.
-10. **Recovery drills**: Tested crash recovery, configuration reload failure, schema mismatch, dependency outage, and uninstall flows to confirm fail-closed behavior.
-
-Meeting this checklist demonstrates that the extension behaves like a first-class citizen inside the 2WAY backend while preserving the platform's security and isolation guarantees.
+10. **Recovery drills**: Extension tested for manager outages, configuration reload failures, schema mismatches, DoS Guard throttling, and uninstall to confirm fail-closed behavior.
