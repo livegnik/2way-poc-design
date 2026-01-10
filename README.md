@@ -4,7 +4,7 @@
 
 # 2WAY PoC Design Repository
 
-2WAY is a local-first, peer-to-peer, open source protocol and backend. It exists so application teams can stop rewriting identity, access control, synchronization, and trust for every product.
+2WAY is a local-first, peer-to-peer, open source protocol and backend. It exists so application developers can stop rewriting identity, access control, synchronization, and trust for every product.
 
 This repository is the normative design set. It explains how the system keeps security guarantees and application state correctness without leaning on per-app backends.
 
