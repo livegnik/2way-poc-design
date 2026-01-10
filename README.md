@@ -116,29 +116,31 @@ Authority flows downward from applications to storage.
 ```
 ┌──────────────────────────────────────────┐
 │              Applications                │
-│ Interpret ordered state, run UI, apply   │
-│ domain logic                             │
+│  • Interpret ordered state               │
+│  • Run UI and domain logic               │
+│  • Compose proposals                     │
+│  Cannot bypass → substrate validation,   │
+│  ordering, authority rules               │
 └──────────────────────────────────────────┘
                     │
                     ▼
 ┌──────────────────────────────────────────┐
 │            2WAY Substrate                │
-│ Identity, permissions, ordering, graph   │
-│ state, sync, structural guards           │
+│  • Identity, permissions, ordering       │
+│  • Graph state, sync, structural guards  │
+│  Cannot bypass → storage guarantees or   │
+│  transport constraints                   │
 └──────────────────────────────────────────┘
                     │
                     ▼
 ┌──────────────────────────────────────────┐
 │        Storage and Transport             │
-│ Local persistence and networking         │
+│  • Local persistence and networking      │
+│  • Append-only history, peer exchange    │
+│  Cannot bypass → local substrate         │
+│  authority or per-device policy          │
 └──────────────────────────────────────────┘
 ```
-
-| Layer | Responsibilities | Cannot bypass |
-| --- | --- | --- |
-| Applications | Interpret ordered state, run UI and domain logic, compose proposals | Substrate validation, ordering, authority rules |
-| 2WAY Substrate | Own identity, permissions, ordering, synchronization, graph invariants | Storage guarantees or transport constraints |
-| Storage & Transport | Persist append-only history and exchange messages with peers | Local authority of the substrate or per-device policy |
 
 ---
 
