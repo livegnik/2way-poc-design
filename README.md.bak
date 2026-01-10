@@ -1,0 +1,2 @@
+$ErrorActionPreference = "Stop"
+(Get-Content README.md)

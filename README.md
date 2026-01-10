@@ -28,6 +28,16 @@ In 2WAY, applications are defined by schemas, optional domain logic, and user in
 * [15. What the system enables but does not define](#15-what-the-system-enables-but-does-not-define)
 * [16. Application model for developers](#16-application-model-for-developers)
 * [17. Application domains](#17-application-domains)
+  * [17.1 Messaging and chat](#171-messaging-and-chat)
+  * [17.2 Social media and publishing](#172-social-media-and-publishing)
+  * [17.3 Markets and exchange of goods and services](#173-markets-and-exchange-of-goods-and-services)
+  * [17.4 Marketplace-dependent applications](#174-marketplace-dependent-applications)
+  * [17.5 Key revocation and recovery workflows](#175-key-revocation-and-recovery-workflows)
+  * [17.6 Verifying binaries and software supply chains](#176-verifying-binaries-and-software-supply-chains)
+  * [17.7 Device trust, enrollment, and compliance](#177-device-trust-enrollment-and-compliance)
+  * [17.8 Multi-party coordination and governance](#178-multi-party-coordination-and-governance)
+  * [17.9 Long-lived records and audit trails](#179-long-lived-records-and-audit-trails)
+  * [17.10 What ties these examples together](#1710-what-ties-these-examples-together)
 * [18. Conformance](#18-conformance)
 * [19. Scope boundary and status](#19-scope-boundary-and-status)
 
@@ -389,27 +399,73 @@ Implications for developer experience:
 
 ## 17. Application domains
 
-2WAY is best suited for workflows where trust, history, and survivability matter more than raw throughput. Anywhere centralized backends struggle (because users need to keep operating offline, share authority across organizations, or prove provenance long after software changes), this structure shines. Developers who deliver tools to multi-party environments can lean on the substrate to guarantee who authored what, even when their software stack evolves or devices operate without connectivity.
+2WAY shines wherever trust, verifiability, and survivability matter more than pushing raw throughput. Everywhere centralized backends wobble (offline collaboration, multi-party workflows, postmortem accountability), this substrate keeps authority local, history replayable, and policy boundaries explicit even as applications evolve. Adopting 2WAY means applications promise users that collaboration endures without a master server, provenance is inspectable without middlemen, and failure modes remain bounded no matter who operates the UI above the substrate.
 
-Adopting 2WAY in these domains means developers can promise users that data keeps working without centralized arbitration, that provenance is auditable without third parties, and that collaboration boundaries remain explicit even as teams or vendors change. The substrate supplies the scaffolding for durable trust so application logic can focus on workflows, automation, or UI.
+Representative umbrella categories still mirror those in earlier drafts: web, mobile, desktop, and embedded apps craving deterministic sync; messaging or shared workspaces that need provenance on every edit; distributed identity stacks; supply-chain coordination; regulated industries; offline-first meshes; and critical infrastructure that refuses silent overrides. The sections below dive deeper into concrete examples drawn from those categories to illustrate how the shared graph and manager pipeline make ambitious designs practical without recreating backends for every domain.
 
-Representative domains:
+Developers operating in these spaces still gain:
 
-* **Web, mobile, desktop, and embedded apps** that must behave consistently on and offline without bespoke sync engines, letting teams ship one deterministic model everywhere.
-* **Messaging, collaboration, and shared workspaces** where every edit, mention, or invitation needs provenance and bounded reach, eliminating trust in per-app ACL layers.
-* **Identity, credential, and access management** stacks that require distributed issuance, revocation, and auditability without a single CA, so authority follows the graph rather than a deployment.
-* **Supply-chain and inter-vendor coordination** where mutually distrustful parties share state while retaining local authority, preventing any participant from silently rewriting shared data.
-* **Regulated or audit-heavy environments** such as finance, healthcare, or government that require append-only histories and explicit authority, making audits replayable straight from the substrate.
-* **Offline-first, mesh, and edge networks** that must keep operating securely despite intermittent connectivity or hostile transports, because every node already owns the rules it enforces.
-* **Critical infrastructure and defense systems** that cannot tolerate centralized control planes or silent compromise, benefiting from deterministic failure containment and local decision making.
+- **Predictable compliance** because append-only logs, explicit delegations, and deterministic validation map neatly onto regulatory controls.
+- **Faster multi-party integrations** once schemas and capabilities align, since no bespoke backend trust agreement is required.
+- **User-facing empowerment** where auditing, recovery, and delegation can ship as first-class UX given the substrate already enforces them.
 
-Developers targeting these spaces gain:
+### 17.1 Messaging and chat
 
-* **Predictable compliance stories**: append-only logs, explicit delegations, and deterministic validation map directly to regulatory controls.
-* **Faster multi-party integrations**: once schemas and capabilities are aligned, new organizations can participate without renegotiating backend trust.
-* **User-level empowerment**: applications can expose auditing, recovery, and delegation features as first-class UX because the substrate enforces them already.
+A messaging or chat workload maps cleanly to graph primitives. Conversations become `Parent` objects, participants are modeled via membership `Edge`s, individual messages land as `Attribute` objects with payloads and metadata, and a dedicated `ACL` object defines who may read or write. That layout is illustrative, not prescriptive; developers remain free to remodel conversations, threads, or channels however their UX demands, so long as their schema honors the object model and mutation rules.
 
-These use cases share a common need: structural guarantees about who can act, how data is ordered, and how history survives, regardless of which applications come and go.
+What turns that flexibility into a viable backend replacement is the enforced pipeline. Every outbound message is just another proposed mutation submitted through the State Manager. Graph Manager confirms that targets exist and references are well-formed, Permission Manager evaluates the conversation ACL against the author identity verified by Identity Manager, and only then does the State Manager serialize the write, commit it durably, and surface it to peers through Sync Manager. Because this gauntlet runs locally on every node and cannot be bypassed, a malicious peer cannot inject unauthorized traffic or reorder history, offline writers can keep authoring while disconnected, and applications concentrate on presentation details such as rendering, end-to-end encryption above the substrate, and retention policy instead of reinventing identity checks, access control, ordered persistence, or failure handling.
+
+### 17.2 Social media and publishing
+
+Social feeds, publishing tools, or community spaces can express their data as a graph of identities, follow or subscription relationships, posts, reactions, and moderation signals. Developers might pick `Edge`s to encode follows, `Parent`s for posts or threads, `Attribute`s for content bodies and timestamps, `Rating`s for reactions or trust annotations, and `ACL`s to define visibility. This is only one schema among many; the protocol never mandates shape, only that every fact obeys the shared object vocabulary.
+
+Centralized networks enforce reach because they own the graph and the policy. Many decentralized attempts jettison the backend but also discard enforceable structure, so spam and moderation stalemates dominate. 2WAY sits between those extremes: distribution and visibility are driven by explicit data such as `ACL`s, relationship `Edge`s, and Permission Manager evaluation rather than by an opaque service. Developers can incorporate degrees of separation into authorization logic, limiting unsolicited reach without heuristics. Moderation also becomes data: attaching `Rating` or moderation `Attribute` objects to content or identities records outcomes as ordered mutations that any application can interpret differently while still trusting authorship and validity. Structure, not central authority, keeps the network usable.
+
+### 17.3 Markets and exchange of goods and services
+
+A marketplace can represent listings, offers, contracts, and reputation entirely within the graph: `Parent` objects for listings or contracts, `Attribute`s for terms and prices, `Edge`s for participant roles, `Rating`s for feedback, and `ACL`s to bound who may advance a contract’s state. Centralized markets simplify disputes by acting as the arbiter, while fully peer-to-peer systems often lack a shared notion of contract progression, making coordination brittle.
+
+2WAY enables a middle ground by treating each contract as a state machine encoded directly in graph objects. Every transition is a mutation that Graph Manager validates, Permission Manager authorizes, and State Manager orders. History stays signed and replayable, so multiple market interfaces can coexist, compete on user experience or fees, and yet rely on the same canonical contract data. The substrate does not enforce payments or physical delivery; it enforces that only authorized transitions happen and that they land in an ordered, durable log synchronized through Sync Manager.
+
+### 17.4 Marketplace-dependent applications
+
+Many real-world services depend on market-like coordination without being markets themselves. Ride-hailing, delivery, and local services all involve offers, acceptances, and completions that benefit from enforceable identity and ordering even when central dispatch disappears.
+
+#### Ride-hailing and drivers
+
+Drivers, riders, availability signals, trip requests, offers, and completion events all become explicit graph objects. Trips can be `Parent`s, location and schedule data can live in typed `Attribute`s, participant responsibilities are `Edge`s, and `ACL`s define who may accept or finalize a ride. Centralized dispatch works because a backend observes everything; decentralized broadcast systems tend to drown in spam. On 2WAY, reach is structurally bounded: relationship `Edge`s, geographic attributes, or policy rules evaluated by Permission Manager determine who learns about a trip. Accepting and closing a ride are ordered mutations, so both parties can verify the sequence independently, and offline operation remains viable because nodes queue trusted mutations until Sync Manager can share them.
+
+#### Food delivery and dispatch
+
+Adding merchants and dispatch roles simply extends the graph. Dispatch authority becomes a delegated capability encoded in `ACL`s and relationship objects rather than an implicit backend privilege. If a dispatcher or SaaS integration disappears, the system narrows gracefully, letting couriers keep working against local state while later reconciliation through Sync Manager restores global consistency without a panic cutover.
+
+#### Goods and local services
+
+Local services, repairs, rentals, or classifieds hinge on long-lived identity and auditability. Centralized platforms often delete trust history when they shut down or pivot. In 2WAY, identity and contract history persist independently of any single interface, so neighborhood services can survive platform churn while retaining verifiable audit trails.
+
+### 17.5 Key revocation and recovery workflows
+
+Keys, devices, and identity bindings are all first-class graph objects, meaning revocation is not a privileged administrative override. Changing which keys Identity Manager will accept is just another ordered mutation that runs through Graph Manager, Permission Manager, and State Manager. Recovery workflows can likewise be modeled in data: `Edge`s and `ACL`s can require approvals from designated recovery identities before a new device key becomes valid. The substrate refuses to dictate policy, but once a policy is described, it enforces ordering, authorization, and auditability consistently because every state change flows through the same pipeline.
+
+### 17.6 Verifying binaries and software supply chains
+
+2WAY also works as an identity and history layer for software distribution. Releases can be signed `Parent` objects with `Attribute`s that store hashes, metadata, or bill-of-materials entries, while publisher hierarchies are just relationship `Edge`s. Trust in publishers is expressed explicitly in the graph, so installation becomes a local policy decision driven by verifiable state, not by DNS or a hosted repository. If a signing key is compromised, a revocation mutation instructs peers to distrust it, and thanks to the State Manager and Sync Manager preserving ordered, tamper-evident history, clients observe and enforce the change without waiting for a central takedown service.
+
+### 17.7 Device trust, enrollment, and compliance
+
+Devices can be modeled as their own objects with attributes describing capabilities, compliance status, and desired posture. Policies themselves are data, enforced locally by Permission Manager rather than by a continuously available management server. Revocation becomes an ordered event, auditability comes from reading signed history, and organizations gain a model suited to environments where availability and inspection matter more than remote convenience.
+
+### 17.8 Multi-party coordination and governance
+
+Because 2WAY enforces ordered, authorized transitions, it naturally supports workflows that demand multiple approvals. Shared `Parent` objects can represent the subject of governance, delegated capabilities live in `ACL`s, and each approval is an ordered mutation that the State Manager records. The system never dictates governance rules; it provides primitives that let communities encode quorums, vetoes, or escalation paths as auditable workflows enforced by the substrate rather than by tradition.
+
+### 17.9 Long-lived records and audit trails
+
+Any workflow that values durable records benefits from identity-bound authorship, ordered history, and fail-closed enforcement. Records become graph objects with explicit ownership and immutable ancestry. Unlike centralized audit systems, correctness does not depend on trusting an operator, and unlike many peer-to-peer networks, ordering and authorization are enforced rather than heuristic. Even if an original application disappears, records remain verifiable to anyone who can replay the history.
+
+### 17.10 What ties these examples together
+
+These examples are intentionally hypothetical. They demonstrate that once identity, permissions, ordering, validation, and denial-of-service controls are enforced below the application layer (by the Identity Manager, Graph Manager, Permission Manager, State Manager, Sync Manager, and DoS Guard Manager), entire classes of workloads become feasible without trusted backends. Centralized systems concentrate authority; many peer-to-peer systems lack enforceable structure. 2WAY works because every node enforces the same structure locally and consistently, leaving application developers free to decide how to model meaning on top while the substrate guarantees authorship, ordering, and survivability.
 
 ---
 
