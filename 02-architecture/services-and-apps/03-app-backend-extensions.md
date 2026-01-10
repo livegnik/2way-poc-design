@@ -108,6 +108,27 @@ Extensions expose three surface categories and must declare them before activati
 * Extensions declare resource budgets (CPU, memory, storage) and DoS Guard hints so Health Manager and DoS Guard can enforce throttles before exhaustion, mirroring `01-protocol/11-dos-guard-and-client-puzzles.md`.
 * Derived caches are optional, non-authoritative, rebuilt from graph reads, and must recheck authorization on every read.
 
+### 2.8 Allowed responsibilities
+
+Extensions may:
+
+* Expose APIs, jobs, and events that belong exclusively to their owning application, provided every call is scoped to the app namespace defined in `01-protocol/01-identifiers-and-namespaces.md`.
+* Coordinate workflows using public manager APIs (Config, Schema, ACL, Graph, Event, Log, State, Network, Health, DoS Guard) without bypassing the validation and ordering rules in `01-protocol/03-serialization-and-envelopes.md`.
+* Maintain app-specific schemas, capability catalogs, and ACL templates inside their app domain while following the schema guarantees in `01-protocol/02-object-model.md` and `01-protocol/06-access-control-model.md`.
+* Use scheduler jobs, helper RPCs, and automation helpers to run background work so long as each entry point supplies an immutable OperationContext and publishes DoS Guard hints.
+* Register observability hooks (logs, events, health signals) through the manager fabric so operators can debug extension-owned logic with the same tooling as system services.
+
+### 2.9 Forbidden responsibilities
+
+Extensions must never:
+
+* Claim `app_0` or operate on behalf of another application unless schema delegation and ACL policy explicitly allow it; namespace isolation in `01-protocol/01-identifiers-and-namespaces.md` remains absolute.
+* Bypass managers by touching SQLite, filesystem storage, sockets, keys, or sync metadata directly; Graph Manager stays the only write path and Key/Network/State Managers own crypto and transport boundaries.
+* Perform manager-grade duties such as ACL enforcement, schema compilation, sync orchestration, or DoS admission decisions—those remain under the manager charter described in `02-architecture/managers/00-managers-overview.md`.
+* Expose new listeners, peer sockets, or transport protocols outside the interface layer; all ingress/egress goes through the HTTP/WebSocket surfaces documented in `04-interfaces/**` and the admission posture from `01-protocol/08-network-transport-requirements.md`.
+* Persist state outside graph-owned storage or rely on mutable local caches that cannot be recomputed deterministically from Graph reads.
+* Share runtime state with other extensions or apps via global variables, in-memory message passing, or filesystem side channels; all coordination occurs through manager-governed graph data or documented system service APIs.
+
 ## 3. Lifecycle, deployment, and runtime coordination
 
 ### 3.1 Lifecycle states and internal execution phases
