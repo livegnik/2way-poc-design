@@ -164,13 +164,13 @@ History is append-only and rooted in per-device logs. Every change carries autho
 
 Because the graph lives on every node, the system is local-first. Writes land on the originating device, then propagate as signed deltas when peers connect. Synchronization is incremental and scoped by trust: peers request only the ranges they want, verify ordering deterministically, and merge when every prerequisite holds. Long offline periods are normal; reconnection is another validation and merge pass.
 
-Every proposal follows the same lifecycle:
+Every proposal follows the lifecycle described in `01-protocol/00-protocol-overview.md` and enforced by the managers named in `02-architecture/01-component-model.md`:
 
-1. An application proposes a change with a schema that states what must exist and how it may evolve.
-2. Schema validation ensures references exist, types match, and the payload respects domain rules.
-3. Authorization checks verify that the signer owns the relevant nodes or holds capabilities that allow the mutation.
-4. Deterministic ordering picks where the proposal fits relative to accepted writes, preventing races.
-5. The mutation commits to the local append-only log and, if desired, streams to peers that run the same pipeline.
+1. An application or service constructs an `OperationContext` and graph message envelope that states the desired mutation.
+2. Graph Manager performs structural validation first, rejecting malformed envelopes before any other work occurs.
+3. Schema Manager validates references, types, and domain rules according to the active schema set.
+4. ACL Manager evaluates permissions using the supplied `OperationContext` and graph state; authorization must succeed before any write proceeds.
+5. Graph Manager assigns a monotonic `global_seq`, commits the mutation through Storage Manager, and State Manager later syncs the accepted history to peers in order.
 
 If any step fails (missing reference, stale capability, conflicting order), the proposal never hits durable state. Rejection is deterministic, so correct nodes converge without negotiating or trusting the network.
 
@@ -178,7 +178,7 @@ If any step fails (missing reference, stale capability, conflicting order), the 
 
 ## 6. Protocol object model
 
-`01-protocol/02-object-model.md` defines the grammar of the shared graph. Every fact is one of five categories (Parent, Attribute, Edge, Rating, ACL) and every record carries metadata (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`). That metadata lets any peer replay history, verify authorship, and enforce ordering without a coordinator or custom storage tricks.
+`01-protocol/02-object-model.md` defines the grammar of the shared graph. Facts fall into five canonical categories: Parent, Attribute, Edge, Rating, and ACL (ACL structures are encoded as constrained Parent plus Attribute records). Parent, Attribute, Edge, and Rating records carry the shared metadata set (`app_id`, record id, `type_id`, `owner_identity`, `global_seq`, `sync_flags`) so any peer can replay history, verify authorship, and enforce ordering without a coordinator or custom storage tricks.
 
 This small vocabulary can model any application schema:
 
@@ -418,19 +418,19 @@ Teams in these spaces gain:
 
 Messaging maps neatly to graph primitives. Conversations become `Parent` objects, participants are membership `Edge`s, individual messages are `Attribute` objects, and an `ACL` defines who may read or write. That layout is illustrative, not prescriptive; developers can model conversations, threads, or channels however their UX demands as long as the schema honors the object model.
 
-Each outbound message is a proposed mutation submitted through State Manager. Graph Manager confirms that targets exist and references are well formed, Permission Manager evaluates the conversation ACL against the author identity verified by Identity Manager, and State Manager serializes and commits the write before Sync Manager offers it to peers. Because this pipeline runs locally and cannot be bypassed, malicious peers cannot inject unauthorized traffic or reorder history, offline writers keep working, and applications can focus on presentation, end-to-end encryption layered above the substrate, and retention policy instead of rebuilding the stack.
+Each outbound message is a proposed mutation handled by Graph Manager. Graph Manager confirms that targets exist, references are well formed, and ordering constraints hold. ACL Manager evaluates the conversation ACL using the author identity that Auth Manager resolved, and once the write commits locally, State Manager coordinates replication while Network Manager offers it to peers. Because this pipeline runs locally and cannot be bypassed, malicious peers cannot inject unauthorized traffic or reorder history, offline writers keep working, and applications can focus on presentation, end-to-end encryption layered above the substrate, and retention policy instead of rebuilding the stack.
 
 ### 17.2 Social media and publishing
 
 Social feeds or community tools can express their data as identities, follow or subscription relationships, posts, reactions, and moderation signals. Developers might encode follows as `Edge`s, posts or threads as `Parent`s, content bodies and timestamps as `Attribute`s, reactions or trust marks as `Rating`s, and visibility rules as `ACL`s. The protocol never mandates shape; it only requires that each fact obey the shared vocabulary.
 
-Centralized networks enforce reach because they own the graph and policy. Many decentralized attempts drop backends but also drop enforceable structure, so spam and moderation stalemates dominate. 2WAY sits between these extremes. Distribution and visibility come from explicit data (`ACL`s, relationship `Edge`s, and Permission Manager evaluation) rather than from a hidden service. Developers can use degrees of separation to limit unsolicited reach. Moderation becomes data: attaching `Rating` or moderation `Attribute` objects records outcomes as ordered mutations that any app can interpret while still trusting authorship and validity.
+Centralized networks enforce reach because they own the graph and policy. Many decentralized attempts drop backends but also drop enforceable structure, so spam and moderation stalemates dominate. 2WAY sits between these extremes. Distribution and visibility come from explicit data (`ACL`s, relationship `Edge`s, and ACL Manager evaluation) rather than from a hidden service. Developers can use degrees of separation to limit unsolicited reach. Moderation becomes data: attaching `Rating` or moderation `Attribute` objects records outcomes as ordered mutations that any app can interpret while still trusting authorship and validity.
 
 ### 17.3 Markets and exchange of goods and services
 
 A marketplace can represent listings, offers, contracts, and reputation entirely within the graph: `Parent` objects for listings or contracts, `Attribute`s for terms and prices, `Edge`s for participant roles, `Rating`s for feedback, and `ACL`s to bound who may advance a contract state. Centralized markets simplify disputes by acting as arbiters, while fully peer-to-peer systems often lack a shared notion of contract progression.
 
-2WAY enables a middle path by treating each contract as a state machine encoded in graph objects. Every transition is a mutation that Graph Manager validates, Permission Manager authorizes, and State Manager orders. History stays signed and replayable, so multiple market interfaces can coexist, compete on UX or fees, and still rely on the same canonical data. The substrate does not enforce payments or delivery; it ensures that only authorized transitions happen and that they land in an ordered, durable log shared through Sync Manager.
+2WAY enables a middle path by treating each contract as a state machine encoded in graph objects. Every transition is a mutation that Graph Manager validates and orders after ACL Manager authorizes it. History stays signed and replayable, so multiple market interfaces can coexist, compete on UX or fees, and still rely on the same canonical data. The substrate does not enforce payments or delivery; it ensures that only authorized transitions happen and that they land in an ordered, durable log that State Manager and Network Manager relay to peers.
 
 ### 17.4 Marketplace-dependent applications
 
@@ -438,11 +438,11 @@ Many services rely on market-like coordination without being markets themselves.
 
 #### Ride-hailing and drivers
 
-Drivers, riders, availability, trip requests, offers, and completion events become explicit graph objects. Trips can be `Parent`s, location and schedule data can live in typed `Attribute`s, participant responsibilities are `Edge`s, and `ACL`s define who may accept or close a ride. Centralized dispatch works because a backend observes everything; decentralized broadcast systems drown in spam. On 2WAY, reach stays bounded: relationship `Edge`s, geographic attributes, or policy rules evaluated by Permission Manager determine who sees a trip. Accepting and closing a ride are ordered mutations, so both parties can verify the sequence, and offline work remains possible because nodes queue trusted mutations until Sync Manager shares them.
+Drivers, riders, availability, trip requests, offers, and completion events become explicit graph objects. Trips can be `Parent`s, location and schedule data can live in typed `Attribute`s, participant responsibilities are `Edge`s, and `ACL`s define who may accept or close a ride. Centralized dispatch works because a backend observes everything; decentralized broadcast systems drown in spam. On 2WAY, reach stays bounded: relationship `Edge`s, geographic attributes, or policy rules evaluated by ACL Manager determine who sees a trip. Accepting and closing a ride are ordered mutations, so both parties can verify the sequence, and offline work remains possible because nodes queue trusted mutations until State Manager distributes them through Network Manager.
 
 #### Food delivery and dispatch
 
-Merchants and dispatch roles extend the same graph. Dispatch authority becomes a delegated capability encoded in `ACL`s and relationship objects rather than an implicit backend privilege. If a dispatcher or SaaS integration disappears, the system narrows gracefully. Couriers keep working against local state, and later reconciliation through Sync Manager restores global consistency without a panic cutover.
+Merchants and dispatch roles extend the same graph. Dispatch authority becomes a delegated capability encoded in `ACL`s and relationship objects rather than an implicit backend privilege. If a dispatcher or SaaS integration disappears, the system narrows gracefully. Couriers keep working against local state, and later reconciliation orchestrated by State Manager restores global consistency without a panic cutover.
 
 #### Goods and local services
 
@@ -450,15 +450,15 @@ Local services, repairs, rentals, or classifieds rely on long-lived identity and
 
 ### 17.5 Key revocation and recovery workflows
 
-Keys, devices, and identity bindings are graph objects, so revocation is not a privileged administrative action. Changing which keys Identity Manager accepts is just another ordered mutation that travels through Graph, Permission, and State Managers. Recovery workflows can also live in data: `Edge`s and `ACL`s can require approvals from designated recovery identities before a new device key becomes valid. The substrate does not dictate policy, but once a policy is described, it enforces ordering, authorization, and auditability because every state change uses the same pipeline.
+Keys, devices, and identity bindings are graph objects, so revocation is not a privileged administrative action. Changing which keys Key Manager trusts is just another ordered mutation that travels through Graph, ACL, and State Managers. Recovery workflows can also live in data: `Edge`s and `ACL`s can require approvals from designated recovery identities before a new device key becomes valid. The substrate does not dictate policy, but once a policy is described, it enforces ordering, authorization, and auditability because every state change uses the same pipeline.
 
 ### 17.6 Verifying binaries and software supply chains
 
-2WAY works as an identity and history layer for software distribution. Releases can be signed `Parent` objects with `Attribute`s storing hashes, metadata, or bills of materials, while publisher hierarchies are relationship `Edge`s. Trust in publishers is expressed explicitly in the graph, so installation becomes a local policy decision driven by verifiable state, not DNS or a hosted repository. If a signing key is compromised, a revocation mutation instructs peers to distrust it, and thanks to State Manager and Sync Manager preserving ordered, tamper-evident history, clients observe and enforce the change without waiting for a central takedown.
+2WAY works as an identity and history layer for software distribution. Releases can be signed `Parent` objects with `Attribute`s storing hashes, metadata, or bills of materials, while publisher hierarchies are relationship `Edge`s. Trust in publishers is expressed explicitly in the graph, so installation becomes a local policy decision driven by verifiable state, not DNS or a hosted repository. If a signing key is compromised, a revocation mutation instructs peers to distrust it, and thanks to Graph Manager and State Manager preserving ordered, tamper-evident history, clients observe and enforce the change without waiting for a central takedown.
 
 ### 17.7 Device trust, enrollment, and compliance
 
-Devices can be modeled as objects with attributes describing capabilities, compliance status, and desired posture. Policies are data enforced locally by Permission Manager rather than by a continuously available management server. Revocation becomes an ordered event, auditability comes from reading signed history, and organizations gain a model suited to environments where availability and inspection matter more than remote convenience.
+Devices can be modeled as objects with attributes describing capabilities, compliance status, and desired posture. Policies are data enforced locally by ACL Manager rather than by a continuously available management server. Revocation becomes an ordered event, auditability comes from reading signed history, and organizations gain a model suited to environments where availability and inspection matter more than remote convenience.
 
 ### 17.8 Multi-party coordination and governance
 
@@ -470,7 +470,7 @@ Any workflow that values durable records benefits from identity-bound authorship
 
 ### 17.10 What ties these examples together
 
-These examples are illustrative. They show that once identity, permissions, ordering, validation, and denial-of-service controls live below the application layer (in Identity, Graph, Permission, State, Sync, and DoS Guard Managers), whole classes of workloads become feasible without trusted backends. Centralized systems concentrate authority; many peer-to-peer systems lack structure. 2WAY works because every node enforces the same structure locally while letting developers decide how to model meaning on top.
+These examples are illustrative. They show that once identity, permissions, ordering, validation, and denial-of-service controls live below the application layer (in Auth, Graph, ACL, State, Network, and DoS Guard Managers), whole classes of workloads become feasible without trusted backends. Centralized systems concentrate authority; many peer-to-peer systems lack structure. 2WAY works because every node enforces the same structure locally while letting developers decide how to model meaning on top.
 
 ---
 
