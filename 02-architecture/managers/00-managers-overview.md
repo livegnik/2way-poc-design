@@ -52,20 +52,20 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 
 | ID | Manager | Core responsibilities | Depends on | Consumed by |
 | --- | --- | --- | --- | --- |
-| 01 | Config | Configuration ingestion, schema registry for settings, namespace snapshots, reloads. | Storage (settings table), ACL (export filtering), DoS Guard (policy snapshots). | All managers/services needing configuration. |
+| 01 | Config | Configuration ingestion, schema registry for settings, namespace snapshots, reloads. | Storage (settings table), ACL (export filtering). | All managers/services needing configuration. |
 | 02 | Storage | SQLite lifecycle, schema materialization, transactional persistence, sequence helpers. | Config (db path). | Graph, State, Config, Schema, Log, Event, App. |
-| 03 | Key | Key generation, storage, signing, ECIES crypto. | Config (key paths). | Network, State, Graph (via callers), App. |
-| 04 | Auth | Local HTTP/WebSocket authentication -> OperationContext inputs. | Config (routes), Storage/front-end session store. | HTTP layer, all managers via OperationContext. |
-| 05 | Schema | Loads/validates graph schemas, resolves type ids, compiles sync domains. | Graph (read access), Storage (type tables). | Graph, ACL, State, App, services. |
+| 03 | Key | Key generation, storage, signing, ECIES crypto. | Config (key paths). | Network, State, App, DoS Guard. |
+| 04 | Auth | Local HTTP/WebSocket authentication -> OperationContext inputs. | Config (routes), App (routing metadata), frontend session store. | HTTP layer, all managers via OperationContext. |
+| 05 | Schema | Loads/validates graph schemas, resolves type ids, compiles sync domains. | Graph (read access), Storage (type tables), Config (limits). | Graph, ACL, State, App, services. |
 | 06 | ACL | Authorization for all graph reads/writes. | Schema (defaults), Graph (state), Config (policy). | Graph, Event (capsules), services. |
 | 07 | Graph | Single write path, canonical read surface, traversal helpers. | Schema, ACL, Storage, Event, Log, State, Config, App. | State, Event (post-commit), services. |
 | 08 | App | Registers apps, app identities, backend extensions. | Storage, Key, Config. | HTTP router, Schema (per app), Graph, ACL. |
 | 09 | State | Sync metadata, inbound envelope coordination, outbound package construction. | Graph, Storage, Network, Config, Schema. | Network (packages), Health, services. |
-| 10 | Network | Transport surfaces, bastion admission, crypto verification, peer discovery. | DoS Guard, Key, Config, State, Health, Event. | State (verified envelopes), Health. |
-| 11 | Event | Sole event publication surface (internal bus + WebSocket). | ACL (audience capsules), Graph, App, Config, Auth. | Frontend clients, managers needing notifications. |
-| 12 | Log | Structured logging, audit/security sinks, query APIs. | Config (log.*), Storage (filesystem). | Event (bridged alerts), operators, Health. |
+| 10 | Network | Transport surfaces, bastion admission, crypto verification, peer discovery. | DoS Guard, Key, State, Config, Health, Event, Log. | State (verified envelopes), Health. |
+| 11 | Event | Sole event publication surface (internal bus + WebSocket). | ACL (audience capsules), Graph, App, Config, Auth, DoS Guard. | Frontend clients, managers needing notifications. |
+| 12 | Log | Structured logging, audit/security sinks, query APIs. | Config (log.*), filesystem. | Event (bridged alerts), DoS Guard (abuse signals), operators, Health. |
 | 13 | Health | Aggregates readiness/liveness across managers. | All managers (signals), Config. | DoS Guard (admission multiplier), operators, Event. |
-| 14 | DoS Guard | Admission decisions, puzzles, telemetry to Network Manager. | Config (dos.*), Key (seeds), Health. | Network (bastion), Event, Log. |
+| 14 | DoS Guard | Admission decisions, puzzles, telemetry to Network Manager. | Network (telemetry), Config (dos.*), Key (seeds), Health. | Network (bastion), Event, Log. |
 
 ### 3.1 Dependency constraints
 
@@ -116,7 +116,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Schema registry for configuration keys (namespaces `node.*`, `storage.*`, `graph.*`, etc.).
   * Immutable namespace snapshots distributed at startup/reload.
   * Two-phase change propagation with veto support and `cfg_seq` monotonic IDs.
-* **Dependencies**: Storage Manager (settings table), ACL Manager (export filtering), Graph Manager (change notifications), DoS Guard (dos.* policies), Health Manager (readiness).
+* **Dependencies**: Storage Manager (settings table), ACL Manager (export filtering).
 * **Critical invariants**:
   * No component reads `.env` or `settings` directly; Config Manager mediates all access.
   * Boot-critical `node.*` values are immutable after startup.
@@ -132,7 +132,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Global table creation (`identities`, `apps`, `global_seq`, etc.) and per-app table families (`app_N_*`).
   * Sequence Engine that persists `global_seq`, `domain_seq`, `sync_state` (`01-protocol/07-sync-and-consistency.md`).
   * Transaction helpers (read-only, write, savepoints) with envelope-level atomicity.
-* **Dependencies**: Config Manager (database path), Graph Manager (write path), App Manager (per-app provisioning), Schema Manager (type tables).
+* **Dependencies**: Config Manager (database path).
 * **Critical invariants**:
   * Exactly one writable connection per process; WAL mode enforced.
   * Graph rows append-only; metadata fields (`app_id`, `type_id`, `owner_identity`, `global_seq`) are immutable.
@@ -146,7 +146,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Key Storage Engine with deterministic filesystem layout.
   * Cryptographic operation APIs that require explicit scope + key identifier parameters (no implicit selection).
   * Public-key derivation for graph binding (Graph Manager persists, Key Manager never writes graph data).
-* **Dependencies**: Config Manager (key directory path). Consumers: Network Manager, State Manager, Graph Manager (via dependencies), App Manager.
+* **Dependencies**: Config Manager (key directory path). Consumers: Network Manager, State Manager, App Manager, DoS Guard Manager.
 * **Critical invariants**:
   * Private keys never leave disk/memory and are never exported/logged.
   * Node key must exist before startup completes; failure aborts the process.
@@ -160,7 +160,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Token validation pipeline (presence, format, existence, expiry, identity mapping).
   * Admin gating evaluation for protected routes.
   * Construction inputs for OperationContext (requester identity, app context, admin flag).
-* **Dependencies**: Storage/front-end session store, Config Manager (route settings), App Manager (app context), Health Manager (signals). Consumers: HTTP layer, Event/Log (audit), ACL/Graph (via OperationContext).
+* **Dependencies**: Config Manager (route settings), App Manager (routing metadata), frontend session store. Consumers: HTTP layer, Event/Log (audit), ACL/Graph (via OperationContext).
 * **Critical invariants**:
   * Authentication is strictly separated from authorization.
   * OperationContext.requester_identity_id originates only here (for local traffic).
@@ -276,7 +276,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Submission -> Validation -> Normalization -> Routing -> Sink pipeline.
   * Integrity hashing for audit/security files; retention management.
   * Optional Event Manager bridge for high-severity alerts.
-* **Dependencies**: Config (log.*), filesystem. Consumers: Event (alerts), Health (sinks), operators.
+* **Dependencies**: Config (log.*), filesystem. Consumers: Event (alerts), DoS Guard (security feeds), Health (sinks), operators.
 * **Critical invariants**:
   * No component writes logs directly to sinks; everything flows through Log Manager.
   * OperationContext metadata is mandatory when available.
@@ -326,8 +326,8 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 8. **State Manager** reconstructs metadata once Graph/Storage ready.
 9. **Log Manager** initializes sinks (so remaining managers can log).
 10. **Event Manager** starts intake/delivery.
-11. **Network Manager** starts bastion/admitted surfaces after DoS Guard is live.
-12. **DoS Guard Manager** starts before Network admissions.
+11. **DoS Guard Manager** loads `dos.*`, registers its Bastion interface with Network Manager, and defaults to deny until Health signals are available.
+12. **Network Manager** brings up bastion/admitted surfaces only after DoS Guard registration succeeds.
 13. **Auth Manager** comes online once Config/App are ready.
 14. **Health Manager** begins sampling once all managers report initial state.
 
