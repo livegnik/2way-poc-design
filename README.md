@@ -114,11 +114,24 @@ Because every device enforces the same rules, network input and peer behavior st
 Authority flows downward from applications to storage.
 
 ```
-Applications          Interpret ordered state, run UI, apply domain logic
-    ↓
-2WAY Substrate        Identity, permissions, ordering, graph state, sync, structural guards
-    ↓
-Storage & Transport   Local persistence and networking
+┌──────────────────────────────────────────┐
+│              Applications                │
+│ Interpret ordered state, run UI, apply   │
+│ domain logic                             │
+└──────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────┐
+│            2WAY Substrate                │
+│ Identity, permissions, ordering, graph   │
+│ state, sync, structural guards           │
+└──────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────┐
+│        Storage and Transport             │
+│ Local persistence and networking         │
+└──────────────────────────────────────────┘
 ```
 
 | Layer | Responsibilities | Cannot bypass |
