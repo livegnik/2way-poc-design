@@ -406,7 +406,7 @@ Developer experience implications:
 
 2WAY fits workloads where trust, verifiability, and survivability matter more than peak throughput. Offline collaboration, multi-party workflows, and audit-heavy systems benefit because authority stays local, history is replayable, and policy boundaries remain explicit even as applications change. Adopting 2WAY means promising users that collaboration endures without a master server, provenance stays inspectable, and failure modes stay bounded no matter who operates the UI.
 
-Representative umbrella categories mirror earlier drafts: web, mobile, desktop, and embedded apps that need deterministic sync; messaging or shared workspaces that need provenance; distributed identity stacks; supply-chain coordination; regulated industries; offline-first meshes; and critical infrastructure that refuses silent overrides. The examples below show how the shared graph and manager pipeline make ambitious designs possible without recreating a backend per domain.
+Representative umbrella categories include web, mobile, desktop, and embedded apps that need deterministic sync; messaging or shared workspaces that need provenance; distributed identity stacks; supply-chain coordination; regulated industries; offline-first meshes; and critical infrastructure that refuses silent overrides. The examples below show how the shared graph and manager pipeline make ambitious designs possible without recreating a backend per domain.
 
 Teams in these spaces gain:
 
