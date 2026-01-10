@@ -13,18 +13,7 @@ The document establishes how frontend apps participate in OperationContext const
 This specification references the following documents:
 
 * `00-scope/**`
-* `01-protocol/00-protocol-overview.md`
-* `01-protocol/01-identifiers-and-namespaces.md`
-* `01-protocol/02-object-model.md`
-* `01-protocol/03-serialization-and-envelopes.md`
-* `01-protocol/04-cryptography.md`
-* `01-protocol/05-keys-and-identity.md`
-* `01-protocol/06-access-control-model.md`
-* `01-protocol/07-sync-and-consistency.md`
-* `01-protocol/08-network-transport-requirements.md`
-* `01-protocol/09-errors-and-failure-modes.md`
-* `01-protocol/10-versioning-and-compatibility.md`
-* `01-protocol/11-dos-guard-and-client-puzzles.md`
+* `01-protocol/**`
 * `02-architecture/01-component-model.md`
 * `02-architecture/services-and-apps/01-services-vs-apps.md`
 * `02-architecture/services-and-apps/02-system-services.md`
