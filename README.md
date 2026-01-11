@@ -283,16 +283,16 @@ Even if an application is compromised or a key is stolen, it emits only proposal
 
 ## 10. Degrees of separation and influence limits
 
-Authority in 2WAY stays local. Every private key, whether it belongs to a person, a device, a service, or an automated workflow, only sees the network from its zeroth degree: the data it already trusts and the history it has replayed. Anything outside that view requires explicit edges that the key accepted. Those edges describe direction, ownership, and purpose so policies can spell out who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate instead of from an optional UI toggle.
+Authority in 2WAY is local, not global. Every private key, whether held by a person, device, service, or automation, experiences the network entirely from its zeroth degree: the portion of the graph it already trusts and the history it has verified. Everything else is an optional projAuthority in 2WAY stays local. Every private key, whether it belongs to a person, a device, a service, or an automated workflow, only sees the network from its zeroth degree: the data it already trusts and the history it has replayed. Anything outside that view requires explicit edges that the key accepted. Those edges describe direction, ownership, and purpose so policies can spell out who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate instead of from an optional UI toggle.
 
 Practical effects:
 
 * **Zeroth-degree anchoring**: proposals are judged against the local view first. Subscribing to a broad topic does nothing until a first-degree link agrees to share history.
 * **Gradient trust**: first-degree collaborators get fast reads and writes, second-degree observers may see delayed or read-only data, and unknown nodes stay invisible. Schema checks, ACL decisions, and sync rules all honor that gradient.
 * **Bounded broadcast and replication**: operations can declare a hop budget such as "friends of friends." Once the budget expires the mutation stops propagating, so spam bursts and storage growth stay tied to explicit consent.
-* **Structural ignore**: identities beyond the chosen radius never reach ACL Manager or State Manager. Degree filters shed that work before it hits CPU or disk, which doubles as DoS protection.
-* **Intentional expansion**: gaining reach means creating edges that every hop signs off on. Each hop records why it vouched for the next, so audits can trace influence and operators can retract it by pruning specific links.
-* **UI determinism**: applications that render feeds, alerts, marketplaces, or governance queues know that every record already passed the user's degree filters. The zeroth-degree view defines what "global" means for that key.
+* **Structural ignore**: identities beyond the chosen radius never reach ACL Manager or State Manager. Degree filters shed that work bef* **UI determinism**: applications that render feeds, alerts, marketplaces, or governance queues know that every record already passed the user's degree filters. The zeroth-degree view defines what "global" means for that key.
+and operators can retract it by pruning specific links.
+* **UI determinism**: applications that render feeds, alerts, marketplaces, or governance queues know that every record already passed the user?s degree filters. The zeroth-degree view defines what "global" means for that key.
 * **Security layering**: degree filters form concentric rings. Unknown keys can send packets, but they cannot trigger schema validation, ACL evaluation, or disk writes until a trusted hop lets them through. Widening reach always leaves a recorded edge.
 * **Sybil drag**: cloned identities must earn approval at every hop. Hop budgets and per-hop policy make that expensive, and removing any one link collapses the entire route.
 
@@ -301,16 +301,7 @@ These guardrails keep trust from spreading on its own, limit unsolicited reach, 
 The same mechanics feed directly into Sybil resistance (see Section 11). Degree enforcement keeps anonymous floods away from ACL evaluation, shows exactly who vouched for each identity, and lets defenders cut off whole branches by revoking a single edge. Sybils cannot borrow trust because every hop is intentional, reviewable, and revocable.
 
 This approach is not the PGP Web of Trust. PGP attestations mostly claim that someone saw another key, and each client invents its own policy afterward. 2WAY edges bundle permissions, hop limits, and revocation behavior, so they carry governed capability rather than social proof. When a node withdraws an edge, reach shrinks immediately according to the recorded degree limits, not according to convention.
-
----
-
-## 11. Sybil resistance through structure
-
-Perfect Sybil prevention is unrealistic for open networks, so 2WAY makes identity floods unproductive. Every actor must earn reach through visible, consented relationships.
-
-Structural guardrails:
-
-* **Anchoring required**: new keys have no influence until they form edges with trusted anchors. Without that path, their proposals never leave the network buffer.
+il they form edges with trusted anchors. Without that path, their proposals never leave the network buffer.
 * **Application-scoped trust**: reputation lives in the shared graph but is interpreted per application, so standing in one domain grants nothing elsewhere.
 * **Explicit delegation**: edges that convey authority must be recorded by both parties, include bounded capabilities, and stay revocable.
 * **Degree limits**: hop budgets block unsolicited fan-out. Nodes that never opted into a path will never see its traffic.
