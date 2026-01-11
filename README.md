@@ -283,7 +283,7 @@ Even if an application is compromised or a key is stolen, it emits only proposal
 
 ## 10. Degrees of separation and influence limits
 
-Authority in 2WAY stays local. Every private key, whether it belongs to a person, device, service, or automation, only sees the network from its zeroth degree: the graph it already trusts and the history it has replayed. Anything beyond that view requires explicit edges that describe direction, ownership, and purpose so policies can decide who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate, not from a UI toggle. Until a new identity forms edges with trusted anchors, its proposals never leave the network buffer.
+Authority in 2WAY is local, not global. Every private key, whether it belongs to a person, device, service, or automation, only sees the network from its zeroth degree: the graph it already trusts and the history it has replayed. Anything beyond that view requires explicit edges that describe direction, ownership, and purpose so policies can decide who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate, not from a UI toggle. Until a new identity forms edges with trusted anchors, its proposals never leave the network buffer.
 
 Practical effects:
 
