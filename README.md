@@ -356,11 +356,27 @@ Because untrusted traffic never leaves the shallow bastion zone until puzzles (i
 
 2WAY assumes things will go wrong. Keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system fails closed instead of guessing what the operator intended.
 
+Failure handling happens at multiple layers:
+
+- **Protocol gatekeeping**: Graph Manager enforces object-model invariants before Schema Manager or ACL Manager see the request. Invalid envelopes are dropped, a rejection reason is logged, and nothing touches Storage Manager.
+- **Authority pipeline**: Schema Manager, ACL Manager, and Graph Manager run deterministically with the supplied `OperationContext`. Any disagreement (missing schema, revoked capability, forked ancestry) returns a hard error that every peer will hit when replaying the same input.
+- **Transport boundary**: Network and DoS Guard Managers refuse traffic they cannot attribute, rate-limit, or puzzle-gate. Connections fail fast rather than letting junk flow toward storage.
+
 When a rule is violated (schema mismatch, missing capability, conflicting ordering), the input is rejected before it touches durable state. No speculative writes remain. Each write still travels the same serialized path, so local integrity holds even when the app above it is compromised.
 
-Operation continues with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation beats availability: it is better to drop a misbehaving connection than to corrupt the graph.
+Operation continues with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation beats availability: it is better to drop a misbehaving connection than to corrupt the graph. Health Manager and DoS Guard Manager cooperate to block new work if liveness or telemetry sinks, so overload becomes back-pressure, not inconsistent state.
 
 Recovery is explicit and auditable. Administrators or applications craft corrective actions (revocations, replays, migrations, repairs) that pass the same validation pipeline as any other write. There is no hidden admin override or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen.
+
+Different failure classes map to targeted containment strategies:
+
+- **Node or manager crash**: Storage Manager's append-only log lets the node replay accepted history after restart. Managers initialize independently, and any manager that cannot load reports `not_ready`, which keeps Network Manager from admitting fresh work until the fault clears.
+- **Divergent histories**: Graph Manager refuses to advance `global_seq` if ancestry is missing. State Manager requests the missing range, replays it deterministically, and only then resumes sync. Peers never speculate about intent; they insist on ordered, signed history.
+- **Key compromise or revocation**: Key Manager replaces trust roots only via explicit graph mutations (revocations, recovery flows). Once a revocation lands, ACL Manager removes the capability immediately because authorization decisions derive from recorded edges, not cached sessions.
+- **Storage corruption**: Checksums and parent pointers make tampering or disk errors obvious. A corrupted log segment fails validation and the node stops processing until the operator restores from a trusted snapshot. Partial data never leaks upward because Graph Manager refuses to commit on inconsistent storage.
+- **Unbounded input or spam**: Network Manager, DoS Guard Manager, and ACL Manager can independently cut a peer off. The system prefers deliberate disconnects over degraded correctness, so abusive sessions see puzzles escalate to denial long before they can saturate CPU.
+
+Because every mitigation is itself part of the ordered, signed record, auditors can see what failed, what was rejected, what was quarantined, and how it was repaired. Nodes never guess or silently heal; they either prove a fact in the graph or refuse the action.
 
 ---
 
