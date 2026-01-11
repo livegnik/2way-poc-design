@@ -322,15 +322,16 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 12. Denial-of-service containment
 
-2WAY assumes sustained abuse and keeps attackers on the defensive. Throughput may dip, but data integrity and ordering hold because every trust boundary can reject cheaply before expensive work begins.
+2WAY assumes attackers keep trying, so every inbound request hits DoS Guard Manager first. DoS Guard sits between hostile transport links and Network Manager’s trusted surfaces, which keeps unknown packets in a holding area until DoS Guard says `allow`, `deny`, or `require_challenge`. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until the cheap admission filter succeeds.
 
-The system combines fast rejection (schema checks, permission gates, serialized writes, scoped sync windows) with adaptive cost shifting. When pressure rises, nodes force requesters to spend more effort before each packet lands, so attackers burn CPU while defenders stay mostly idle.
+DoS Guard contains floods by adjusting client puzzle difficulty on the fly. Borrowing the “New Client Puzzle Outsourcing Techniques for DoS Resistance” approach from Ari Juels et al., it shifts work to the requester whenever telemetry, policy, or Health Manager signals show strain. Every puzzle includes a unique `challenge_id`, opaque payload, context binding, expiration, and algorithm selector. Network Manager only relays the bytes. DoS Guard records success and failure per peer, per anonymous source, and across the node, so abusive senders see difficulty rise steadily and only see relief after they behave. Proofs expire fast, cannot be replayed on other connections, and take far more effort to solve than to verify, which keeps defenders cool while attackers burn CPU.
 
-Untrusted traffic lives in a shallow, restartable zone. Authenticated traffic moves deeper only after clearing admission. That separation lets abusive bursts die at the boundary while established peers keep exchanging signed history.
+The telemetry and policy loop keeps puzzles adaptive instead of static throttles:
+- **Telemetry-driven escalation**: Transport byte counts, message rates, and resource pressure feed the Policy Engine. Crossing configured `dos.*` limits raises puzzle cost or triggers a deny, and missing telemetry defaults to `require_challenge`.
+- **Health-aware gating**: When Health Manager reports `not_ready`, DoS Guard raises difficulty or stops admitting traffic so the node never accepts work it cannot finish safely.
+- **Config-bound ceilings**: Config Manager sets minimum and maximum difficulty, limits on outstanding puzzles, and decay periods, so puzzle outsourcing stays bounded and predictable across builds.
 
-Client puzzles stay dynamic: difficulty ramps up for misbehaving sources and relaxes for cooperative peers. Proofs expire quickly and cannot be replayed, so solving one puzzle never opens the door for someone else.
-
-Because every device enforces these guardrails locally, damage stays contained. A compromised node may lose its own connectivity, but it cannot drag honest peers into coordination storms or force them to redo work just by shouting louder.
+Because untrusted traffic never leaves the shallow bastion zone until puzzles (if any) and crypto checks pass, abusive bursts die at the edge. Each node enforces these DoS Guard rules on its own device and fails closed if the manager is unavailable, so a compromised or overloaded peer might lose connectivity, but it cannot drag honest nodes into storms or force them to redo work just by shouting louder.
 
 ---
 
