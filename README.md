@@ -382,18 +382,19 @@ Because every mitigation is itself part of the ordered, signed record, auditors 
 
 ## 14. What the system guarantees
 
-2WAY makes a small set of structural promises:
+2WAY makes a small set of structural promises. They are narrow on purpose so anyone can audit whether they hold and so multiple implementations can ship without reinterpretation.
 
-* **Identity-bound authorship**: every mutation is tied cryptographically to the device and identity that proposed it, so provenance is clear.
-* **Append-only, tamper-evident history**: each node keeps an ordered log with parent references and durable digests, enabling independent replay and audit.
-* **Deterministic validation and ordering**: well-formed inputs produce identical outcomes on every node regardless of arrival timing or network behavior.
-* **Structural application isolation**: applications see the same feed but cannot touch each other's state without explicit delegation recorded in the graph.
-* **Explicit authority delegation**: permissions originate only from recorded edges, not from config files or implied roles.
-* **Fail-closed behavior**: missing context, conflicting data, or ambiguous authority leads to rejection, so attacks end at the boundary.
+* **Identity-bound authorship**: Every mutation carries the public key and device lineage that produced it. Key Manager owns signing keys, Graph Manager refuses unsigned data, and replaying history shows exactly who authored each fact. No component may edit an event after the signature lands.
+* **Append-only, tamper-evident history**: Storage Manager writes ordered logs with parent references and durable digests. Peers can replay another node's history, verify each hash chain, and detect any attempt to delete, reorder, or silently rewrite data. Recovery never relies on a hidden database or trusted operator.
+* **Deterministic validation and ordering**: Schema Manager, ACL Manager, and Graph Manager run in a fixed order on every node. Given the same inputs, they either all accept or all reject. Timing, network jitter, or topology changes cannot change the outcome, so peers converge without coordination tricks.
+* **Structural application isolation**: Applications subscribe to the same ordered feed, but they can influence only the graph segments they own or that were explicitly delegated to them. Cross-app writes require recorded delegation edges; there are no backdoors or config overrides that let UI code trespass.
+* **Explicit authority delegation**: Capabilities originate inside the graph. Permissions cannot be implied by hostname, environment, or out-of-band agreements. ACL Manager evaluates only recorded edges, so every privilege jump is visible, auditable, and revocable.
+* **Fail-closed, progressive failure**: Missing context, conflicting data, or ambiguous authority leads to rejection before storage changes. Health and DoS Guard Managers cut load when the system falters, so failure reduces scope instead of corrupting history. Recovery actions use the same mutation pipeline, leaving an audit trail.
 
-Because these guarantees live in structure, they are testable, auditable, and portable across implementations. If an implementation cannot demonstrate each property, it is out of spec.
+Because these guarantees live in structure, they are testable, auditable, and portable across implementations. If an implementation cannot demonstrate each property under its supported conditions, it is out of spec regardless of performance or UX polish.
 
 ---
+
 
 ## 15. What the system enables but does not define
 
