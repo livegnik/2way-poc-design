@@ -322,7 +322,7 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 12. Denial-of-service containment
 
-DoS containment starts long before traffic reaches DoS Guard. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
+Because 2WAY is local-first, most defenses fire before the network sees anything, so DoS containment starts long before traffic reaches DoS Guard Manager. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
 - **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
 - **Auth and Key Managers**: Key verification and OperationContext construction confirm signatures and enrollment before any proposal is considered.
 - **Schema Manager**: Structural validation kills malformed payloads without touching application logic.
