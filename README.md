@@ -397,20 +397,25 @@ Because these guarantees live in structure, they are testable, auditable, and po
 
 ## 15. What the system enables but does not define
 
-2WAY enforces structure but does not dictate meaning. It guarantees how identities relate, how permissions are enforced, and how history is recorded, yet it stays silent about why relationships exist or how a domain should use them. Interpretation belongs to the communities that build on the substrate.
+2WAY enforces structure but does not dictate meaning. It guarantees how identities relate, how permissions are enforced, and how history is recorded, yet it stays silent about why relationships exist or how a domain should use them. Interpretation belongs to the communities that build on the substrate, not to the protocol.
 
-Because the data model is neutral, the following can emerge without being hard-coded:
+Because the data model is neutral, builders can project their own semantics onto it. A social app, supply-chain consortium, or municipal archive all inherit the same guarantees and then specialize them with schemas, ACLs, and UI that fit their context. Shared structure means new apps can appear later, replay the same history, and derive meaning that did not exist when the data was first written.
 
-* **Trust relationships** built from shared edges without declaring global trust.
-* **Reputation signals** interpreted per application, supporting different scoring models for the same identity.
-* **Social, economic, or organizational semantics** layered on neutral data structures.
-* **Governance and moderation** tailored by applications, including sanction lists, appeals, or quorum rules.
-* **Incentives and markets** such as credits for resource sharing or bids for scarce namespaces.
-* **Diverse user interfaces** that present the same ordered state through different experiences.
+What opens up when meaning is left to applications?
 
-Structure is guaranteed; meaning remains open.
+* **Trust fabrics**: communities can model endorsements, blocks, or sponsorships without creating a global root of trust. Each app chooses how many degrees of separation to honor.
+* **Reputation and scoring**: multiple scoring formulas can coexist over the same facts, letting marketplaces, moderation tools, and auditors interpret reputation differently without fighting over storage.
+* **Governance workflows**: councils, juries, and automated policies become data. Because approvals, vetoes, and appeals are just mutations, every rule is auditable and portable to new tools.
+* **Economic and incentive systems**: credits, staking, resource exchanges, or rate limits live as graph objects. Implementations can change market logic without migrating identity or permissions.
+* **Domain-specific privacy choices**: applications can encrypt payloads, expose only derived attributes, or route sensitive records through specialized sync domains while still benefiting from shared ordering and authorship.
+* **Multi-modal user experiences**: CLI tools, headless automations, and rich clients subscribe to the same feed yet render it differently. A record created in a field app can be audited later in a spreadsheet-style tool with zero conversion.
+* **Inter-application collaboration**: separate apps can agree on schemas or delegation edges and immediately interoperate, since the substrate already mediates identity and access.
+* **Long-lived cultural or legal records**: archives, research projects, or civic ledgers can layer narrative, translation, or compliance views on top of the same tamper-evident base.
+
+Structure is guaranteed; meaning remains open. That balance gives newcomers a safe foundation while still leaving space for communities to invent the norms, incentives, and experiences that suit them.
 
 ---
+
 
 ## 16. Application model for developers
 
