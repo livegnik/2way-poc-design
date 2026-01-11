@@ -22,28 +22,29 @@ In 2WAY, application authors define schemas, optional domain logic, and user int
 * [5. Core idea: a shared, local-first graph](#5-core-idea-a-shared-local-first-graph)
 * [6. Protocol object model](#6-protocol-object-model)
 * [7. Backend component model](#7-backend-component-model)
-* [8. Security model and threat framing](#8-security-model-and-threat-framing)
-* [9. Structural impossibility](#9-structural-impossibility)
-* [10. Degrees of separation and influence limits](#10-degrees-of-separation-and-influence-limits)
-* [11. Sybil resistance through structure](#11-sybil-resistance-through-structure)
-* [12. Denial-of-service containment](#12-denial-of-service-containment)
-* [13. Failure behavior](#13-failure-behavior)
-* [14. What the system guarantees](#14-what-the-system-guarantees)
-* [15. What the system enables but does not define](#15-what-the-system-enables-but-does-not-define)
-* [16. Application model for developers](#16-application-model-for-developers)
-* [17. Application domains](#17-application-domains)
-  * [17.1 Messaging and chat](#171-messaging-and-chat)
-  * [17.2 Social media and publishing](#172-social-media-and-publishing)
-  * [17.3 Markets and exchange of goods and services](#173-markets-and-exchange-of-goods-and-services)
-  * [17.4 Marketplace-dependent applications](#174-marketplace-dependent-applications)
-  * [17.5 Key revocation and recovery workflows](#175-key-revocation-and-recovery-workflows)
-  * [17.6 Verifying binaries and software supply chains](#176-verifying-binaries-and-software-supply-chains)
-  * [17.7 Device trust, enrollment, and compliance](#177-device-trust-enrollment-and-compliance)
-  * [17.8 Multi-party coordination and governance](#178-multi-party-coordination-and-governance)
-  * [17.9 Long-lived records and audit trails](#179-long-lived-records-and-audit-trails)
-  * [17.10 What ties these examples together](#1710-what-ties-these-examples-together)
-* [18. Conformance](#18-conformance)
-* [19. Scope boundary and status](#19-scope-boundary-and-status)
+* [8. One pipeline for reads and writes](#8-one-pipeline-for-reads-and-writes)
+* [9. Security model and threat framing](#9-security-model-and-threat-framing)
+* [10. Structural impossibility](#10-structural-impossibility)
+* [11. Degrees of separation and influence limits](#11-degrees-of-separation-and-influence-limits)
+* [12. Sybil resistance through structure](#12-sybil-resistance-through-structure)
+* [13. Denial-of-service containment](#13-denial-of-service-containment)
+* [14. Failure behavior](#14-failure-behavior)
+* [15. What the system guarantees](#15-what-the-system-guarantees)
+* [16. What the system enables but does not define](#16-what-the-system-enables-but-does-not-define)
+* [17. Application model for developers](#17-application-model-for-developers)
+* [18. Application domains](#18-application-domains)
+  * [18.1 Messaging and chat](#181-messaging-and-chat)
+  * [18.2 Social media and publishing](#182-social-media-and-publishing)
+  * [18.3 Markets and exchange of goods and services](#183-markets-and-exchange-of-goods-and-services)
+  * [18.4 Marketplace-dependent applications](#184-marketplace-dependent-applications)
+  * [18.5 Key revocation and recovery workflows](#185-key-revocation-and-recovery-workflows)
+  * [18.6 Verifying binaries and software supply chains](#186-verifying-binaries-and-software-supply-chains)
+  * [18.7 Device trust, enrollment, and compliance](#187-device-trust-enrollment-and-compliance)
+  * [18.8 Multi-party coordination and governance](#188-multi-party-coordination-and-governance)
+  * [18.9 Long-lived records and audit trails](#189-long-lived-records-and-audit-trails)
+  * [18.10 What ties these examples together](#1810-what-ties-these-examples-together)
+* [19. Conformance](#19-conformance)
+* [20. Scope boundary and status](#20-scope-boundary-and-status)
 
 ---
 
@@ -243,7 +244,50 @@ Every write flows `Service → Graph Manager → Storage Manager`, and every val
 
 ---
 
-## 8. Security model and threat framing
+## 8. One pipeline for reads and writes
+
+Writes and reads originate from different places (local services, remote peers, API calls), and the protocol treats that context explicitly. Local authorship starts with frontend credentials, while remote sync begins with signed packages that reference peer ids and sequence ranges. Even so, once input reaches the kernel, every path uses the same managers in the same order so the guarantees remain identical. The flows below summarize the normative behavior described in `01-protocol/00-protocol-overview.md` and the manager responsibilities in `02-architecture/01-component-model.md`.
+
+### Local authorship
+
+1. **Authenticate and scope**: A frontend request hits Auth Manager, which verifies the user or device and produces an `OperationContext` that simply states who is acting and for which app.
+2. **Describe the change**: Services bundle the desired Parents, Attributes, Edges, Ratings, or ACL updates into a graph envelope. Every write, even purely local ones, uses that envelope format.
+3. **Check capacity**: DoS Guard Manager and Health Manager make sure the node can handle the work. Overloaded nodes reject the request early rather than accepting unsafe load.
+4. **Validate structure**: Graph Manager checks the envelope for missing selectors, wrong ancestry, or cross-app references and drops anything that fails.
+5. **Validate schemas**: Schema Manager confirms the data belongs to the right app, uses the right types, and meets schema rules.
+6. **Authorize**: ACL Manager decides whether the actor described in the `OperationContext` is allowed to make the change.
+7. **Commit**: Graph Manager assigns the next `global_seq`, Storage Manager writes the change atomically, and Event Manager hears about it only after the commit sticks.
+8. **Prep for sync**: State Manager notes the new sequence so other peers can fetch it later.
+
+### Remote synchronization
+
+1. **Receive safely**: Network Manager accepts the package, applies transport rules, and lets DoS Guard Manager add puzzles or throttles if needed.
+2. **Verify the sender**: Auth Manager and Key Manager confirm who signed the package before it reaches any business logic.
+3. **Check ranges**: State Manager looks at `from_seq` and `to_seq` and makes sure every prerequisite is already on disk. Missing history triggers a gap request instead of guessing.
+4. **Run the same pipeline**: Each envelope runs through the same Graph, Schema, and ACL checks as a local write. Remote never means trusted.
+5. **Store or reject**: Accepted envelopes get fresh `global_seq` numbers, Storage Manager commits them, and State Manager advances the peer’s cursor. If any envelope fails, the batch is rejected and the cursor stays put.
+
+### Read path (local or remote callers)
+
+1. **Identify the caller**: Reads also start with Auth Manager so the system knows who is asking and which app they belong to. Remote peers must have synced the relevant history before they ask for it.
+2. **Watch the load**: DoS Guard Manager enforces read-side quotas (row limits, rate caps) and Health Manager can pause heavy reads when the node is degraded.
+3. **Ask Graph Manager**: Services call Graph Manager’s read helpers. Graph Manager checks ACLs, enforces schema boundaries, and translates the request into a constrained Storage Manager query.
+4. **Let Storage Manager do the read**: Storage Manager executes the query and returns immutable rows. Optional filters (for example, hiding data based on Ratings) happen after the read and never mutate state.
+5. **Return with context**: Results include ordering markers such as `global_seq` so clients know how the data lines up with their own history.
+
+### Expressive and bounded queries
+
+Querying the graph is more than listing "all restaurants" or "all documents." Because every fact carries typed metadata, ownership, ratings, and ancestry, callers can combine those pieces into meaningful filters without leaving the safety of the protocol. A request can restrict results by object type (only restaurant Parents), by attribute type (only phone numbers), by arbitrary graph selectors (exclude a specific chain or category), by rating scales (scores above 1.75 out of 5), by rating signers (only friends, family, or identified guild members), and by degree of separation (only facts within two hops of the requester). Each clause refers to data the graph already stores, so Graph Manager can assemble the filters deterministically, ACL Manager can prove the caller is allowed to see the matches, and Storage Manager can execute the query without ad hoc code paths.
+
+This capability changes what applications can offer users. A local dining app might surface "restaurants my trusted contacts recommend or endorse, excluding places they explicitly avoid." A reputation dashboard could show "engineers who passed code review from reviewers I already trust, excluding anyone flagged by moderation edges." A neighborhood safety tool might retrieve "alerts that happened within two hops of me, only if they were confirmed by multiple households I trust." These examples are illustrative; each app defines its own schema types, ratings, and opt-out tags, and the substrate simply enforces the rules the app describes.
+
+The system keeps those searches bounded. Degree constraints (see Section 11) stop a query from jumping beyond the explicit trust radius unless the graph itself records those links. Schema-aware selectors ensure filters always point to defined types, preventing brittle string matching or hidden assumptions. Ratings remain signed, so users and auditors can see exactly who vouched for a result. Even opt-out lists, such as "exclude parents tagged with bad taste in food," are data recorded in the graph, not hard-coded in a service. Because the protocol enforces these filters, every node reaches the same conclusion, and every match traces back to the signer, parent, or rating that satisfied the request.
+
+### Uniform guarantees
+
+Reads and writes inherit the same posture: the caller must prove identity, ACL Manager must approve scope, Storage Manager is the only database surface, and responses always reflect accepted, replayable history. Any service, extension, or transport that attempts to skip a manager or mutate state directly is out of spec and must be rejected.
+
+## 9. Security model and threat framing
 
 Legacy stacks often trust the network, a perimeter, or a central operator. 2WAY assumes none of those hold. Each node treats transport as hostile, assumes peers can lie or stay dark indefinitely, and refuses to trust an application until the graph records explicit capabilities. This posture survives compromised devices, rogue apps, and long offline periods without depending on a coordinating backend.
 
@@ -266,7 +310,7 @@ App developers inherit a security substrate that assumes attackers reach the bou
 
 ---
 
-## 9. Structural impossibility
+## 10. Structural impossibility
 
 2WAY encodes its rules so tightly that many unsafe actions have no execution path. If the graph lacks the required edges, ownership, or ancestry, the mutation cannot even be formed.
 
@@ -281,7 +325,7 @@ Even if an application is compromised or a key is stolen, it emits only proposal
 
 ---
 
-## 10. Degrees of separation and influence limits
+## 11. Degrees of separation and influence limits
 
 Authority in 2WAY is local, not global. Every private key, whether it belongs to a person, device, service, or automation, only sees the network from its zeroth degree: the graph it already trusts and the history it has replayed. Anything beyond that view requires explicit edges that describe direction, ownership, and purpose so policies can decide who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate, not from a UI toggle. Until a new identity forms edges with trusted anchors, its proposals never leave the network buffer.
 
@@ -304,7 +348,7 @@ This approach is not the PGP Web of Trust. PGP attestations mostly claim that so
 
 ---
 
-## 11. Sybil resistance through structure
+## 12. Sybil resistance through structure
 
 Perfect Sybil prevention is unrealistic for open networks, so 2WAY makes identity floods unproductive. Every actor must earn reach through visible, consented relationships.
 
@@ -320,7 +364,7 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ---
 
-## 12. Denial-of-service containment
+## 13. Denial-of-service containment
 
 Because 2WAY is local-first, most defenses fire before the network sees anything. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
 - **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
@@ -352,7 +396,7 @@ Because untrusted traffic never leaves the shallow bastion zone until puzzles (i
 
 ---
 
-## 13. Failure behavior
+## 14. Failure behavior
 
 2WAY assumes things will go wrong. Keys get stolen, devices crash mid-write, peers disagree, or malicious inputs flood a node. The system fails closed instead of guessing what the operator intended.
 
@@ -380,7 +424,7 @@ Because every mitigation is itself part of the ordered, signed record, auditors 
 
 ---
 
-## 14. What the system guarantees
+## 15. What the system guarantees
 
 2WAY promises a grounded set of default behaviors. They stay small, testable, and tied to concrete managers so every implementation can be audited and every operator knows what the system delivers before any custom logic is added.
 
@@ -402,7 +446,7 @@ If a build cannot prove each promise under its supported conditions, it is out o
 ---
 
 
-## 15. What the system enables but does not define
+## 16. What the system enables but does not define
 
 2WAY locks down structure but leaves meaning up to the people who use it. It makes sure identities, permissions, and history stay consistent, yet it never dictates why a relationship exists or what an application should do with the facts. Communities, not the protocol, decide how those facts matter.
 
@@ -430,7 +474,7 @@ Structure is guaranteed; meaning stays open. When the specification holds, softw
 ---
 
 
-## 16. Application model for developers
+## 17. Application model for developers
 
 Developers treat applications as deterministic state machines that respond to the ordered graph feed and emit new proposals. They do not stand up servers to arbitrate every interaction. Instead, they write logic that interprets local state and reacts to user input. Every surface (desktop, mobile, embedded, automation) follows the same rules because the substrate delivers the same ordered history.
 
@@ -462,7 +506,7 @@ Developer experience implications:
 
 ---
 
-## 17. Application domains
+## 18. Application domains
 
 2WAY fits workloads where trust, verifiability, and survivability matter more than peak throughput. Offline collaboration, multi-party workflows, and audit-heavy systems benefit because authority stays local, history is replayable, and policy boundaries remain explicit even as applications change. Adopting 2WAY means promising users that collaboration endures without a master server, provenance stays inspectable, and failure modes stay bounded no matter who operates the UI.
 
@@ -474,25 +518,25 @@ Teams in these spaces gain:
 - **Faster multi-party integrations** once schemas and capabilities align, since no bespoke backend trust deal is required.
 - **User-facing empowerment** where auditing, recovery, and delegation can ship as first-class UX because the substrate already enforces them.
 
-### 17.1 Messaging and chat
+### 18.1 Messaging and chat
 
 Messaging maps neatly to graph primitives. Conversations become `Parent` objects, participants are membership `Edge`s, individual messages are `Attribute` objects, and an `ACL` defines who may read or write. That layout is illustrative, not prescriptive; developers can model conversations, threads, or channels however their UX demands as long as the schema honors the object model.
 
 Each outbound message is a proposed mutation handled by Graph Manager. Graph Manager confirms that targets exist, references are well formed, and ordering constraints hold. ACL Manager evaluates the conversation ACL using the author identity that Auth Manager resolved, and once the write commits locally, State Manager coordinates replication while Network Manager offers it to peers. Because this pipeline runs locally and cannot be bypassed, malicious peers cannot inject unauthorized traffic or reorder history, offline writers keep working, and applications can focus on presentation, end-to-end encryption layered above the substrate, and retention policy instead of rebuilding the stack.
 
-### 17.2 Social media and publishing
+### 18.2 Social media and publishing
 
 Social feeds or community tools can express their data as identities, follow or subscription relationships, posts, reactions, and moderation signals. Developers might encode follows as `Edge`s, posts or threads as `Parent`s, content bodies and timestamps as `Attribute`s, reactions or trust marks as `Rating`s, and visibility rules as `ACL`s. The protocol never mandates shape; it only requires that each fact obey the shared vocabulary.
 
 Centralized networks enforce reach because they own the graph and policy. Many decentralized attempts drop backends but also drop enforceable structure, so spam and moderation stalemates dominate. 2WAY sits between these extremes. Distribution and visibility come from explicit data (`ACL`s, relationship `Edge`s, and ACL Manager evaluation) rather than from a hidden service. Developers can use degrees of separation to limit unsolicited reach. Moderation becomes data: attaching `Rating` or moderation `Attribute` objects records outcomes as ordered mutations that any app can interpret while still trusting authorship and validity.
 
-### 17.3 Markets and exchange of goods and services
+### 18.3 Markets and exchange of goods and services
 
 A marketplace can represent listings, offers, contracts, and reputation entirely within the graph: `Parent` objects for listings or contracts, `Attribute`s for terms and prices, `Edge`s for participant roles, `Rating`s for feedback, and `ACL`s to bound who may advance a contract state. Centralized markets simplify disputes by acting as arbiters, while fully peer-to-peer systems often lack a shared notion of contract progression.
 
 2WAY enables a middle path by treating each contract as a state machine encoded in graph objects. Every transition is a mutation that Graph Manager validates and orders after ACL Manager authorizes it. History stays signed and replayable, so multiple market interfaces can coexist, compete on UX or fees, and still rely on the same canonical data. The substrate does not enforce payments or delivery; it ensures that only authorized transitions happen and that they land in an ordered, durable log that State Manager and Network Manager relay to peers.
 
-### 17.4 Marketplace-dependent applications
+### 18.4 Marketplace-dependent applications
 
 Many services rely on market-like coordination without being markets themselves. Ride-hailing, delivery, and local services involve offers, acceptances, and completions that benefit from enforceable identity and ordering even when central dispatch disappears.
 
@@ -508,33 +552,33 @@ Merchants and dispatch roles extend the same graph. Dispatch authority becomes a
 
 Local services, repairs, rentals, or classifieds rely on long-lived identity and auditability. Centralized platforms often delete trust history when they shut down or pivot. In 2WAY, identity and contract history persist independent of a single interface, so neighborhood services survive platform churn while keeping verifiable audit trails.
 
-### 17.5 Key revocation and recovery workflows
+### 18.5 Key revocation and recovery workflows
 
 Keys, devices, and identity bindings are graph objects, so revocation is not a privileged administrative action. Changing which keys Key Manager trusts is just another ordered mutation that travels through Graph, ACL, and State Managers. Recovery workflows can also live in data: `Edge`s and `ACL`s can require approvals from designated recovery identities before a new device key becomes valid. The substrate does not dictate policy, but once a policy is described, it enforces ordering, authorization, and auditability because every state change uses the same pipeline.
 
-### 17.6 Verifying binaries and software supply chains
+### 18.6 Verifying binaries and software supply chains
 
 2WAY works as an identity and history layer for software distribution. Releases can be signed `Parent` objects with `Attribute`s storing hashes, metadata, or bills of materials, while publisher hierarchies are relationship `Edge`s. Trust in publishers is expressed explicitly in the graph, so installation becomes a local policy decision driven by verifiable state, not DNS or a hosted repository. If a signing key is compromised, a revocation mutation instructs peers to distrust it, and thanks to Graph Manager and State Manager preserving ordered, tamper-evident history, clients observe and enforce the change without waiting for a central takedown.
 
-### 17.7 Device trust, enrollment, and compliance
+### 18.7 Device trust, enrollment, and compliance
 
 Devices can be modeled as objects with attributes describing capabilities, compliance status, and desired posture. Policies are data enforced locally by ACL Manager rather than by a continuously available management server. Revocation becomes an ordered event, auditability comes from reading signed history, and organizations gain a model suited to environments where availability and inspection matter more than remote convenience.
 
-### 17.8 Multi-party coordination and governance
+### 18.8 Multi-party coordination and governance
 
 Because 2WAY enforces ordered, authorized transitions, it supports workflows that need multiple approvals. Shared `Parent` objects represent the subject of governance, delegated capabilities live in `ACL`s, and each approval is an ordered mutation recorded by State Manager. The system never dictates governance rules; it provides primitives so communities can encode quorums, vetoes, or escalation paths as auditable workflows enforced by the substrate instead of by tradition.
 
-### 17.9 Long-lived records and audit trails
+### 18.9 Long-lived records and audit trails
 
 Any workflow that values durable records benefits from identity-bound authorship, ordered history, and fail-closed enforcement. Records become graph objects with explicit ownership and immutable ancestry. Unlike centralized audit systems, correctness does not depend on trusting an operator, and unlike many peer-to-peer networks, ordering and authorization are enforced rather than heuristic. Even if an original application disappears, records remain verifiable to anyone who can replay history.
 
-### 17.10 What ties these examples together
+### 18.10 What ties these examples together
 
 These examples are illustrative. They show that once identity, permissions, ordering, validation, and denial-of-service controls live below the application layer (in Auth, Graph, ACL, State, Network, and DoS Guard Managers), whole classes of workloads become feasible without trusted backends. Centralized systems concentrate authority; many peer-to-peer systems lack structure. 2WAY works because every node enforces the same structure locally while letting developers decide how to model meaning on top.
 
 ---
 
-## 18. Conformance
+## 19. Conformance
 
 Conformance is binary. An implementation either satisfies every normative requirement in this repository or it does not. Passing tests or showing interoperability means nothing if core invariants were weakened.
 
@@ -549,7 +593,7 @@ Any deviation requires an ADR that documents the reasoning, scope, and compensat
 
 ---
 
-## 19. Scope boundary and status
+## 20. Scope boundary and status
 
 This repository claims only what it states explicitly. Words such as "secure," "trusted," or "verified" matter only when a section defines the exact conditions. Examples illustrate possibilities, not mandates. Appendices, diagrams, or snippets are non-normative unless a normative section cites them.
 
