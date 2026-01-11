@@ -322,7 +322,7 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 12. Denial-of-service containment
 
-Because 2WAY is local-first, most defenses fire before the network sees anything, so DoS containment starts long before traffic reaches DoS Guard Manager. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
+Because 2WAY is local-first, most defenses fire before the network sees anything. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
 - **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
 - **Auth and Key Managers**: Key verification and OperationContext construction confirm signatures and enrollment before any proposal is considered.
 - **Schema Manager**: Structural validation kills malformed payloads without touching application logic.
@@ -332,7 +332,7 @@ Because 2WAY is local-first, most defenses fire before the network sees anything
 - **Storage Manager**: Append-only commits happen last, after every other manager consents, so disk I/O cannot be weaponized.
 Because each manager fails closed, an attacker must bypass multiple deterministic gates just to reach durable state.
 
-2WAY assumes attackers keep trying, so every inbound or outbound handshake still hits DoS Guard Manager before the Network Manager’s Bastion Engine admits it. DoS Guard stands between hostile transport links and the Bastion module, which keeps unknown packets in a holding area until DoS Guard says `allow`, `deny`, or `require_challenge`. Only after the Bastion handshake clears does Network Manager’s Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
+Those local defenses keep most abuse from ever touching the network layer, but 2WAY still assumes attackers keep trying from across the wire. To contain them, every inbound or outbound handshake hits the DoS Guard Manager before the Network Manager’s Bastion Engine admits it. DoS Guard stands between hostile transport links and the Bastion module, which keeps unknown packets in a holding area until DoS Guard says `allow`, `deny`, or `require_challenge`. Only after the Bastion handshake clears does Network Manager’s Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
 
 DoS Guard applies multiple defenses before puzzles ever appear:
 - **Admission gating**: Each connection gets one decision (`allow`, `deny`, or `require_challenge`) and anything but `allow` keeps the session outside the trusted surfaces. The Bastion Engine never proceeds without that verdict.
