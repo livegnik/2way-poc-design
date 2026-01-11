@@ -322,9 +322,26 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 12. Denial-of-service containment
 
-2WAY assumes attackers keep trying, so every inbound or outbound handshake hits DoS Guard Manager before the Network Manager’s Bastion Engine admits it. DoS Guard stands between hostile transport links and the Bastion Engine, which keeps unknown packets in a holding area until DoS Guard says `allow`, `deny`, or `require_challenge`. Only after the Bastion handshake clears does Network Manager’s Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
+DoS containment starts long before traffic reaches DoS Guard. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
+- **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
+- **Auth and Key Managers**: Key verification and OperationContext construction confirm signatures and enrollment before any proposal is considered.
+- **Schema Manager**: Structural validation kills malformed payloads without touching application logic.
+- **ACL Manager**: Capability checks run before mutations, so unauthorized traffic never triggers heavy computation.
+- **Graph Manager**: Deterministic ordering and ancestry checks discard duplicates and conflicting writes early.
+- **State Manager**: Sync windows limit how much history a peer can demand, stopping replay floods.
+- **Storage Manager**: Append-only commits happen last, after every other manager consents, so disk I/O cannot be weaponized.
+Because each manager fails closed, an attacker must bypass multiple deterministic gates just to reach durable state.
 
-DoS Guard contains floods by adjusting client puzzle difficulty on the fly. Borrowing the “New Client Puzzle Outsourcing Techniques for DoS Resistance” approach from Ari Juels et al., it shifts work to the requester whenever telemetry, policy, or Health Manager signals show strain. Every puzzle includes a unique `challenge_id`, opaque payload, context binding, expiration, and algorithm selector. Network Manager only relays the bytes. DoS Guard records success and failure per peer, per anonymous source, and across the node, so abusive senders see difficulty rise steadily and only see relief after they behave. Proofs expire fast, cannot be replayed on other connections, and take far more effort to solve than to verify, which keeps defenders cool while attackers burn CPU.
+2WAY assumes attackers keep trying, so every inbound or outbound handshake still hits DoS Guard Manager before the Network Manager’s Bastion Engine admits it. DoS Guard stands between hostile transport links and the Bastion module, which keeps unknown packets in a holding area until DoS Guard says `allow`, `deny`, or `require_challenge`. Only after the Bastion handshake clears does Network Manager’s Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
+
+DoS Guard applies multiple defenses before puzzles ever appear:
+- **Admission gating**: Each connection gets one decision (`allow`, `deny`, or `require_challenge`) and anything but `allow` keeps the session outside the trusted surfaces. The Bastion Engine never proceeds without that verdict.
+- **Rate and burst limits**: Global caps, per identity budgets, and anonymous source heuristics throttle message rates, concurrent sessions, and outstanding challenges. Limits are configured through the `dos.*` namespace and enforced deterministically.
+- **Telemetry driven posture**: Network Manager streams byte counts, message rates, transport type, and resource pressure. DoS Guard biases toward denial when telemetry is missing or shows spikes, so abusive floods die at the edge rather than reaching Graph or Storage.
+- **Health-aware throttling**: When Health Manager marks the node `not_ready`, DoS Guard automatically raises the admission bar or shuts off new handshakes, preventing compromised subsystems from being overwhelmed.
+- **Fail-closed defaults**: Loss of configuration, Key Manager seeds, or internal capacity translates into denial of new sessions while existing admitted links drain safely.
+
+Only after those fast checks succeed does DoS Guard fall back to puzzles. Borrowing the “New Client Puzzle Outsourcing Techniques for DoS Resistance” approach from Ari Juels et al., it shifts work to the requester whenever telemetry, policy, or Health Manager signals still show strain. Every puzzle includes a unique `challenge_id`, opaque payload, context binding, expiration, and algorithm selector. Network Manager only relays the bytes. DoS Guard records success and failure per peer, per anonymous source, and across the node, so abusive senders see difficulty rise steadily and only see relief after they behave. Proofs expire fast, cannot be replayed on other connections, and take far more effort to solve than to verify, which keeps defenders cool while attackers burn CPU.
 
 The telemetry and policy loop keeps puzzles adaptive instead of static throttles:
 - **Telemetry-driven escalation**: Transport byte counts, message rates, and resource pressure feed the Policy Engine. Crossing configured `dos.*` limits raises puzzle cost or triggers a deny, and missing telemetry defaults to `require_challenge`.
