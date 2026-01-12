@@ -139,6 +139,6 @@ This repository promises only what it states explicitly. Examples illustrate pos
 
 ---
 
-## Using this README-short
+## Using this README
 
 Start here when you need the essentials: what 2WAY is, why it exists, how the object model and managers work, and which guarantees implementations must uphold. Dive into the numbered folders for full detail, record exceptions as ADRs, and remember that every device enforces the same structure so collaboration can survive without surrendering authority.
