@@ -4,13 +4,15 @@
 
 # 2WAY PoC Design Repository
 
-2WAY is a local-first, peer-to-peer, open source protocol and backend. It provides identity, permissions, sync, audit history, and trust so teams stop rebuilding the same backend scaffolding for every product.
+2WAY is a local-first, peer-to-peer, open source protocol and backend. It provides decentralized applications with device-level identity, permissions, sync, and audit guarantees so collaboration can span disconnected devices, untrusted networks, and independent operators without delegating authority to a central service.
 
-Most stacks work until an app needs long-lived history, multi-party cooperation, or verifiable audit trails. At that point teams bolt on custom services and centralized operators regain control. 2WAY assumes each user keeps their own device, keys, and log, and the protocol enforces consistency even when peers disconnect or disagree.
+Every participant owns their cryptographic keys, append-only log, permission graph, and copy of shared state. The protocol synchronizes these structures deterministically, so each device accepts or rejects mutations the same way, even when peers reconnect after long partitions. Because every write carries verifiable ancestry and capability proofs, misinformation and replay attempts die before they reach durable storage, and attacks are contained to the scope of the compromised identity.
 
-This repository is the normative design set for the proof of concept. It records the guarantees, boundaries, and threat model that every implementation must follow so separate builds can interoperate safely. Read it to understand how 2WAY keeps correctness without per-app backends and where those guarantees apply.
+These guarantees unlock features that centralized backends struggle to offer: shared history that survives data-center failures, per-tenant policy without forked deployments, provenance-aware media and messaging, verifiable supply-chain attestations, and governance workflows where no operator can rewrite decisions. Applications layer their own schemas and domain logic on top of the substrate while the protocol enforces ordering, storage, and influence limits.
 
-In 2WAY, application authors define schemas, optional domain logic, and user interfaces. The protocol and backend supply identity, storage, access control, cryptography, and peer-to-peer sync so developers can focus on product behavior instead of rebuilding distributed trust.
+This repository is the normative design set for the proof of concept. It records the guarantees, boundaries, and threat model that every implementation must follow so separate builds can interoperate safely. Use it to evaluate how these invariants enable durable messaging, marketplaces, compliance tooling, or any other multi-party system that needs trust without surrendering control.
+
+In 2WAY, application authors define schemas, optional domain logic, and user interfaces. The protocol and backend supply identity, storage, access control, cryptography, and peer-to-peer sync so developers can focus on the experiences they present to users.
 
 ---
 
