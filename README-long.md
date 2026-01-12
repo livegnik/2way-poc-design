@@ -14,6 +14,8 @@ This repository is the normative design set for the proof of concept. It records
 
 In 2WAY, application authors define schemas, optional domain logic, and user interfaces. The protocol and backend supply identity, storage, access control, cryptography, and peer-to-peer sync so developers can focus on the experiences they present to users.
 
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-messenger. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early epiphany about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit acknowledgement.
+
 ---
 
 ## Table of Contents
