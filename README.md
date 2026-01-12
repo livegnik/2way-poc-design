@@ -2,7 +2,7 @@
 
 
 
-# 2WAY in short
+# 2WAY design repository in short
 
 Looking for a more comprehensive read-through? See [README-long.md](README-long.md).
 
