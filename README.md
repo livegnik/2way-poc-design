@@ -289,24 +289,30 @@ Reads and writes inherit the same posture: the caller must prove identity, ACL M
 
 ## 9. Security model and threat framing
 
-Legacy stacks often trust the network, a perimeter, or a central operator. 2WAY assumes none of those hold. Each node treats transport as hostile, assumes peers can lie or stay dark indefinitely, and refuses to trust an application until the graph records explicit capabilities. This posture survives compromised devices, rogue apps, and long offline periods without depending on a coordinating backend.
+2WAY assumes attackers reach every boundary, so the protocol, managers, and data model enforce the defense instead of checklists. Nodes never trust transport metadata, gossip, or local apps until the graph proves a key and capability exist.
 
-Threats handled by design:
+### 9.1 Baseline posture
 
-- **Malicious or misconfigured peers** that inject malformed objects, replay stale history, tamper with ordering, or impersonate identities.
-- **Sybil floods** that mint endless keys to borrow reputation, force validation work, or hide abuse behind throwaway identities.
-- **Unauthorized graph mutation** that tries to cross ownership boundaries, escalate permissions, or bypass schema rules.
-- **Replay and ordering attacks** that attempt to confuse deterministic state machines or resurrect revoked authority.
-- **Denial attempts** using malformed payloads, unbounded fan-out, or resource-starving input.
-- **Partial compromise of apps or nodes**, including stolen keys, tampered binaries, unvetted extensions, or insider abuse.
+- No safe perimeter: every packet is untrusted, and DoS Guard plus Network Manager must admit it before State Manager sees it.
+- Identity equals recorded parents + keys. OperationContext always references that record; IPs, TLS info, or UI accounts do not matter.
+- Managers fail closed. If Config, Schema, ACL, Graph, Storage, State, or DoS Guard is degraded, the node denies work and logs why.
+- Offline nodes rejoin by replaying history under the same validation order, so downtime never skips checks.
 
-Protection flows from structure rather than from perimeter gear or best-effort logging:
+### 9.2 Assets and boundaries
 
-- **Fixed validation order**. Schema checks, ACL evaluation, deterministic ordering, and append-only commit run in a fixed sequence on every device.
-- **Per-node enforcement**. Each peer owns its keys, history, and rejection pipeline. Compromising one node yields isolation, not systemic privilege.
-- **Deterministic rejection**. Missing context, ambiguous ownership, or conflicting history fails immediately before durable state changes, making attacks noisy and short-lived.
+Graph data (objects; parents, attributes, edges, ACLs, ratings) is append-only and written only by Graph + Storage after Schema/ACL approval. Keys and identities stay inside Key Manager; every call ties back to a proven key, including multi-device or delegated keys that must record explicit edges. Network edges belong to DoS Guard and Network Manager; puzzles, signatures, and envelope hashes block transport tampering or replay before State Manager sees the payload. Config snapshots act like code and stay versioned and audited. Log/Event/Health form the only observability plane and obey ACL capsules just like reads, while selective sync and visibility filters prevent curious peers from learning data they never earned.
 
-App developers inherit a security substrate that assumes attackers reach the boundary. If necessary edges or capabilities are missing, the action cannot be expressed. That provides Sybil resistance through anchoring, rate limiting via DoS Guard Manager, and confidence that offline devices stay safe until they replay history under the same rules.
+### 9.3 Threats and claims
+
+2WAY defends against remote attackers, Sybil floods, compromised peers, malicious extensions, careless operators, hardware theft, hostile transports, and censorship attempts by keeping compromises local. Only the owning key can modify its namespace, validation always runs structural -> schema -> ACL -> storage, and rejected envelopes never touch disk. Degree limits and hop budgets prevent trust borrowing, DoS Guard sheds abusive traffic, and signed envelopes plus `global_seq` ordering block replay, reordering, or message forgery. Keys can be rotated or revoked by recording multi-sig down-vote objects from other trusted keys, which mark when the compromised key should no longer count and let peers down-vote envelopes authored after that timestamp once they replay history. Nodes can operate offline or without a central coordinator, so censorship or backend outages cannot force trust leaps. Every decision is recorded so investigations can replay what happened.
+
+### 9.4 Limits and operator duties
+
+The platform does not protect against rooted hosts, broken hypervisors, or side-channel attacks. Metadata stays visible to the parties that participate in that slice of the graph, and end-to-end encryption of payloads is an application choice. Unsafe defaults (auto-accepting everyone, blanket delegates) can reintroduce risk, so schema and ACL changes deserve the same review as code. Regulatory tasks (retention, deletion, jurisdictional routing) remain with app owners.
+
+### 9.5 Failure and recovery behavior
+
+Missing configuration, schema mismatches, storage corruption, lost keys, or unavailable DoS Guard all trigger denial plus telemetry. Recovery means replaying trusted history while the same validation rules run; revocations prune edges, new keys slot into the graph, and offline peers catch up through the append-only log. Keep Log/Event sinks healthy so these transitions remain visible.
 
 ---
 
