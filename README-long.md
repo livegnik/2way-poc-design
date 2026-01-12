@@ -2,7 +2,7 @@
 
 
 
-# 2WAY PoC Design Repository
+# 2WAY design repository (extended README)
 
 2WAY is a local-first, peer-to-peer, open source protocol and backend. It provides decentralized applications with device-level identity, permissions, sync, and audit guarantees so collaboration can span disconnected devices, untrusted networks, and independent operators without delegating authority to a central service.
 
