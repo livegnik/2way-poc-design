@@ -8,7 +8,7 @@ Looking for a more comprehensive read-through? See [README-long.md](README-long.
 
 2WAY is a local-first, peer-to-peer protocol and backend. It gives decentralized applications device-level identity, permissions, ordering, sync, and audit guarantees so people can collaborate without trusting a central operator. Every device keeps its keys, append-only log, permission graph, and slice of shared state. Nodes validate every proposed change before it hits storage, so malformed, replayed, or unauthorized input dies at the boundary. The goal is to make resilient, multi-party software practical without trading away control.
 
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-messenger.
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early epiphany about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit acknowledgement.
 
 ---
 
