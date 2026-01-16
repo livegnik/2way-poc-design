@@ -6,26 +6,26 @@
 
 Looking for a more comprehensive read-through? See [README-long.md](README-long.md).
 
-2WAY is a local-first, peer-to-peer protocol and backend. It gives decentralized applications device-level identity, permissions, ordering, sync, and audit guarantees so people can collaborate without trusting a central operator. Every device keeps its keys, append-only log, permission graph, and slice of shared state. Nodes validate every proposed change before it hits storage, so malformed, replayed, or unauthorized input dies at the boundary. The goal is to make resilient, multi-party software practical without trading away control.
+2WAY is a local-first, peer-to-peer protocol and backend that gives decentralized applications device-level identity, permissions, ordering, sync, and audit guarantees so people can collaborate without trusting a central operator. Every device keeps its keys, write-once log, permission graph, and slice of shared state, and nodes validate each proposed change before it hits storage so malformed, replayed, or unauthorized input gets rejected at the boundary. The goal is to make resilient, multi-party software practical without trading away control.
 
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early epiphany about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit acknowledgement.
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
 
 ---
 
 ## Why it exists
 
-Centralized backends weld identity, policy, ordering, and storage to a single operator. The moment that operator changes plans, disappears, or gets compromised, users lose both history and authority. Federation often just shifts trust to brittle bridges. 2WAY separates durable structure from transient software: identities, relationships, and permissions live in a shared graph that each device enforces. Applications and vendors can evolve or even vanish without dragging authority along, and a device that reconnects later simply replays signed history until it catches up.
+Centralized backends tie identity, policy, ordering, and storage to a single operator. If that operator changes plans, disappears, or gets compromised, users lose both history and authority. Federation often just moves trust to brittle bridges. 2WAY keeps durable structure separate from changing software: identities, relationships, and permissions live in a shared graph that each device enforces. Applications and vendors can evolve or even vanish without taking authority with them, and a device that reconnects later simply replays signed history until it catches up.
 
 ---
 
 ## Repository guide
 
-This repo is the normative design set for the proof of concept. It defines scope, invariants, architecture, object models, security framing, flows, and acceptance criteria. Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in `08-decisions` so exceptions stay visible.
+This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security framing, flows, and acceptance criteria. Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in `08-decisions` so exceptions stay visible.
 
 | Folder | Focus |
 | --- | --- |
 | `00-scope` | Vocabulary, boundary, assumptions |
-| `01-protocol` | Wire format, object model, invariants |
+| `01-protocol` | Wire format, object model, rules |
 | `02-architecture` | Managers and services that enforce the protocol |
 | `03-data` | Persistence model and lifecycle |
 | `04-interfaces` | APIs and event surfaces |
@@ -39,44 +39,23 @@ This repo is the normative design set for the proof of concept. It defines scope
 
 ## What 2WAY is
 
-2WAY is an application substrate that replaces the conventional backend. Each node runs the same authority stack: identity, permissions, ordering, storage, sync, and audit. Nodes can go offline, keep working, then reconcile without surrendering custody. Applications describe schemas and logic, interpret the ordered feed of accepted changes, and request new mutations through deterministic interfaces. They never bypass validation, own storage, or manage cryptographic keys directly.
+2WAY is a platform that replaces the conventional backend. Each node runs the same core controls for identity, permissions, ordering, storage, sync, and audit, so devices can go offline, keep working, and reconcile without giving up control. Applications define schemas and logic, interpret the ordered feed of accepted changes, and request new changes through strict interfaces rather than touching storage or keys directly.
 
-The shared graph is the fact store for identities, devices, relationships, capabilities, and application records. Ownership is explicit for every node and edge, so each mutation declares which identity governs it. History is append-only with verifiable ancestry, payload hashes, and schema references. Peers replay one another's logs independently and accept only the parts that satisfy local invariants.
+The shared graph is the source of truth for identities, devices, relationships, capabilities, and application records. Ownership is explicit for every node and edge, so each change declares which identity governs it. History is write-once with checkable ancestry, payload hashes, and schema references, and peers replay one another's logs independently, accepting only the parts that satisfy local rules.
 
 ---
 
 ## Object and protocol model
 
-`01-protocol/02-object-model.md` defines five canonical record types:
+`01-protocol/02-object-model.md` defines five core record types. A Parent anchors entities such as people, devices, contracts, or workflows, while an Attribute attaches typed payloads like profiles, configs, or encrypted blobs to a Parent; an Edge expresses relationships or workflow transitions, a Rating captures evaluations such as votes or endorsements, and an ACL is encoded as constrained Parent plus Attribute records so authorization state stays auditable.
 
-- **Parent**: anchors entities such as people, devices, contracts, or workflows.
-- **Attribute**: attaches typed payloads (profiles, configs, encrypted blobs) to a Parent.
-- **Edge**: expresses relationships, delegations, dependencies, or workflow transitions.
-- **Rating**: captures evaluations like votes, moderation decisions, or endorsements.
-- **ACL**: encoded as constrained Parent + Attribute records so authorization state is auditable.
-
-Every record carries shared metadata (`app_id`, category, ids, owner, `global_seq`, sync flags). References are explicit triples `<app_id, category, id>`, so there are no implied lookups. Graph Manager enforces structural guards before anything else: strict app scoping, anchored ownership, and explicit references. Once a proposal survives this gate, Schema Manager checks types and invariants, ACL Manager verifies capability, and Graph Manager commits the ordered mutation through Storage Manager. Rejection is deterministic on every node, so divergence never hides behind network quirks.
+Every record carries shared metadata (`app_id`, category, ids, owner, `global_seq`, sync flags). References are explicit triples `<app_id, category, id>`, so there are no implied lookups. Graph Manager enforces structural guards before anything else: strict app scoping, anchored ownership, and explicit references. Once a change passes this gate, Schema Manager checks types and rules, ACL Manager verifies capability, and Graph Manager commits the ordered mutation through Storage Manager. Rejection is consistent on every node, so divergence never hides behind network quirks.
 
 ---
 
 ## Backend component model
 
-The backend is a collection of singleton managers that make the protocol enforceable:
-
-- **Config Manager** loads configuration, validates it, and publishes safe runtime access.
-- **Auth Manager** resolves device and peer identity using local keys and append-only logs.
-- **Key Manager** owns key storage, signing, and cryptographic lifecycle.
-- **Schema Manager** enforces schemas and domain logic supplied by applications.
-- **ACL Manager** evaluates permissions using the current graph and `OperationContext`.
-- **Graph Manager** validates structure, orders writes, and assigns `global_seq`.
-- **Storage Manager** persists commits and histories.
-- **App Manager** registers applications, scopes extensions, and enforces namespace boundaries.
-- **State Manager** streams accepted history to peers and reconciles inbound logs.
-- **Network Manager** handles peer exchange, pacing, and encrypted transport.
-- **Event Manager** emits deterministic signals for accepted outcomes.
-- **Log Manager** records structured reasons for accept or reject paths.
-- **Health Manager** publishes readiness and liveness posture.
-- **DoS Guard Manager** watches load and sheds work before corruption.
+The backend is a collection of singleton managers that make the protocol enforceable, and it includes Config, Auth, Key, Schema, ACL, Graph, Storage, App, State, Network, Event, Log, Health, and DoS Guard Managers. Config Manager loads and checks configuration for safe runtime use, Auth Manager handles device and peer identity with local keys and logs, Key Manager owns signing and key storage, Schema and ACL Managers apply schemas and permissions using each `OperationContext`, Graph Manager orders writes, assigns `global_seq`, and hands committed data to Storage Manager, App Manager registers applications and scopes extensions, State Manager streams accepted history to peers, Network Manager handles exchange and encrypted transport, Event Manager emits consistent signals for accepted outcomes, Log Manager records structured reasons for accept or reject paths, Health Manager reports readiness and liveness, and DoS Guard Manager sheds load before corruption.
 
 Managers form one pipeline for reads and writes. Unsigned or ambiguous input never bypasses it, and there are no trusted fast paths. Optional services (applications, automation, UIs) sit above the managers and must obey the same interfaces.
 
@@ -84,44 +63,21 @@ Managers form one pipeline for reads and writes. Unsigned or ambiguous input nev
 
 ## Security framing
 
-2WAY assumes untrusted networks and potentially hostile peers. Security controls are structural, not policy text:
+2WAY assumes untrusted networks and potentially hostile peers, so the controls are structural rather than policy text. Each device keeps its own keys, log, and durable state, which blocks a compromised operator from revoking global authority. Inputs are checked in order through schema, capability validation, and repeatable ordering before storage commits, and permission edges plus relationship depth limit unsolicited reach and fake-identity influence. DoS protection comes from Auth, Network, and DoS Guard Managers that throttle abusive traffic and fail closed when resources tighten, while Log and Event Managers capture reasons and signals so applications can respond without guesswork. Recovery stays simple because a node can rebuild by replaying signed history, with no special bootstrap modes or hidden overrides.
 
-- **Local custody**: every device holds its keys, log, and durable state. A compromised operator cannot revoke global authority.
-- **Guarded inputs**: schema checks, capability validation, and deterministic ordering run before storage commits.
-- **Degrees of separation**: permission edges and relationship depth limit unsolicited reach and Sybil influence.
-- **DoS containment**: Auth, Network, and DoS Guard Managers throttle unauthenticated or abusive traffic and fail closed when resources tighten.
-- **Auditability**: Log Manager captures structured reasons for acceptance or rejection, and Event Manager emits deterministic signals so applications can react without heuristics.
-- **Replay and recovery**: rebuilding a node means replaying signed history; there are no special bootstrap modes or hidden overrides.
-
-The system guarantees that malformed writes never land, unauthorized operations fail identically everywhere, and history remains tamper-evident. What the protocol enables but does not define: governance, policy meanings, incentive design, lives entirely in application schemas and data.
+The system guarantees that malformed writes never land, unauthorized operations fail identically everywhere, and history remains hard to fake. What the protocol enables but does not define: governance, policy meanings, incentive design, lives entirely in application schemas and data.
 
 ---
 
 ## Application model
 
-Applications act as deterministic state machines:
-
-1. Define schemas, invariants, and desired capabilities.
-2. Subscribe to the ordered feed the substrate maintains locally.
-3. Let users work against local state, even offline.
-4. Propose mutations through substrate interfaces so authority, ordering, and durability stay uniform.
-
-Developers inherit identity, permissions, sync, and audit, so they focus on domain logic and UX. Testing becomes replaying ordered logs. Multiple implementations can coexist as long as they honor schemas and invariants.
+Applications behave like state machines you can replay. They define schemas, rules, and desired capabilities, subscribe to the ordered feed the system maintains locally, let users work against local state even offline, and propose changes through system interfaces so authority, ordering, and durability stay uniform. Developers inherit identity, permissions, sync, and audit, which keeps the focus on domain logic and UX. Testing becomes replaying ordered logs, and multiple implementations can coexist as long as they honor schemas and rules.
 
 ---
 
 ## Example domains
 
-2WAY shines when provenance, collaboration, or survivability matter more than centralized throughput. Patterns include:
-
-- **Messaging and chat**: conversations, participants, messages, and ACLs become explicit graph objects, so offline authorship and moderation stay trustworthy.
-- **Social media and publishing**: follows, posts, reactions, and moderation signals map to Parents, Attributes, Edges, and Ratings while keeping reach bounded.
-- **Markets and services**: listings, offers, contracts, and reputation are state machines encoded in the graph, so multiple marketplaces can share data without a central arbiter.
-- **Ride-hailing, delivery, logistics**: trips, assignments, and settlements flow as ordered mutations that stay auditable even when dispatch services change.
-- **Key revocation and recovery**: keys and approvals are data, so revocation is a standard mutation, not an administrative side channel.
-- **Software supply chains**: releases, attestations, and trust hierarchies become verifiable graph structures that clients validate locally.
-- **Governance and compliance**: approvals, vetoes, and escalations live in the graph, creating tamper-evident audit trails that anyone can replay.
-- **Long-lived records**: archives, ledgers, and attestations remain verifiable independent of the original UI.
+2WAY fits best when clear history, collaboration, or resilience matter more than centralized throughput. In messaging and chat, conversations, participants, messages, and ACLs become explicit graph objects, which keeps offline authorship and moderation trustworthy; social media and publishing use the same mapping for follows, posts, reactions, and moderation signals while keeping reach bounded. Markets and services model listings, offers, contracts, and reputation as graph-based state machines, and ride-hailing or logistics can keep trips, assignments, and settlements as ordered mutations that stay auditable even when dispatch services change. Key revocation and recovery work cleanly because keys and approvals are data, not an admin side channel, and software supply chains treat releases, attestations, and trust hierarchies as checkable graph structures that clients validate locally. Governance and compliance keep approvals, vetoes, and escalations in the graph for replayable audit trails, and long-lived records like archives, ledgers, and attestations remain checkable even after the original UI is gone.
 
 These examples share one theme: identity, permissions, ordering, and denial-of-service controls sit below the application, so developers can offer powerful features without handing control to a central backend.
 
@@ -129,20 +85,13 @@ These examples share one theme: identity, permissions, ordering, and denial-of-s
 
 ## Conformance
 
-Conformance is binary. An implementation must:
-
-- Honor every invariant under all supported conditions, including offline operation and adversarial peers.
-- Keep forbidden behaviors structurally impossible; logging or operator vigilance is not a substitute.
-- Run validation, authorization, and ordering exactly as specified, with no trust shortcuts.
-- Flow every mutation through the single serialized pipeline.
-
-Any deviation demands a recorded ADR with scope and compensating controls. Without that, the implementation is out of spec even if it seems convenient.
+Conformance is binary. An implementation must honor every rule under all supported conditions, including offline operation and adversarial peers, and it must make forbidden behaviors structurally impossible rather than rely on logging or operator vigilance. Validation, authorization, and ordering have to run exactly as specified with no trust shortcuts, and every mutation must flow through the single ordered pipeline. Any deviation demands a recorded ADR with scope and compensating controls; without that, the implementation is out of spec even if it seems convenient.
 
 ---
 
 ## Scope boundary and status
 
-This repository promises only what it states explicitly. Examples illustrate possibilities, not requirements. The proof of concept favors clarity and correctness over polish, and future ADRs may refine details. Treat the repo as the authoritative statement of intent today and build against the guarantees it documents.
+This repository promises only what it states explicitly, and the examples illustrate possibilities rather than requirements. The proof of concept favors clarity and correctness over polish, and future ADRs may refine details. Treat the repo as the official statement of intent today and build against the guarantees it documents.
 
 ---
 
