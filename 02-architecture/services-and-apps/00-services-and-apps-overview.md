@@ -33,8 +33,8 @@ This overview is responsible for:
 
 This overview does not cover:
 
-* Protocol object formats, envelope serialization, or cryptographic details (`01-protocol/**`).
-* Manager implementation details beyond their published APIs (`02-architecture/managers/**`).
+* Protocol object formats, envelope serialization, or cryptographic details ([01-protocol/**](../../01-protocol/)).
+* Manager implementation details beyond their published APIs ([02-architecture/managers/**](../managers/)).
 * Frontend UX or product-specific behavior beyond required trust boundaries.
 
 ## 3. Service and application taxonomy
@@ -62,12 +62,14 @@ All services and apps must uphold the following invariants:
 
 ## 5. End-to-end flow summary
 
-Services and apps participate in a single data-flow pipeline governed by managers:
+Services and apps participate in a single data-flow pipeline governed by managers. The entry path differs for local requests versus remote sync packages, but both converge on the manager sequencing rules.
 
-1. A frontend app or remote peer submits a request or sync package through the interface layer (`04-interfaces/**`).
-2. Auth Manager, Network Manager, and DoS Guard Manager admit the request and produce identity bindings.
-3. The service (system or extension) validates input and constructs OperationContext, then calls managers in the required order (Schema -> ACL -> Graph -> Storage -> Event) as described in [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md).
+1. A frontend app submits a request through the interface layer ([04-interfaces/**](../../04-interfaces/)). Auth Manager validates credentials and binds local identity. App Manager resolves the `app_id`. The interface layer then constructs the OperationContext.
+2. A remote peer submits a sync package through Network Manager. DoS Guard admission, Key Manager verification, and State Manager ordering occur before any graph mutation; State Manager constructs the remote OperationContext.
+3. The service (system or extension) validates input and invokes managers in the required order, with Graph Manager orchestrating the sequence (structural validation -> schema validation -> ACL evaluation -> graph sequencing -> persistence -> event emission) as described in [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md).
 4. Manager responses propagate back to the caller unchanged, and Log Manager records a full audit trail.
+
+OperationContext construction is owned by the interface layer for local requests (after Auth + App binding) and by State Manager for remote sync packages. The resulting context is immutable for the lifetime of the operation.
 
 Services and apps never create alternate write paths. Derived caches are allowed but non-authoritative and rebuilt from graph state.
 
