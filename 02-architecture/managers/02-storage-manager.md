@@ -8,18 +8,6 @@
 
 Storage Manager is the sole authority for durable persistence in the 2WAY backend. It owns the SQLite database lifecycle, schema materialization, per-app table provisioning, transactional boundaries, and persistence primitives consumed by all other managers and services.
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-* [04-interfaces/**](../../04-interfaces/)
-
 This specification defines the complete responsibilities, internal structure, invariants, APIs, and failure posture of Storage Manager. It is an implementation-facing design specification. It does not define higher-level graph semantics, ACL logic, schema meaning, sync policy, or network behavior, except where storage guarantees are required to support them.
 
 Storage Manager is a passive subsystem. It never interprets protocol meaning. It persists state exactly as instructed by higher-level managers defined in [01-component-model.md](../01-component-model.md) and guarantees durability, ordering, isolation, and integrity.
