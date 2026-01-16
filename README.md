@@ -9,7 +9,7 @@
 - [4. What 2WAY is](#4-what-2way-is)
 - [5. Graph, objects, and protocol model](#5-graph-objects-and-protocol-model)
 - [6. Backend component model](#6-backend-component-model)
-- [7. Security framing](#7-security-framing)
+- [7. Security model](#7-security-model)
 - [8. Incentives](#8-incentives)
 - [9. Privacy](#9-privacy)
 - [10. Application model and use cases](#10-application-model-and-use-cases)
@@ -51,7 +51,7 @@ The point is not decentralization for its own sake. The point is to make multi-p
 
 ## 3. Repository guide
 
-This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security framing, flows, and acceptance criteria, with PoC goals in [`07-poc`](07-poc). Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
+This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security model, flows, and acceptance criteria, with PoC goals in [`07-poc`](07-poc). Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
 
 | Folder | Focus |
 | --- | --- |
@@ -114,7 +114,7 @@ The point of this design is that the backend behaves like a kernel. It enforces 
 
 ---
 
-## 7. Security framing
+## 7. Security model
 
 2WAY assumes the network is adversarial and peers can be careless, compromised, or hostile. Security is enforced by protocol structure rather than operator policy. Each device, user, and app holds its own keys and history, and every node verifies incoming changes locally before accepting them [[5](#ref-5)] [[6](#ref-6)].
 
