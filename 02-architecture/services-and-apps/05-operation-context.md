@@ -53,7 +53,7 @@ OperationContext is the per-request execution contract that binds:
 * **Who is acting**: identity, device, delegation, or peer.
 * **On behalf of which app**: application identity and version.
 * **What capability is invoked**: explicit verb evaluated by ACL.
-* **How execution entered the system**: local, remote, automated.
+* **How execution entered the system**: local or remote.
 * **How the action is observed**: traceability and audit scope.
 
 Managers treat OperationContext as authoritative metadata. No manager infers missing information from envelopes, payloads, schema content, or transport details.
@@ -63,11 +63,10 @@ OperationContext is referenced by protocol flows in `01-protocol/00-protocol-ove
 
 OperationContext exists in the following variants:
 
-| Variant        | Origin                                           | Characteristics                                 |
-| -------------- | ------------------------------------------------ | ----------------------------------------------- |
-| Local request  | HTTP or WebSocket entrypoint after Auth Manager  | `is_remote=false`, requester identity bound     |
-| Remote sync    | State Manager after Network Manager verification | `is_remote=true`, remote peer identity bound    |
-| Automation job | Service-owned scheduler or internal engine       | Synthetic actor identity, controlled capability |
+| Variant       | Origin                                           | Characteristics                              |
+| ------------- | ------------------------------------------------ | -------------------------------------------- |
+| Local request | HTTP or WebSocket entrypoint after Auth Manager  | `is_remote=false`, requester identity bound  |
+| Remote sync   | State Manager after Network Manager verification | `is_remote=true`, remote peer identity bound |
 
 All variants share the same structural fields. Differences exist only in field population and trusted source.
 
