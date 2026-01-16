@@ -61,11 +61,25 @@ The result is a system where correctness does not depend on transport, uptime, o
 
 ---
 
-## Object and protocol model
+Yes. You are right. The previous version explains *objects*, but it under-explains the *protocol shape*, especially how apps and schemas fit into the graph and why this is a protocol rather than just a data model.
 
-`01-protocol/02-object-model.md` defines five core record types. A Parent anchors entities such as people, devices, contracts, or workflows, while an Attribute attaches typed payloads like profiles, configs, or encrypted blobs to a Parent; an Edge expresses relationships or workflow transitions, a Rating captures evaluations such as votes or endorsements, and an ACL is encoded as constrained Parent plus Attribute records so authorization state stays auditable.
+Here is a revised version that does that, keeps links grounded in the actual repo structure, and stays plain and non-listy.
 
-Every record carries shared metadata (`app_id`, category, ids, owner, `global_seq`, sync flags). References are explicit triples `<app_id, category, id>`, so there are no implied lookups. Graph Manager enforces structural guards before anything else: strict app scoping, anchored ownership, and explicit references. Once a change passes this gate, Schema Manager checks types and rules, ACL Manager verifies capability, and Graph Manager commits the ordered change through Storage Manager. Rejection is consistent on every node, so divergence never hides behind network quirks.
+---
+
+## Graph, objects, and protocol model
+
+2WAY defines a protocol for how state is created, validated, ordered, and shared. That protocol is centered around a shared graph, not around APIs, endpoints, or databases. The graph is the only source of truth, and every node builds, validates, and evolves it using the same rules. The high-level structure of the protocol is introduced in `01-protocol/00-protocol-overview.md`.
+
+All application state is represented as graph records, defined formally in `01-protocol/02-object-model.md`. The model is intentionally small and explicit. Parents anchor identities, devices, apps, and domain objects. Attributes attach typed data to those Parents. Edges express relationships, capabilities, and transitions. Ratings capture judgments such as endorsements or trust signals. Access control is not external logic. It is encoded into the same graph using constrained Parents and Attributes, with its semantics defined in `01-protocol/06-access-control-model.md`, so authorization state is visible, replayable, and verifiable like any other data.
+
+Apps are first-class participants in the protocol. Each app has its own namespace, its own schemas, and its own portion of the graph. Schemas are defined by apps and stored in the graph itself, as described in `02-architecture/managers/05-schema-manager.md` and `01-protocol/02-object-model.md`. They specify which object types exist, how they relate, and what values are valid. The protocol does not interpret application meaning. It enforces that meaning structurally and consistently, so every node evaluates the same rules when deciding whether a change is acceptable.
+
+Every proposed change is wrapped in a protocol envelope, defined in `01-protocol/03-serialization-and-envelopes.md`. Graph message envelopes carry the operation records and required identifiers. Sync packages add sender identity, domain metadata, and sequence fields for ordering and replay checks. When a node receives an envelope, it validates it locally. Structure is checked first, including object model invariants and app namespace boundaries. Schema rules are then applied to ensure the change fits the app's schema. Access control is evaluated next using graph-encoded permissions. Only if all checks succeed is the change assigned a global order and committed. This pipeline is defined across `02-architecture/managers/07-graph-manager.md`, `02-architecture/managers/05-schema-manager.md`, and `02-architecture/managers/06-acl-manager.md`.
+
+History is append-only and ordered, as defined in `01-protocol/07-sync-and-consistency.md`. Nodes exchange signed, ordered envelopes rather than mutable state. Each node replays those sequences independently and accepts only the parts that satisfy its local rules. Ordering comes from protocol-defined sequence assignment, not from message arrival or wall-clock time. This is what allows nodes to diverge temporarily, operate offline, and still converge without trusting transport or peers.
+
+The result is a protocol where apps, schemas, identities, permissions, and records all live in the same verifiable structure. The graph is not an internal implementation detail. It *is* the protocol surface. Everything else, networking, storage engines, frontend frameworks, exists only to move envelopes in and out of that structure.
 
 ---
 
