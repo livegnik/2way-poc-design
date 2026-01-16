@@ -10,12 +10,13 @@
 - [5. Graph, objects, and protocol model](#5-graph-objects-and-protocol-model)
 - [6. Backend component model](#6-backend-component-model)
 - [7. Security framing](#7-security-framing)
-- [8. Application model and use cases](#8-application-model-and-use-cases)
-- [9. Conformance](#9-conformance)
-- [10. Scope boundary and current status](#10-scope-boundary-and-current-status)
-- [11. How to use this README](#11-how-to-use-this-readme)
-- [12. Acknowledgments](#12-acknowledgments)
-- [13. References](#13-references)
+- [8. Incentives](#8-incentives)
+- [9. Application model and use cases](#9-application-model-and-use-cases)
+- [10. Conformance](#10-conformance)
+- [11. Scope boundary and current status](#11-scope-boundary-and-current-status)
+- [12. How to use this README](#12-how-to-use-this-readme)
+- [13. Acknowledgments](#13-acknowledgments)
+- [14. References](#14-references)
 
 <br>
 
@@ -126,7 +127,27 @@ The protocol does not define social or political choices. Governance models, mod
 
 ---
 
-## 8. Application model and use cases
+## 8. Incentives
+
+2WAY is deliberately neutral on economic incentives at the protocol level. There is no built-in token, reward scheme, fee market, or reputation score that the system enforces globally. That is not an omission. It is a design choice.
+
+The core incentive in 2WAY is correctness. Nodes participate because enforcing the protocol locally protects their own state. A node that validates strictly, rejects invalid input, and orders changes correctly ends up with a coherent, auditable history it can rely on. A node that cuts corners gains nothing durable and risks corrupting its own state. This creates a baseline incentive to follow the rules even in the absence of payments or coordination.
+
+Because every device, user, and app keeps its own keys and history, there is no central operator that can extract rent by default. Running a node does not grant control over others, and there is no privileged position to monetize purely by being "in the middle." This removes many perverse incentives that appear in centralized systems, where operators are rewarded for lock-in, opacity, or silent rule changes.
+
+Abuse resistance is handled structurally rather than economically. Sybil behavior is limited by relationship depth, ACLs, and schema constraints, not by proof-of-work or staking. Flooding the network is discouraged by DoS guards, early rejection, and local resource limits. These mechanisms do not reward good behavior with payouts, but they make bad behavior ineffective and costly in terms of local resources.
+
+Incentives that matter to users and developers live above the protocol, inside applications. Apps can define their own economic models, governance rules, trust signals, or reputation systems as graph data. Markets can encode listings, contracts, escrow, and settlement logic. Communities can encode moderation, membership, and voting. Enterprises can encode approvals, compliance flows, and audit requirements. None of these meanings are hard-coded into 2WAY, but all of them benefit from the same guarantees around identity, ordering, authorship, and replayability.
+
+This separation is intentional. It prevents the protocol from baking in assumptions about value, scarcity, or motivation that may not hold across domains or over time. It also avoids coupling long-term infrastructure correctness to short-term incentive fashions. If an incentive model turns out to be flawed, it can be changed at the application level without forking the protocol or rewriting history.
+
+For operators and integrators, the incentive is leverage. By building on 2WAY, they avoid re-implementing identity, permissions, sync, and audit for every system. They gain durability and user trust without having to promise perpetual uptime or benevolent control. For users, the incentive is autonomy. Their data, history, and authority persist even if an app, vendor, or service disappears.
+
+In short, 2WAY does not try to motivate participation with rewards. It motivates participation by making correct behavior the simplest path, abusive behavior ineffective, and long-term control remain with the people and applications that actually use the system.
+
+---
+
+## 9. Application model and use cases
 
 In 2WAY, an application is not a backend service that owns data. It is a way of working with shared state that the system already knows how to protect. From a user's perspective, an app feels local and responsive. You can create, edit, and inspect records on your own device, even when you are offline. When the network is available again, your changes are checked, ordered, and merged with everyone else's in a predictable way. Nothing disappears because a server is down, and nothing silently changes because a service updated its logic.
 
@@ -140,7 +161,7 @@ In practice, this model fits domains where history, collaboration, and durabilit
 
 Across all of these cases, the common thread is that apps do not have to reinvent trust. Identity, permissions, ordering, and resilience are part of the system below them. That lets developers focus on what their app is for, and lets users keep control over their data and its history, regardless of which app or vendor they are using at the moment.
 
-## 9. Conformance
+## 10. Conformance
 
 2WAY only works if the rules are followed exactly. An implementation either conforms or it does not. Validation, permissions, ordering, and storage must behave the same way in all conditions, including offline use and hostile input. Forbidden behavior must be impossible by design, not merely detected after the fact or left to operator judgment.
 
@@ -148,7 +169,7 @@ All state changes must pass through the same enforcement path. There are no shor
 
 ---
 
-## 10. Scope boundary and current status
+## 11. Scope boundary and current status
 
 This repository only promises what it states explicitly. Examples are illustrative, not requirements. The proof of concept prioritizes correctness, clarity, and inspectability over polish or performance. Details may evolve over time, but changes are intentional and documented.
 
@@ -156,7 +177,7 @@ Treat this repository as the authoritative description of how the system is mean
 
 ---
 
-## 11. How to use this README
+## 12. How to use this README
 
 This README is meant to give you the mental model. It explains what 2WAY is, why it exists, how the graph and backend work, and what guarantees the system enforces. It does not replace the detailed documents.
 
@@ -166,7 +187,7 @@ The key idea to keep in mind is that every node enforces the same structure loca
 
 ---
 
-## 12. Acknowledgments
+## 13. Acknowledgments
 
 Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-licensed project available at [https://github.com/irislib/iris-client](https://github.com/irislib/iris-client). When the project was still Identifi and implemented as a fork of the Bitcoin daemon in C++, encountering it helped shape early ideas about private, user-controlled data layers that go beyond simple broadcast messaging with the help of a simple object model.
 
@@ -174,7 +195,7 @@ Our projects took different paths over the years, but that early work influenced
 
 ---
 
-## 13. References
+## 14. References
 
 <br>
 
