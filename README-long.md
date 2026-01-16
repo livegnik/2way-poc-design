@@ -611,7 +611,7 @@ The proof of concept is a work in progress. Clarity, auditability, and structura
 
 ---
 
-## Acknowledgments
+## 21. Acknowledgments
 
 Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
 
