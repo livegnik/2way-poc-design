@@ -8,7 +8,7 @@
 
 This specification defines the authoritative responsibilities, invariants, and interfaces of the Config Manager within the 2WAY backend.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../../01-protocol/)
 * [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
