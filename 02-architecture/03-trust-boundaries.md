@@ -10,6 +10,17 @@ This document defines the trust boundaries enforced by the 2WAY architecture as 
 
 This file covers architectural trust boundaries only. It does not define cryptographic primitives, schema semantics, ACL rule syntax, sync algorithms, or transport protocols. Those are defined elsewhere and are referenced here only where required to define boundary behavior.
 
+This overview references:
+
+* [01-protocol/**](../01-protocol/)
+* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
+* [02-architecture/01-component-model.md](01-component-model.md)
+* [02-architecture/02-runtime-topologies.md](02-runtime-topologies.md)
+* [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md)
+* [02-architecture/managers/**](managers/)
+* [02-architecture/services-and-apps/**](services-and-apps/)
+* [04-interfaces/**](../04-interfaces/)
+
 ## 2. Trust model and baseline assumptions
 
 The PoC assumes a hostile environment by default.
@@ -27,29 +38,29 @@ Baseline assumptions:
 
 This specification is responsible for the following:
 
-* Defining architectural trust boundaries between frontend, apps, services, managers, storage, network, and remote peers.
-* Defining which interactions are allowed and forbidden across those boundaries.
-* Defining rejection, failure, and containment behavior at boundary violations.
+* Defining architectural trust boundaries between frontend, apps, services, managers, storage, network, and remote peers as framed in [01-component-model.md](01-component-model.md) and [02-runtime-topologies.md](02-runtime-topologies.md).
+* Defining which interactions are allowed and forbidden across those boundaries aligned to [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md).
+* Defining rejection, failure, and containment behavior at boundary violations aligned to [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
 
 This specification does not cover the following:
 
-* Cryptographic algorithms, formats, or key derivation.
-* ACL rule structure or evaluation semantics.
-* Schema declaration syntax or validation rules.
-* Sync algorithms, conflict resolution, or domain definitions.
-* Transport encoding, routing, or discovery mechanisms.
+* Cryptographic algorithms, formats, or key derivation ([01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md)).
+* ACL rule structure or evaluation semantics ([01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)).
+* Schema declaration syntax or validation rules ([01-protocol/02-object-model.md](../01-protocol/02-object-model.md)).
+* Sync algorithms, conflict resolution, or domain definitions ([01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)).
+* Transport encoding, routing, or discovery mechanisms ([01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md)).
 
 ## 4. Invariants and guarantees
 
 Across all trust boundaries, the following invariants and guarantees hold:
 
-* All graph mutations pass through Graph Manager.
-* All authorization decisions pass through ACL Manager.
-* All schema validation passes through Schema Manager.
-* All persistence passes through Storage Manager.
-* All sync behavior passes through State Manager.
-* All network I.O. passes through Network Manager.
-* All private key usage is mediated by Key Manager.
+* All graph mutations pass through [Graph Manager](managers/07-graph-manager.md).
+* All authorization decisions pass through [ACL Manager](managers/06-acl-manager.md).
+* All schema validation passes through [Schema Manager](managers/05-schema-manager.md).
+* All persistence passes through [Storage Manager](managers/02-storage-manager.md).
+* All sync behavior passes through [State Manager](managers/09-state-manager.md) per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* All network I.O. passes through [Network Manager](managers/10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
+* All private key usage is mediated by [Key Manager](managers/03-key-manager.md) per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
 * All write operations are serialized and assigned a monotonic global sequence.
 
 These guarantees must hold regardless of caller identity, app context, service implementation, or remote peer behavior.
@@ -71,10 +82,10 @@ All frontend-originated input is untrusted, including:
 
 The frontend may:
 
-* Authenticate via Auth Manager mediated APIs.
-* Invoke backend APIs exposed by services or managers.
-* Submit envelopes for validation and potential application.
-* Receive events via Event Manager over WebSocket.
+* Authenticate via [Auth Manager](managers/04-auth-manager.md) mediated APIs.
+* Invoke backend APIs exposed by services or managers through [04-interfaces/**](../04-interfaces/).
+* Submit envelopes for validation and potential application per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
+* Receive events via [Event Manager](managers/11-event-manager.md) over WebSocket ([04-interfaces/02-websocket-events.md](../04-interfaces/02-websocket-events.md)).
 
 ### 5.3 Forbidden behaviors
 
@@ -83,7 +94,7 @@ The frontend must not:
 * Access backend storage directly.
 * Access private key material.
 * Call managers directly.
-* Bypass schema, ACL, or graph validation.
+* Bypass schema, ACL, or graph validation enforced by [Schema Manager](managers/05-schema-manager.md), [ACL Manager](managers/06-acl-manager.md), and [Graph Manager](managers/07-graph-manager.md).
 * Mutate backend state outside documented APIs.
 
 ### 5.4 Failure and rejection behavior
@@ -107,9 +118,9 @@ This applies equally to frontend-only apps and apps with backend extension servi
 Apps may:
 
 * Declare schemas through the graph.
-* Request graph reads and writes through services.
-* Participate in sync domains as defined by schema and State Manager.
-* Emit app-scoped events via Event Manager.
+* Request graph reads and writes through services defined in [02-architecture/services-and-apps/**](services-and-apps/).
+* Participate in sync domains as defined by schema and [State Manager](managers/09-state-manager.md).
+* Emit app-scoped events via [Event Manager](managers/11-event-manager.md).
 
 ### 6.3 Forbidden behaviors
 
@@ -117,8 +128,8 @@ Apps must not:
 
 * Modify protocol behavior.
 * Access managers directly.
-* Bypass ACL evaluation.
-* Bypass schema validation.
+* Bypass ACL evaluation by [ACL Manager](managers/06-acl-manager.md).
+* Bypass schema validation by [Schema Manager](managers/05-schema-manager.md).
 * Access raw database connections.
 * Access private key material.
 * Influence global sequencing or sync ordering.
@@ -143,11 +154,11 @@ Services are constrained callers operating above the protocol kernel.
 
 Services may:
 
-* Invoke manager APIs using a valid OperationContext.
-* Request reads and writes through Graph Manager.
-* Request authorization decisions through ACL Manager.
-* Emit events through Event Manager.
-* Log through Log Manager.
+* Invoke manager APIs using a valid [OperationContext](services-and-apps/05-operation-context.md).
+* Request reads and writes through [Graph Manager](managers/07-graph-manager.md).
+* Request authorization decisions through [ACL Manager](managers/06-acl-manager.md).
+* Emit events through [Event Manager](managers/11-event-manager.md).
+* Log through [Log Manager](managers/12-log-manager.md).
 
 ### 7.3 Forbidden behaviors
 
@@ -180,7 +191,7 @@ All correctness guarantees are enforced above the storage layer.
 
 Managers may:
 
-* Read and write only via Storage Manager.
+* Read and write only via [Storage Manager](managers/02-storage-manager.md).
 * Rely on transactional atomicity provided by the storage engine.
 
 ### 8.3 Forbidden behaviors
@@ -210,8 +221,8 @@ No assumptions are made about remote correctness, honesty, availability, or inte
 
 Remote nodes may:
 
-* Exchange signed and encrypted protocol messages.
-* Participate in sync within allowed domains.
+* Exchange signed and encrypted protocol messages defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* Participate in sync within allowed domains per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Present graph objects and identities for validation.
 
 ### 9.3 Forbidden behaviors
@@ -246,9 +257,9 @@ Confidentiality, integrity, and authenticity are enforced at the protocol layer.
 Network Manager may:
 
 * Transmit and receive encrypted payloads.
-* Perform peer-level throttling and rate limiting.
-* Reject malformed or abusive traffic.
-* Apply client puzzles under load as defined by DoS Guard Manager.
+* Perform peer-level throttling and rate limiting enforced by [DoS Guard Manager](managers/14-dos-guard-manager.md).
+* Reject malformed or abusive traffic per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+* Apply client puzzles under load as defined by [DoS Guard Manager](managers/14-dos-guard-manager.md) and [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
 
 ### 10.3 Forbidden behaviors
 
