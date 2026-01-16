@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-OperationContext is the immutable per-request envelope that binds identity, application, capability intent, trust posture, execution origin, and trace metadata to every backend action. It is the single authoritative structure used by managers to enforce authorization, app isolation, auditability, and local versus remote semantics. No manager, service, extension, or internal execution engine may be invoked without a complete and valid OperationContext.
+OperationContext is the immutable per-request envelope that binds identity, application, capability intent, trust posture, execution origin, and trace metadata to every backend action. It is the single authoritative structure used by managers to enforce authorization, app isolation, auditability, and local versus remote semantics. No service, extension, or manager that executes request-scoped work may be invoked without a complete and valid OperationContext.
 
 This specification defines the required fields, construction rules, lifecycle behavior, and consumption requirements for OperationContext across frontend requests, system services, app backend extensions, automation jobs, internal engines, and remote synchronization handling. It is the canonical source for OperationContext semantics referenced throughout the protocol and architecture.
 
@@ -18,7 +18,7 @@ This specification is responsible for the following:
 * Declaring deterministic construction rules for local execution paths and remote sync paths.
 * Defining immutability rules and lifecycle guarantees.
 * Specifying how services and internal engines may derive enriched contexts without mutating identity bindings.
-* Defining how OperationContext is consumed by Graph Manager, ACL Manager, Network Manager, State Manager, Event Manager, Log Manager, Health Manager, and DoS Guard Manager.
+* Defining how OperationContext is consumed by Graph Manager, ACL Manager, State Manager, Event Manager, Log Manager, and Health Manager.
 * Defining failure and rejection posture for malformed or incomplete contexts.
 
 This specification does not cover the following:
@@ -31,7 +31,7 @@ This specification does not cover the following:
 
 Across all components, execution paths, and managers that use OperationContext, the following invariants and guarantees hold:
 
-* Every manager invocation receives a complete OperationContext.
+* Every request-scoped manager invocation receives a complete OperationContext.
 * OperationContext is immutable after construction. In-place mutation is forbidden.
 * Identity binding is authoritative and originates only from trusted managers.
 * `app_id` is always present and correctly bound.
@@ -79,11 +79,11 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | Field                     | Required    | Source                       | Semantics                                                           |
 | ------------------------- | ----------- | ---------------------------- | ------------------------------------------------------------------- |
 | `app_id`                  | Yes         | App Manager or routing layer | Owning application identity. System services use `app_0`.           |
-| `requester_identity_id`   | Local only  | Auth Manager                 | Local user or delegated identity.                                   |
+| `requester_identity_id`   | Local only  | Auth Manager                 | Local user or delegated identity; nullable for explicit public endpoints. |
 | `device_id`               | Optional    | Auth Manager                 | Bound device identity for local users.                              |
 | `delegated_key_id`        | Optional    | Auth Manager                 | Delegated signing key reference.                                    |
-| `actor_type`              | Yes         | Entry layer or service       | `user`, `app_service`, `app_automation`, `delegate`, `remote_peer`. |
-| `capability`              | Yes         | Service or engine            | Explicit verb evaluated by ACL.                                     |
+| `actor_type`              | Yes         | Entry layer or service       | `user`, `app_service`, `app_automation` (alias: `automation`), `delegate`, `remote_peer`. |
+| `capability`              | Local only  | Service or engine            | Explicit verb evaluated by ACL.                                     |
 | `is_admin`                | Optional    | Auth Manager                 | Administrative gating flag. Never bypasses ACL.                     |
 | `is_remote`               | Yes         | Construction layer           | Local or remote execution flag.                                     |
 | `sync_domain`             | Remote only | State Manager                | Domain being synchronized.                                          |
@@ -182,6 +182,7 @@ Retry behavior:
 * `capability` must name the exact action being attempted.
 * `actor_type` distinguishes human, service, automation, delegation, and peer traffic.
 * `remote_peer` actor type is reserved exclusively for remote sync contexts.
+* Remote sync contexts may omit `capability`; authorization relies on identity, app, and schema constraints.
 
 ### 5.3 Trace and correlation identifiers
 
@@ -192,7 +193,7 @@ Retry behavior:
 ### 5.4 Local and remote field separation
 
 * Local contexts must not include remote-only fields.
-* Remote contexts must not include local-only identity fields.
+* Remote contexts must not include local-only fields (`requester_identity_id`, `device_id`, `delegated_key_id`, `capability`).
 * Violations result in immediate rejection.
 
 ---
@@ -203,12 +204,11 @@ Managers consume OperationContext as follows:
 
 * **Graph Manager** enforces app isolation, ownership, and remote sync constraints.
 * **ACL Manager** evaluates identity, delegation, device, capability, and app bindings.
-* **Network Manager** uses context only for logging and routing attribution.
 * **State Manager** uses context to gate sync application and domain enforcement.
 * **Event Manager** applies visibility filtering and audience scoping.
 * **Log Manager** records immutable context snapshots for audit trails.
 * **Health Manager** uses `is_admin` only for access gating, never as an ACL bypass.
-* **DoS Guard Manager** uses `dos_cost_class` and actor metadata for admission control.
+* **DoS Guard Manager** does not rely on OperationContext for admission decisions; cost hints are service metadata passed through the interface layer.
 
 Managers must reject any invocation lacking required context fields.
 
