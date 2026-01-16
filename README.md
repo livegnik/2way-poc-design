@@ -18,7 +18,13 @@ Looking for a more comprehensive read-through? See [README-long.md](README-long.
 
 ## Why it exists
 
-Centralized backends tie identity, policy, ordering, and storage to a single operator. If that operator changes plans, disappears, or gets compromised, users lose both history and authority. Federation often just moves trust to brittle bridges. 2WAY keeps durable structure separate from changing software: identities, relationships, and permissions live in a shared graph that each device enforces. Applications and vendors can evolve or even vanish without taking authority with them, and a device that reconnects later simply replays signed history until it catches up.
+Most systems tie identity, permissions, ordering, and storage to whoever runs the backend. That makes the operator part of the trust model, whether you intend it or not. If the operator changes rules, gets compromised, shuts down, or simply makes a mistake, users lose authority over their own history. Federation usually does not fix this. It just spreads the same problem across fragile bridges and special cases.
+
+2WAY exists to separate durable structure from transient infrastructure. Identity, ownership, permissions, and history live in a shared, cryptographically verifiable graph that every device, user, and app enforces locally. No server decides what is valid. No relay decides what is authoritative. Software can change, vendors can disappear, and the rules still hold.
+
+Because all state changes are signed, ordered, and append-only, a device does not need to trust uptime or timing. It can go offline, fall behind, or disconnect entirely. When it reconnects, it verifies and replays history until it converges again. Authority comes from keys and structure, not from who stayed online the longest.
+
+The point is not decentralization for its own sake. The point is to make multi-party software that remains correct even when operators fail, infrastructure degrades, or trust assumptions break.
 
 ---
 
