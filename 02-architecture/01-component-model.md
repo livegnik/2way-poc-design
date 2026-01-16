@@ -8,7 +8,7 @@
 
 This document defines the backend component model of the 2WAY system as implemented in the proof of concept (PoC). It specifies component categories, responsibilities, invariants, allowed and forbidden interactions, trust boundaries, and failure behavior.
 
-This document is normative for backend structure and behavior. It does not define APIs ([04-interfaces/**](../04-interfaces/)), wire formats ([01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)), schemas ([01-protocol/02-object-model.md](../01-protocol/02-object-model.md)), storage layout, or runtime topology ([02-runtime-topologies.md](02-runtime-topologies.md)) except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
+This document is normative for backend structure and behavior. It does not define APIs, wire formats, schemas, storage layout, or runtime topology except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
 
 This overview references:
 
