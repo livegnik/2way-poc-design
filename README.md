@@ -95,9 +95,15 @@ The point of this design is that the backend behaves like a kernel. It enforces 
 
 ## Security framing
 
-2WAY assumes untrusted networks and potentially hostile peers, so the controls are structural rather than policy text. Each device keeps its own keys, log, and durable state, which blocks a compromised operator from revoking global authority. Inputs are checked in order through schema, capability validation, and repeatable ordering before storage commits, and permission edges plus relationship depth limit unsolicited reach and fake-identity influence. DoS protection comes from Auth, Network, and DoS Guard Managers that throttle abusive traffic and fail closed when resources tighten, while Log and Event Managers capture reasons and signals so applications can respond without guesswork. Recovery stays simple because a node can rebuild by replaying signed history, with no special bootstrap modes or hidden overrides.
+2WAY is built on the assumption that networks are unreliable and that peers may be careless, compromised, or hostile. Security is not expressed as policy text or trust assumptions. It is enforced by structure. Each device, user, and app keeps its own keys, its own history, and its own durable state. No operator can revoke authority globally, rewrite history, or silently change the rules, because every node verifies changes for itself before accepting them.
 
-The system guarantees that malformed writes never land, unauthorized operations fail identically everywhere, and history remains hard to fake. What the protocol enables but does not define: governance, policy meanings, incentive design, lives entirely in application schemas and data.
+All input goes through the same validation path. A proposed change must match the object model, fit the app’s schema, and be authorized by the graph’s permission rules before it can be committed. Ordering is assigned locally and is repeatable, so replayed or reordered input does not produce different outcomes. Relationships and permission edges limit how far unknown or untrusted identities can reach, which caps the impact of spam, impersonation, and fake-identity flooding without relying on global reputation systems.
+
+Denial-of-service protection is handled as part of the system, not bolted on at the edge. Authentication, network handling, and load shedding are coordinated so that abusive traffic is rejected early and the node fails closed when resources are tight. The backend never accepts partial state or degraded correctness in order to stay responsive. Log and Event Managers record clear reasons for accept and reject decisions, so applications can react based on facts rather than inference.
+
+Recovery is intentionally boring. A node does not need special bootstrap modes, trusted snapshots, or manual overrides. Because all accepted changes are signed, ordered, and append-only, a node can always rebuild its state by replaying history and reapplying the same rules. If history cannot be verified, it is not accepted.
+
+What 2WAY does not define on purpose are social or political choices. Governance models, moderation rules, incentive schemes, and policy meaning live entirely in application schemas and data. The protocol enforces correctness and authorship. It does not decide what should be said, rewarded, or allowed beyond what apps explicitly encode.
 
 ---
 
