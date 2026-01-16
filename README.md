@@ -11,12 +11,13 @@
 - [6. Backend component model](#6-backend-component-model)
 - [7. Security framing](#7-security-framing)
 - [8. Incentives](#8-incentives)
-- [9. Application model and use cases](#9-application-model-and-use-cases)
-- [10. Conformance](#10-conformance)
-- [11. Scope boundary and current status](#11-scope-boundary-and-current-status)
-- [12. How to use this README](#12-how-to-use-this-readme)
-- [13. Acknowledgments](#13-acknowledgments)
-- [14. References](#14-references)
+- [9. Privacy](#9-privacy)
+- [10. Application model and use cases](#10-application-model-and-use-cases)
+- [11. Conformance](#11-conformance)
+- [12. Scope boundary and current status](#12-scope-boundary-and-current-status)
+- [13. How to use this README](#13-how-to-use-this-readme)
+- [14. Acknowledgments](#14-acknowledgments)
+- [15. References](#15-references)
 
 <br>
 
@@ -147,7 +148,25 @@ In short, 2WAY does not try to motivate participation with rewards. It motivates
 
 ---
 
-## 9. Application model and use cases
+## 9. Privacy
+
+2WAY treats privacy as a structural property, not as a feature layered on later. The system is designed so that nodes only see what they are allowed to see, and only share what they explicitly choose to share. There is no global view of the network, no mandatory data aggregation point, and no requirement to disclose more information than an application's rules demand.
+
+Each node keeps its own full state locally. Data is not pulled into a central service by default, and there is no background process that mirrors complete histories elsewhere. When nodes exchange data, they do so through scoped synchronization. Only the parts of the graph that fall within an allowed domain and pass access checks are included. Objects outside those scopes never leave the device, even if they exist in the same local graph.
+
+Visibility is enforced by the same mechanisms that enforce correctness. Access control rules live in the graph and are evaluated for every read and every sync decision. If an identity does not have permission to read an object, that object is omitted entirely rather than redacted after the fact. This prevents accidental disclosure and makes privacy failures easier to reason about, because absence is explicit rather than inferred.
+
+Identity is decentralized and composable. Users, devices, and apps each have their own keys, and relationships between them are explicit. This allows people to operate across multiple apps or contexts without collapsing everything into a single global profile. Pseudonymous identities can exist alongside real-world ones, and applications can choose how, or whether, to link them. The protocol does not require universal discoverability.
+
+Network privacy is treated separately from data privacy. Transport can run over Tor or other privacy-preserving networks, but the protocol does not assume that the transport layer is trusted or private. Messages are signed so authorship can be verified, and they can be encrypted so contents are not visible to intermediaries. Even if transport metadata leaks, the graph structure limits what meaningful information can be inferred.
+
+Because history is append-only and verifiable, privacy does not depend on secrecy alone. Unauthorized parties cannot rewrite or silently alter records to remove traces or fabricate consent. At the same time, applications can encode expiration, revocation, or visibility rules directly into their schemas to limit how long data remains relevant or accessible. The protocol enforces those rules consistently across nodes.
+
+The result is a system where privacy emerges from local control, explicit sharing, and enforced boundaries. Users do not have to trust a service to handle their data carefully. They can verify what is shared, with whom, and under which rules, because those rules are part of the state itself.
+
+---
+
+## 10. Application model and use cases
 
 In 2WAY, an application is not a backend service that owns data. It is a way of working with shared state that the system already knows how to protect. From a user's perspective, an app feels local and responsive. You can create, edit, and inspect records on your own device, even when you are offline. When the network is available again, your changes are checked, ordered, and merged with everyone else's in a predictable way. Nothing disappears because a server is down, and nothing silently changes because a service updated its logic.
 
@@ -161,7 +180,7 @@ In practice, this model fits domains where history, collaboration, and durabilit
 
 Across all of these cases, the common thread is that apps do not have to reinvent trust. Identity, permissions, ordering, and resilience are part of the system below them. That lets developers focus on what their app is for, and lets users keep control over their data and its history, regardless of which app or vendor they are using at the moment.
 
-## 10. Conformance
+## 11. Conformance
 
 2WAY only works if the rules are followed exactly. An implementation either conforms or it does not. Validation, permissions, ordering, and storage must behave the same way in all conditions, including offline use and hostile input. Forbidden behavior must be impossible by design, not merely detected after the fact or left to operator judgment.
 
@@ -169,7 +188,7 @@ All state changes must pass through the same enforcement path. There are no shor
 
 ---
 
-## 11. Scope boundary and current status
+## 12. Scope boundary and current status
 
 This repository only promises what it states explicitly. Examples are illustrative, not requirements. The proof of concept prioritizes correctness, clarity, and inspectability over polish or performance. Details may evolve over time, but changes are intentional and documented.
 
@@ -177,7 +196,7 @@ Treat this repository as the authoritative description of how the system is mean
 
 ---
 
-## 12. How to use this README
+## 13. How to use this README
 
 This README is meant to give you the mental model. It explains what 2WAY is, why it exists, how the graph and backend work, and what guarantees the system enforces. It does not replace the detailed documents.
 
@@ -187,7 +206,7 @@ The key idea to keep in mind is that every node enforces the same structure loca
 
 ---
 
-## 13. Acknowledgments
+## 14. Acknowledgments
 
 Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-licensed project available at [https://github.com/irislib/iris-client](https://github.com/irislib/iris-client). When the project was still Identifi and implemented as a fork of the Bitcoin daemon in C++, encountering it helped shape early ideas about private, user-controlled data layers that go beyond simple broadcast messaging with the help of a simple object model.
 
@@ -195,7 +214,7 @@ Our projects took different paths over the years, but that early work influenced
 
 ---
 
-## 14. References
+## 15. References
 
 <br>
 
