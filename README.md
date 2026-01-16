@@ -157,6 +157,8 @@ Our projects took different paths over the years, but that early work influenced
 
 ## References
 
+<br>
+
 **Protocol references**
 
 <a id="ref-1"></a>[1] Protocol overview - [01-protocol/00-protocol-overview.md](01-protocol/00-protocol-overview.md)
@@ -180,6 +182,8 @@ Our projects took different paths over the years, but that early work influenced
 <a id="ref-10"></a>[10] Errors and failure modes - [01-protocol/09-errors-and-failure-modes.md](01-protocol/09-errors-and-failure-modes.md)
 
 <a id="ref-11"></a>[11] DoS guard and client puzzles - [01-protocol/11-dos-guard-and-client-puzzles.md](01-protocol/11-dos-guard-and-client-puzzles.md)
+
+<br>
 
 **Architecture references**
 
