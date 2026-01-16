@@ -159,12 +159,6 @@ Even cooperative backends integrate poorly. Teams either expose every service or
 
 ---
 
-## Acknowledgments
-
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
-
----
-
 ## 5. Core idea: a shared, local-first graph
 
 2WAY revolves around a typed graph that every node keeps on its own hardware. There is no upstream database or replica set to join. Each device stores its portion of the graph, signs the history it authors, and shares only the changes it accepts.
@@ -614,5 +608,11 @@ Any deviation requires an ADR that documents the reasoning, scope, and compensat
 This repository claims only what it states explicitly. Words such as "secure," "trusted," or "verified" matter only when a section defines the exact conditions. Examples illustrate possibilities, not mandates. Appendices, diagrams, or snippets are non-normative unless a normative section cites them.
 
 The proof of concept is a work in progress. Clarity, auditability, and structural correctness outrank performance, scale, or polish. Some trade-offs remain open until multiple implementations exercise the design. Treat this repository as the authoritative record of intent today, not a guarantee that future ADRs or revisions will keep every detail unchanged.
+
+---
+
+## Acknowledgments
+
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
 
 ---
