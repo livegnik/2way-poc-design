@@ -22,6 +22,7 @@ This overview references:
 Its scope ends at the local entrypoints. It never authenticates remote peers, handles sync provenance, or performs cryptographic verification of envelopes, and it never overlaps with authorization, graph mutation, or session lifecycle management. Those responsibilities belong to other managers.
 
 This specification consumes the protocol contracts defined in:
+
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
 * [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
 * [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
