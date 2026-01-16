@@ -49,9 +49,15 @@ This repo is the main design set for the proof of concept. It defines scope, rul
 
 ## What 2WAY is
 
-2WAY is a platform that replaces the conventional backend. Each node runs the same core controls for identity, permissions, ordering, storage, sync, and audit, so devices can go offline, keep working, and reconcile without giving up control. Applications define schemas and logic, interpret the ordered feed of accepted changes, and request new changes through strict interfaces rather than touching storage or keys directly.
+2WAY is a protocol and backend that replaces the traditional server as the authority over application state. Every node runs the same core system for identity, permissions, ordering, storage, sync, and audit. Because those controls are enforced locally, devices can go offline, continue operating, and later reconcile changes without handing authority to a central service.
 
-The shared graph is the source of truth for identities, devices, relationships, capabilities, and application records. Ownership is explicit for every node and edge, so each change declares which identity governs it. History is write-once with checkable ancestry, payload hashes, and schema references, and peers replay one another's logs independently, accepting only the parts that satisfy local rules.
+Applications do not manage storage or trust directly. They define schemas, domain logic, and user interfaces, then operate against a constrained system interface. Apps submit proposed changes. The system validates them. Only changes that satisfy schema rules, ownership, and access control become part of shared state. This keeps application logic expressive without allowing it to bypass correctness guarantees.
+
+At the center is a shared graph that represents identities, devices, apps, relationships, capabilities, and application records. Every object has explicit ownership. Every relationship is typed. Nothing is implicit. Each change declares which identity authored it and under which rules it is allowed to exist.
+
+History is append-only and ordered. Once accepted, a change cannot be rewritten or silently removed. Each entry references its structure, its payload, and its ancestry in a way that can be independently verified. Peers exchange history as signed sequences, then replay and validate it locally. A node accepts only what satisfies its own rules, using the same logic it applies to local changes.
+
+The result is a system where correctness does not depend on transport, uptime, or coordination. State converges because it is verifiable, not because a server says so.
 
 ---
 
