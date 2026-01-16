@@ -23,11 +23,11 @@
 
 ## 1. 2WAY design repository in short
 
-2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device, user, and app holds its own keys and history, and enforces the same rules locally. No change is accepted unless it is valid, authorized, and structurally sound.
+2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device, user, and app holds its own keys and history and enforces the same rules. No change is accepted unless it is valid, authorized, and structurally sound.
 
 The core idea is simple. Treat state as a cryptographically verifiable graph, not as mutable rows behind an API. Every write is checked against schema, ownership, and access rules before it is committed. Every accepted change becomes part of an append-only history with clear authorship and ordering. Sync does not trust transport, timing, or peers. It only trusts what can be verified.
 
-This makes a class of apps practical that usually fall apart under real-world conditions. Apps that work offline by default. Apps that survive node loss, network partitions, and server shutdowns. Apps where collaboration does not depend on one operator behaving correctly forever. The protocol handles the hard parts, validation, permissions, reconciliation, and provenance, so applications can focus on their data model and user experience.
+This makes a class of apps practical that usually fall apart under real-world conditions. Apps that work offline by default. Apps that survive node loss, network partitions, and server shutdowns. Apps where collaboration does not depend on one operator behaving correctly forever. Think shared workspaces, field data capture, or multi-party records that must remain consistent without a trusted server. The protocol handles the hard parts, validation, permissions, reconciliation, and provenance, so applications can focus on their data model and user experience.
 
 This repository defines the protocol, architecture, and invariants that make those guarantees hold. It is a design repo, not an SDK and not a demo. The goal is to specify a system that remains predictable under failure, adversarial input, and long time horizons.
 
@@ -49,7 +49,7 @@ The point is not decentralization for its own sake. The point is to make multi-p
 
 ## 3. Repository guide
 
-This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security framing, flows, and acceptance criteria. Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
+This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security framing, flows, and acceptance criteria, with PoC goals in [`07-poc`](07-poc). Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
 
 | Folder | Focus |
 | --- | --- |
@@ -72,7 +72,7 @@ This repo is the main design set for the proof of concept. It defines scope, rul
 
 Applications do not manage storage or trust directly. They define schemas, domain logic, and user interfaces, then operate against a constrained system interface. Apps submit proposed changes. The system validates them. Only changes that satisfy schema rules, ownership, and access control become part of shared state. This keeps application logic expressive without allowing it to bypass correctness guarantees.
 
-At the center is a shared graph that represents identities, devices, apps, relationships, capabilities, and application records. Every object has explicit ownership. Every relationship is typed. Nothing is implicit. Each change declares which identity authored it and under which rules it is allowed to exist.
+At the center is a shared graph: the canonical record of identities, devices, apps, relationships, capabilities, and application objects. Every object has explicit ownership. Every relationship is typed. Nothing is implicit. Each change declares which identity authored it and under which rules it is allowed to exist.
 
 History is append-only and ordered. Once accepted, a change cannot be rewritten or silently removed. Each entry references its structure, its payload, and its ancestry in a way that can be independently verified. Peers exchange history as signed sequences, then replay and validate it locally. A node accepts only what satisfies its own rules, using the same logic it applies to local changes.
 
