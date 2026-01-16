@@ -121,28 +121,36 @@ In practice, this model fits domains where history, collaboration, and durabilit
 
 Across all of these cases, the common thread is that apps do not have to reinvent trust. Identity, permissions, ordering, and resilience are part of the system below them. That lets developers focus on what their app is for, and lets users keep control over their data and its history, regardless of which app or vendor they are using at the moment.
 
----
-
 ## Conformance
 
-Conformance is binary. An implementation must honor every rule under all supported conditions, including offline operation and adversarial peers, and it must make forbidden behaviors structurally impossible rather than rely on logging or operator vigilance. Validation, authorization, and ordering have to run exactly as specified with no trust shortcuts, and every mutation must flow through the single ordered pipeline. Any deviation demands a recorded ADR with scope and compensating controls; without that, the implementation is out of spec even if it seems convenient.
+2WAY only works if the rules are followed exactly. An implementation either conforms or it does not. Validation, permissions, ordering, and storage must behave the same way in all conditions, including offline use and hostile input. Forbidden behavior must be impossible by design, not merely detected after the fact or left to operator judgment.
+
+All state changes must pass through the same enforcement path. There are no shortcuts, no trusted fast paths, and no exceptions for convenience. If an implementation diverges from the documented behavior, that divergence must be written down as an Architecture Decision Record with clear scope and compensating measures. Without that, the implementation is out of spec, even if it appears to work.
 
 ---
 
-## Scope boundary and status
+## Scope boundary and current status
 
-This repository promises only what it states explicitly, and the examples illustrate possibilities rather than requirements. The proof of concept favors clarity and correctness over polish, and future ADRs may refine details. Treat the repo as the official statement of intent today and build against the guarantees it documents.
+This repository only promises what it states explicitly. Examples are illustrative, not requirements. The proof of concept prioritizes correctness, clarity, and inspectability over polish or performance. Details may evolve over time, but changes are intentional and documented.
+
+Treat this repository as the authoritative description of how the system is meant to behave today. Build against the guarantees it defines, not against assumptions or implied features.
 
 ---
 
-## Using this README
+## How to use this README
 
-Start here when you need the essentials: what 2WAY is, why it exists, how the object model and managers work, and which guarantees implementations must uphold. Dive into the numbered folders for full detail, record exceptions as ADRs, and remember that every device enforces the same structure so collaboration can survive without surrendering authority.
+This README is meant to give you the mental model. It explains what 2WAY is, why it exists, how the graph and backend work, and what guarantees the system enforces. It does not replace the detailed documents.
+
+Once the overview is clear, move into the numbered folders. The protocol folder defines rules and invariants. The architecture folder explains how those rules are enforced in practice. Any deviation should be recorded as an ADR so the system remains coherent over time.
+
+The key idea to keep in mind is that every node enforces the same structure locally. Collaboration works because correctness is shared, not because authority is centralized.
 
 ---
 
 ## Acknowledgments
 
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
+Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-licensed project available at [https://github.com/irislib/iris-client](https://github.com/irislib/iris-client). When the project was still Identifi and implemented as a fork of the Bitcoin daemon in C++, encountering it helped shape early ideas about private, user-controlled data layers that go beyond simple broadcast messaging with the help of a simple object model.
+
+Our projects took different paths over the years, but that early work influenced this line of thinking and deserves explicit acknowledgment.
 
 ---
