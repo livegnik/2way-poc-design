@@ -157,6 +157,8 @@ Our projects took different paths over the years, but that early work influenced
 
 ## References
 
+**Protocol references**
+
 <a id="ref-1"></a>[1] Protocol overview - [01-protocol/00-protocol-overview.md](01-protocol/00-protocol-overview.md)
 
 <a id="ref-2"></a>[2] Identifiers and namespaces - [01-protocol/01-identifiers-and-namespaces.md](01-protocol/01-identifiers-and-namespaces.md)
@@ -178,6 +180,8 @@ Our projects took different paths over the years, but that early work influenced
 <a id="ref-10"></a>[10] Errors and failure modes - [01-protocol/09-errors-and-failure-modes.md](01-protocol/09-errors-and-failure-modes.md)
 
 <a id="ref-11"></a>[11] DoS guard and client puzzles - [01-protocol/11-dos-guard-and-client-puzzles.md](01-protocol/11-dos-guard-and-client-puzzles.md)
+
+**Architecture references**
 
 <a id="ref-12"></a>[12] Managers overview - [02-architecture/managers/00-managers-overview.md](02-architecture/managers/00-managers-overview.md)
 
