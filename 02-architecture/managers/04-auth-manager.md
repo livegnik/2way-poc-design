@@ -7,18 +7,6 @@
 
 The Auth Manager is the local authentication authority for the 2WAY backend. It resolves frontend-originated HTTP and WebSocket requests into authenticated backend identities and produces the identity-binding inputs required to construct a valid `OperationContext`.
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-* [04-interfaces/**](../../04-interfaces/)
-
 Its scope ends at the local entrypoints. It never authenticates remote peers, handles sync provenance, or performs cryptographic verification of envelopes, and it never overlaps with authorization, graph mutation, or session lifecycle management. Those responsibilities belong to other managers.
 
 This specification consumes the protocol contracts defined in:
