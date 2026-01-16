@@ -1,3 +1,4 @@
+
 # 2WAY design repository
 
 <br>
@@ -27,11 +28,11 @@
 
 The core idea is to treat state as a cryptographically verifiable graph, not as mutable rows behind an API. Every write is checked against schema, ownership, and access rules before it is committed. Every accepted change becomes part of an append-only, ordered history with clear authorship. Sync does not trust transport, timing, or peers. It only trusts what can be verified.
 
-That structure makes a class of apps practical that usually fall apart under real-world conditions: offline-first tools, collaboration that survives partitions, and multi-party records that remain consistent without a trusted server. The protocol handles validation, permissions, reconciliation, and provenance so applications can focus on their data model and user experience.
+That structure makes a class of apps practical that usually break under real-world conditions: offline-first tools, collaboration that survives partitions, and multi-party records that stay consistent without a trusted server. The protocol handles validation, permissions, reconciliation, and provenance so applications can focus on their data model and user experience.
 
-This PoC defines the full stack of guarantees that make those claims testable. It specifies a strict validation pipeline, graph-encoded permissions, replayable audit, and ordering that is assigned locally and replayable across nodes. Security assumes the network is hostile, so every envelope is verified and rejected early if structure, schema, or authorization fail. Privacy is enforced by explicit read scopes in the graph, keeping data local by default and sharing only what a node is allowed to see. Incentives are intentionally neutral at the protocol layer, and conformance is binary: implementations either follow the rules or they do not.
+This proof of concept defines the full stack of guarantees that make those claims testable. It specifies a strict validation pipeline, graph-encoded permissions, replayable audit, and ordering that is assigned locally and replayable across nodes. Security assumes the network is hostile, so every envelope is verified and rejected early if structure, schema, or authorization fail. Privacy is enforced by explicit read scopes in the graph, keeping data local by default and sharing only what a node is allowed to see. Incentives are intentionally neutral at the protocol layer, and conformance is binary: implementations either follow the rules or they do not.
 
-It is not just a protocol sketch. It specifies the object model, manager pipeline, and flows that bind identities and devices to keys, represent schema and ACLs, construct and replay sync packages, and apply DoS guardrails before correctness can be threatened. This repository defines the protocol, architecture, and invariants that make those guarantees hold. It is a design repo, not an SDK and not a demo. The goal is to specify a system that remains predictable under failure, adversarial input, and long time horizons.
+This is not just a protocol sketch. It specifies the object model, manager pipeline, and flows that bind identities and devices to keys, represent schema and ACLs, construct and replay sync packages, and apply DoS guardrails before correctness can be threatened. This repository defines the protocol, architecture, and invariants that make those guarantees hold. It is a design repo, not an SDK and not a demo. The goal is to specify a system that remains predictable under failure, adversarial input, and long time horizons.
 
 Looking for a more comprehensive read-through? See [`README-long.md`](README-long.md).
 
@@ -70,7 +71,7 @@ This repo is the main design set for the proof of concept. It defines scope, rul
 
 ## 4. What 2WAY is
 
-2WAY is a protocol and backend that replaces the traditional server as the authority over application state. Every node runs the same core system for identity, permissions, ordering, storage, sync, and audit. Because those controls are enforced locally, devices can go offline, continue operating, and later reconcile changes without handing authority to a central service.
+2WAY is a protocol and backend that replaces the traditional server as the authority over application state. Every node runs the same core system for identity, permissions, ordering, storage, sync, and audit. Because those controls are enforced locally, devices can go offline, keep working, and later reconcile changes without handing authority to a central service.
 
 Applications do not manage storage or trust directly. They define schemas, domain logic, and user interfaces, then operate against a constrained system interface. Apps submit proposed changes. The system validates them. Only changes that satisfy schema rules, ownership, and access control become part of shared state. This keeps application logic expressive without allowing it to bypass correctness guarantees.
 
@@ -90,11 +91,11 @@ All application state is represented as graph records, with formal definitions f
 
 Apps are first-class participants in the protocol. Each app has its own namespace, its own schemas, and its own portion of the graph. Schemas are defined by apps and stored in the graph itself. [[17](#ref-17)] [[3](#ref-3)] They specify which object types exist, how they relate, and what values are valid. The protocol does not interpret application meaning. It enforces that meaning structurally and consistently, so every node evaluates the same rules when deciding whether a change is acceptable.
 
-Every proposed change is wrapped in a protocol envelope that specifies the operation records and required identifiers. [[4](#ref-4)] Graph message envelopes carry the operation records and required identifiers. Sync packages add sender identity, domain metadata, and sequence fields for ordering and replay checks. When a node receives an envelope, it validates it locally. Structure is checked first, including object model invariants and app namespace boundaries. Schema rules are then applied to ensure the change fits the app's schema. Access control is evaluated next using graph-encoded permissions. Only if all checks succeed is the change assigned a global order and committed. This pipeline runs across the Graph, Schema, and ACL managers. [[19](#ref-19)] [[17](#ref-17)] [[18](#ref-18)]
+Every proposed change is wrapped in a protocol envelope that specifies the operation records and required identifiers. [[4](#ref-4)] Sync packages add sender identity, domain metadata, and sequence fields for ordering and replay checks. When a node receives an envelope, it validates it locally. Structure is checked first, including object model invariants and app namespace boundaries. Schema rules are then applied to ensure the change fits the app's schema. Access control is evaluated next using graph-encoded permissions. Only if all checks succeed is the change assigned a global order and committed. This pipeline runs across the Graph, Schema, and ACL managers. [[19](#ref-19)] [[17](#ref-17)] [[18](#ref-18)]
 
 History is append-only and ordered. [[8](#ref-8)] Nodes exchange signed, ordered envelopes rather than mutable state. Each node replays those sequences independently and accepts only the parts that satisfy its local rules. Ordering comes from protocol-defined sequence assignment, not from message arrival or wall-clock time. This is what allows nodes to diverge temporarily, operate offline, and still converge without trusting transport or peers.
 
-The result is a protocol where apps, schemas, identities, permissions, and records all live in the same verifiable structure. The graph is not an internal implementation detail. It *is* the protocol surface. Everything else, networking, storage engines, frontend frameworks, exists only to move envelopes in and out of that structure.
+The result is a protocol where apps, schemas, identities, permissions, and records all live in the same verifiable structure. The graph is not an internal implementation detail. It is the protocol surface. Everything else, networking, storage engines, frontend frameworks, exists only to move envelopes in and out of that structure.
 
 ---
 
@@ -124,7 +125,7 @@ Sybil resistance comes from bounded reach, not global reputation. Identities are
 
 Denial-of-service protection is part of the protocol pipeline, not a bolt-on. The DoS Guard Manager gates admission at the network boundary and can require client puzzles before any payload flows inward [[11](#ref-11)] [[9](#ref-9)]. Puzzle difficulty adjusts dynamically to load and abuse signals, and the system fails closed on policy or puzzle failures. Earlier stages reject malformed input without expensive work, and failures are classified consistently [[1](#ref-1)] [[10](#ref-10)].
 
-Recovery is intentionally boring. Accepted changes are signed, ordered, and append-only, so a node can rebuild by replaying history and reapplying the same rules. Unverifiable history is rejected rather than patched or trusted [[8](#ref-8)].
+Recovery is intentionally simple. Accepted changes are signed, ordered, and append-only, so a node can rebuild by replaying history and reapplying the same rules. Unverifiable history is rejected rather than patched or trusted [[8](#ref-8)].
 
 The protocol does not define social or political choices. Governance models, moderation rules, incentives, and policy meaning live in application schemas and data. The protocol enforces correctness, authorship, and ordering, not policy content.
 
@@ -132,13 +133,13 @@ The protocol does not define social or political choices. Governance models, mod
 
 ## 8. Incentives
 
-2WAY is deliberately neutral on economic incentives at the protocol level. There is no built-in token, reward scheme, fee market, or reputation score that the system enforces globally. That is not an omission. It is a design choice.
+2WAY is deliberately neutral on economic incentives at the protocol level. The protocol does include Ratings as a first-class object category, and ACL rules can gate actions using app-defined rating or trust thresholds, but those values live in application data and are scoped to the app domain. There is no global reputation score, token, reward scheme, or fee market enforced by the protocol itself. That is not an omission. It is a design choice.
 
 The core incentive in 2WAY is correctness. Nodes participate because enforcing the protocol locally protects their own state. A node that validates strictly, rejects invalid input, and orders changes correctly ends up with a coherent, auditable history it can rely on. A node that cuts corners gains nothing durable and risks corrupting its own state. This creates a baseline incentive to follow the rules even in the absence of payments or coordination.
 
 For users, being a good actor is the easiest way to keep their own graph usable and their relationships intact. Most value in 2WAY flows through explicit edges and permissions, so bad behavior breaks access, severs collaboration, and makes a user's own history less trusted by the people and apps they want to work with. Good behavior preserves continuity: your device can keep syncing, your records remain accepted, and your peers keep you in their allowed scopes. The balance comes from local enforcement and mutual dependence. You cannot force others to accept bad input, and they cannot be forced to keep sharing with you if you violate rules, so honest participation is the stable path.
 
-Because every device, user, and app keeps its own keys and history, there is no central operator that can extract rent by default. Running a node does not grant control over others, and there is no privileged position to monetize purely by being "in the middle." This removes many perverse incentives that appear in centralized systems, where operators are rewarded for lock-in, opacity, or silent rule changes.
+Because every device, user, and app keeps its own keys and history, there is no central operator that can extract rent by default. Running a node does not grant control over others, and there is no privileged position to monetize purely by being in the middle. This removes many perverse incentives that appear in centralized systems, where operators are rewarded for lock-in, opacity, or silent rule changes.
 
 Abuse resistance is handled structurally rather than economically. Sybil behavior is limited by relationship depth, ACLs, and schema constraints, not by proof-of-work or staking. Flooding the network is discouraged by DoS guards, early rejection, and local resource limits. These mechanisms do not reward good behavior with payouts, but they make bad behavior ineffective and costly in terms of local resources.
 
@@ -182,7 +183,7 @@ This makes apps easier to reason about and easier to test. State changes form an
 
 Because the state already lives locally, queries are fast and dependable. You are not waiting on a central server or a fragile API to answer basic questions. The relevant data flows to your device, and you can read it directly even when the network is slow or missing. That separation is powerful in a decentralized app substrate. It keeps control of data and context on the user side, and it lets people switch apps, change providers, or run their own tools without losing access to their history or their ability to make sense of it.
 
-Moderation and spam control are expressed as state rather than hidden server logic. Blocks, mutes, allowlists, reputation signals, and community votes can live as ratings or edges in the graph. Apps can enforce inbox filters, rate limits, or visibility rules based on those signals, while the DoS guard protects the protocol surface from abusive traffic. Different communities can tune policies without forking the protocol.
+Moderation and spam control are expressed as state rather than hidden server logic. Blocks, mutes, allowlists, reputation signals, and community votes can live as ratings or edges in the graph. Apps can enforce inbox filters, rate limits, or visibility rules based on those signals, while the DoS Guard protects the protocol surface from abusive traffic. Different communities can tune policies without forking the protocol.
 
 In practice, this model fits domains where history, collaboration, and durability matter. Messaging and chat become collections of explicit conversations, participants, and messages that remain inspectable and trustworthy even when people are offline. Social and publishing tools treat posts, reactions, moderation actions, and discovery paths as part of a shared record rather than hidden server decisions. Marketplaces and service platforms can model listings, offers, agreements, escrow, fulfillment, and reputation as state that all parties can verify and audit. Operational workflows like logistics, access control, or governance can be expressed as sequences of approved changes that remain auditable long after the original software is gone.
 
