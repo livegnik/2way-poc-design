@@ -4,7 +4,7 @@
 
 # 2WAY design repository in short
 
-2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device holds its own keys, its own history, and its own copy of the rules, and no change is accepted unless it is valid, authorized, and structurally sound.
+2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device, user, and app holds its own keys and history, and enforces the same rules locally. No change is accepted unless it is valid, authorized, and structurally sound.
 
 The core idea is simple. Treat state as a cryptographically verifiable graph, not as mutable rows behind an API. Every write is checked against schema, ownership, and access rules before it is committed. Every accepted change becomes part of an append-only history with clear authorship and ordering. Sync does not trust transport, timing, or peers. It only trusts what can be verified.
 
