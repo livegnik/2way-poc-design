@@ -27,6 +27,7 @@ Storage Manager is a passive subsystem. It never interprets protocol meaning. It
 Storage Manager enforces the canonical data and sequencing rules defined by the protocol corpus; those references are listed explicitly below.
 
 This specification consumes the protocol contracts defined in:
+
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
 * [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md)
 * [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
