@@ -12,17 +12,6 @@ The State Manager acts as the single coordination layer between Graph Manager, N
 
 This specification defines state ownership, internal engines and phases, ordering rules, sync metadata handling, startup and shutdown behavior, failure handling, and explicit trust boundaries. It is an architectural specification, not an implementation.
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-
 This specification consumes the protocol contracts defined in:
 
 * [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
