@@ -27,6 +27,7 @@ This specification covers configuration sources, precedence rules, storage model
 This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
 
 This specification consumes the protocol contracts defined in:
+
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
 * [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
 * [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
