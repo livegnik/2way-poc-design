@@ -242,39 +242,3 @@ Managers must reject any invocation lacking required context fields.
 5. Capabilities are explicit and specific.
 6. Remote and local fields are never mixed.
 7. All audited actions include context snapshots.
-
----
-
-## Change Summary
-
-### What was added
-
-* Explicit separation rules between local-only and remote-only fields.
-* Explicit inclusion of internal engines and automation jobs as first-class context consumers.
-* Explicit DoS Guard Manager consumption semantics.
-* Explicit rejection posture for mixed local and remote fields.
-
-### What was removed
-
-* Nothing.
-
-### What was corrected
-
-* Tightened language around authoritative identity binding.
-* Clarified that admin status never bypasses ACL.
-* Clarified that services may only derive new contexts, not mutate.
-
-### What was clarified
-
-* Retry semantics and trace handling.
-* Capability ownership and evaluation boundaries.
-* Manager-specific consumption guarantees.
-
-### Retained concepts from older designs
-
-* Immutable per-operation execution envelope.
-* Centralized identity binding.
-* Capability-driven authorization.
-* Trace-first observability model.
-
-These remain valid and consistent with the current protocol and architecture.
