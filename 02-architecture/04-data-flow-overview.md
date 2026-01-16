@@ -8,42 +8,53 @@
 
 This document defines the authoritative data flow model for the 2WAY system as implemented in the PoC. It specifies how data enters, moves through, mutates, and exits the system, including bootstrap, user provisioning, validation, authorization, sequencing, persistence, event emission, synchronization, rejection handling, and visibility suppression. It is limited to data flow semantics and boundaries and does not define schemas, envelopes, storage layouts, network formats, or UI behavior except where required for correctness.
 
+This overview references:
+
+* [01-protocol/**](../01-protocol/)
+* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
+* [02-architecture/01-component-model.md](01-component-model.md)
+* [02-architecture/02-runtime-topologies.md](02-runtime-topologies.md)
+* [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md)
+* [02-architecture/managers/**](managers/)
+* [02-architecture/services-and-apps/**](services-and-apps/)
+* [04-interfaces/**](../04-interfaces/)
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-* Defining all allowed data flow paths between frontend, services, managers, storage, and network layers.
-* Defining the required ordering of bootstrap, provisioning, validation, authorization, sequencing, persistence, and emission.
-* Defining trust boundaries crossed during data movement.
+* Defining all allowed data flow paths between frontend, services, managers, storage, and network layers described in [01-component-model.md](01-component-model.md).
+* Defining the required ordering of bootstrap, provisioning, validation, authorization, sequencing, persistence, and emission aligned to [02-architecture/00-architecture-overview.md](00-architecture-overview.md).
+* Defining trust boundaries crossed during data movement as described in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md).
 * Defining allowed and forbidden data movements.
 * Defining rejection and failure propagation behavior.
-* Defining visibility suppression semantics via Rating objects.
+* Defining visibility suppression semantics via Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
 This specification does not cover the following:
 
-* Envelope structure or serialization details.
-* Schema definitions or schema evolution rules.
-* ACL rule syntax or policy composition.
+* Envelope structure or serialization details ([01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)).
+* Schema definitions or schema evolution rules ([01-protocol/02-object-model.md](../01-protocol/02-object-model.md)).
+* ACL rule syntax or policy composition ([01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)).
 * Database schemas, indices, or query strategies.
-* Transport protocols, routing, or discovery mechanisms.
-* UI level behavior or frontend state management.
+* Transport protocols, routing, or discovery mechanisms ([01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md)).
+* UI level behavior or frontend state management ([04-interfaces/**](../04-interfaces/)).
 
 ## 3. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
-* All persistent state is expressed exclusively as graph objects.
-* All graph mutations pass through Graph Manager.
-* All authorization decisions pass through ACL Manager.
-* All schema validation passes through Schema Manager.
-* All database access passes through Storage Manager.
-* All write operations are serialized and assigned a strictly monotonic global sequence.
-* All network ingress and egress passes through Network Manager.
-* DoS Guard Manager is applied exclusively to network level ingress.
-* All real-time notifications pass through Event Manager.
-* All cryptographic private keys are accessed only by Key Manager.
-* OperationContext is immutable once constructed and propagated unchanged.
-* Domain boundaries are enforced on all reads, writes, and sync operations.
+* All persistent state is expressed exclusively as graph objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+* All graph mutations pass through [Graph Manager](managers/07-graph-manager.md).
+* All authorization decisions pass through [ACL Manager](managers/06-acl-manager.md).
+* All schema validation passes through [Schema Manager](managers/05-schema-manager.md).
+* All database access passes through [Storage Manager](managers/02-storage-manager.md).
+* All write operations are serialized and assigned a strictly monotonic global sequence per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* All network ingress and egress passes through [Network Manager](managers/10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
+* [DoS Guard Manager](managers/14-dos-guard-manager.md) is applied exclusively to network level ingress per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* All real-time notifications pass through [Event Manager](managers/11-event-manager.md).
+* All cryptographic private keys are accessed only by [Key Manager](managers/03-key-manager.md) per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* [OperationContext](services-and-apps/05-operation-context.md) is immutable once constructed and propagated unchanged.
+* Domain boundaries are enforced on all reads, writes, and sync operations per [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md) and [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * No delete or physical removal operations exist in the PoC.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
@@ -83,11 +94,11 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 #### Flow
 
-* Key Manager generates node and server level cryptographic material.
-* Graph Manager creates Server Graph root objects.
-* Schema Manager validates all bootstrap objects.
-* ACL Manager establishes initial server ownership and default server level ACL bindings.
-* Storage Manager persists bootstrap state atomically.
+* [Key Manager](managers/03-key-manager.md) generates node and server level cryptographic material aligned to [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* [Graph Manager](managers/07-graph-manager.md) creates Server Graph root objects.
+* [Schema Manager](managers/05-schema-manager.md) validates all bootstrap objects.
+* [ACL Manager](managers/06-acl-manager.md) establishes initial server ownership and default server level ACL bindings.
+* [Storage Manager](managers/02-storage-manager.md) persists bootstrap state atomically.
 * Global sequence is initialized and anchored for the Server Graph.
 
 #### Allowed behavior
@@ -110,20 +121,20 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 #### Inputs
 
-* Create-user request via the local API.
-* OperationContext representing an authorized administrative identity.
+* Create-user request via the local API ([04-interfaces/01-local-http-api.md](../04-interfaces/01-local-http-api.md)).
+* [OperationContext](services-and-apps/05-operation-context.md) representing an authorized administrative identity.
 
 #### Flow
 
-* Auth Manager resolves the caller and constructs OperationContext.
-* Key Manager generates a new user identity keypair.
-* Graph Manager creates the user identity objects.
-* Graph Manager creates the User Graph root objects linked to the Server Graph.
-* Schema Manager validates all created objects.
-* ACL Manager establishes initial ownership and default user level ACL bindings.
-* Storage Manager persists all objects atomically.
-* Global sequence is incremented and assigned.
-* Event Manager emits user and identity creation events after commit.
+* [Auth Manager](managers/04-auth-manager.md) resolves the caller and constructs [OperationContext](services-and-apps/05-operation-context.md).
+* [Key Manager](managers/03-key-manager.md) generates a new user identity keypair aligned to [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* [Graph Manager](managers/07-graph-manager.md) creates the user identity objects.
+* [Graph Manager](managers/07-graph-manager.md) creates the User Graph root objects linked to the Server Graph.
+* [Schema Manager](managers/05-schema-manager.md) validates all created objects.
+* [ACL Manager](managers/06-acl-manager.md) establishes initial ownership and default user level ACL bindings.
+* [Storage Manager](managers/02-storage-manager.md) persists all objects atomically.
+* Global sequence is incremented and assigned per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* [Event Manager](managers/11-event-manager.md) emits user and identity creation events after commit.
 
 #### Allowed behavior
 
@@ -147,17 +158,17 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 ### 6.1 Inputs
 
-* Read request from frontend app or backend service.
-* OperationContext containing requester identity, app identity, and domain scope.
+* Read request from frontend app or backend service defined in [02-architecture/services-and-apps/**](services-and-apps/).
+* [OperationContext](services-and-apps/05-operation-context.md) containing requester identity, app identity, and domain scope.
 
 ### 6.2 Flow
 
-* API layer receives request.
-* OperationContext is constructed.
-* ACL Manager evaluates read permissions and domain membership.
-* Service or app backend extension may compute query parameters and apply derived or cached read optimizations without database access.
-* Storage Manager executes constrained read using parameters provided by the caller.
-* Service or app backend extension applies deterministic visibility suppression based on accessible Rating objects where defined.
+* API layer receives request through [04-interfaces/**](../04-interfaces/).
+* [OperationContext](services-and-apps/05-operation-context.md) is constructed.
+* [ACL Manager](managers/06-acl-manager.md) evaluates read permissions and domain membership.
+* Service or app backend extension defined in [02-architecture/services-and-apps/**](services-and-apps/) may compute query parameters and apply derived or cached read optimizations without database access.
+* [Storage Manager](managers/02-storage-manager.md) executes constrained read using parameters provided by the caller.
+* Service or app backend extension applies deterministic visibility suppression based on accessible Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) where defined.
 * Results are returned to caller.
 
 ### 6.3 Allowed behavior
@@ -165,11 +176,11 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * Visibility filtering based on ACL and domain rules.
 * Deterministic suppression based on Rating interpretation.
 * Read optimization using derived or cached data that is non-authoritative.
-* Read only access to authoritative graph state through Storage Manager.
+* Read only access to authoritative graph state through [Storage Manager](managers/02-storage-manager.md).
 
 ### 6.4 Forbidden behavior
 
-* Reads that bypass ACL Manager or domain checks.
+* Reads that bypass [ACL Manager](managers/06-acl-manager.md) or domain checks.
 * Direct database access by apps or services.
 * Reads that aggregate across domains.
 * Read optimizations that introduce new authoritative state.
@@ -186,21 +197,21 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 ### 7.1 Inputs
 
-* Write request from frontend app or backend service.
-* Envelope containing one or more graph operations.
-* OperationContext containing requester identity, app identity, and domain scope.
+* Write request from frontend app or backend service defined in [02-architecture/services-and-apps/**](services-and-apps/).
+* Envelope containing one or more graph operations defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
+* [OperationContext](services-and-apps/05-operation-context.md) containing requester identity, app identity, and domain scope.
 
 ### 7.2 Flow
 
-* API layer receives request.
-* OperationContext is constructed.
-* Schema Manager validates types and constraints.
-* ACL Manager evaluates write permissions and domain membership.
-* Graph Manager acquires exclusive write access.
-* Global sequence is incremented and assigned.
-* Storage Manager persists all changes atomically.
-* Graph Manager releases write access.
-* Event Manager is notified of committed changes.
+* API layer receives request through [04-interfaces/**](../04-interfaces/).
+* [OperationContext](services-and-apps/05-operation-context.md) is constructed.
+* [Schema Manager](managers/05-schema-manager.md) validates types and constraints.
+* [ACL Manager](managers/06-acl-manager.md) evaluates write permissions and domain membership.
+* [Graph Manager](managers/07-graph-manager.md) acquires exclusive write access.
+* Global sequence is incremented and assigned per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* [Storage Manager](managers/02-storage-manager.md) persists all changes atomically.
+* [Graph Manager](managers/07-graph-manager.md) releases write access.
+* [Event Manager](managers/11-event-manager.md) is notified of committed changes.
 
 ### 7.3 Allowed behavior
 
@@ -210,8 +221,8 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 ### 7.4 Forbidden behavior
 
-* Writes outside Graph Manager.
-* Writes without schema or ACL validation.
+* Writes outside [Graph Manager](managers/07-graph-manager.md).
+* Writes without schema or ACL validation by [Schema Manager](managers/05-schema-manager.md) or [ACL Manager](managers/06-acl-manager.md).
 * Writes crossing domain boundaries.
 * Concurrent or parallel write paths.
 
@@ -225,24 +236,24 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 ### 8.1 Scope
 
-Visibility suppression replaces delete semantics in the PoC and is implemented using Rating graph objects.
+Visibility suppression replaces delete semantics in the PoC and is implemented using Rating graph objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
 ### 8.2 Inputs
 
-* Write request creating or updating a Rating object targeting another graph object.
+* Write request creating or updating a Rating object targeting another graph object defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
 ### 8.3 Flow
 
-* Rating enters standard local or remote write flow.
-* Rating is validated by Schema Manager.
-* Rating authorship and scope are validated by ACL Manager.
-* Rating is serialized, sequenced, and persisted like any other object.
-* Event Manager emits rating related events after commit.
+* Rating enters standard local or remote write flow defined in this document.
+* Rating is validated by [Schema Manager](managers/05-schema-manager.md).
+* Rating authorship and scope are validated by [ACL Manager](managers/06-acl-manager.md).
+* Rating is serialized, sequenced, and persisted like any other object per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
+* [Event Manager](managers/11-event-manager.md) emits rating related events after commit.
 
 ### 8.4 Interpretation rules
 
 * Ratings do not remove or alter target objects.
-* Ratings are interpreted at read time by services or apps.
+* Ratings are interpreted at read time by services or apps defined in [02-architecture/services-and-apps/**](services-and-apps/).
 * Interpretation rules are deterministic and app scoped.
 * Interpretation respects ACL visibility of Rating objects.
 
@@ -260,7 +271,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 
 * Physical deletion of objects.
 * Implicit suppression without an explicit Rating.
-* Visibility rules that bypass ACL visibility of Ratings.
+* Visibility rules that bypass ACL visibility of Ratings enforced by [ACL Manager](managers/06-acl-manager.md).
 
 ### 8.7 Failure behavior
 
@@ -277,8 +288,8 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 ### 9.2 Flow
 
 * Domain events are emitted.
-* Event Manager dispatches events to subscribers.
-* WebSocket layer delivers notifications.
+* [Event Manager](managers/11-event-manager.md) dispatches events to subscribers.
+* WebSocket layer delivers notifications through [04-interfaces/02-websocket-events.md](../04-interfaces/02-websocket-events.md).
 
 ### 9.3 Allowed behavior
 
@@ -287,7 +298,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 ### 9.4 Forbidden behavior
 
 * Events that mutate state.
-* Direct WebSocket access by non-Event components.
+* Direct WebSocket access by non-Event components outside [Event Manager](managers/11-event-manager.md).
 
 ### 9.5 Failure behavior
 
@@ -298,19 +309,19 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 
 ### 10.1 Inputs
 
-* Signed and encrypted package from remote peer.
+* Signed and encrypted package from remote peer defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 
 ### 10.2 Flow
 
-* Network Manager accepts or rejects the peer connection.
-* DoS Guard Manager applies admission control using dynamic difficulty challenges and rate limits.
-* Network Manager receives encrypted payloads only on admitted connections.
-* Key Manager looks up the claimed key id and validates key existence, allowed purpose, and revocation state.
-* Key Manager verifies the signature over the authenticated message header.
-* Key Manager decrypts the payload.
-* State Manager validates sync metadata, domain scope, ordering, and replay protection.
-* Remote OperationContext is derived from the verified peer identity and fixed for the remainder of the flow.
-* Envelopes are forwarded to Graph Manager.
+* [Network Manager](managers/10-network-manager.md) accepts or rejects the peer connection per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
+* [DoS Guard Manager](managers/14-dos-guard-manager.md) applies admission control using dynamic difficulty challenges and rate limits per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* [Network Manager](managers/10-network-manager.md) receives encrypted payloads only on admitted connections.
+* [Key Manager](managers/03-key-manager.md) looks up the claimed key id and validates key existence, allowed purpose, and revocation state per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* [Key Manager](managers/03-key-manager.md) verifies the signature over the authenticated message header per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [Key Manager](managers/03-key-manager.md) decrypts the payload per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [State Manager](managers/09-state-manager.md) validates sync metadata, domain scope, ordering, and replay protection per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* Remote [OperationContext](services-and-apps/05-operation-context.md) is derived from the verified peer identity and fixed for the remainder of the flow.
+* Envelopes are forwarded to [Graph Manager](managers/07-graph-manager.md).
 * Standard local write flow is applied.
 
 ### 10.3 Allowed behavior
@@ -321,14 +332,14 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 
 ### 10.4 Forbidden behavior
 
-* Remote writes bypassing Network Manager or DoS Guard Manager.
-* Remote writes bypassing State Manager or Graph Manager.
+* Remote writes bypassing [Network Manager](managers/10-network-manager.md) or [DoS Guard Manager](managers/14-dos-guard-manager.md).
+* Remote writes bypassing [State Manager](managers/09-state-manager.md) or [Graph Manager](managers/07-graph-manager.md).
 * Trust based on transport properties alone.
 
 ### 10.5 Failure behavior
 
-* Invalid signatures or revoked keys cause rejection.
-* Sequence violations cause rejection without partial application.
+* Invalid signatures or revoked keys cause rejection per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+* Sequence violations cause rejection without partial application per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Rejections are recorded in peer sync state.
 
 ## 11. Remote egress flow
@@ -336,17 +347,17 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 ### 11.1 Inputs
 
 * Locally committed graph changes.
-* Per peer sync state.
+* Per peer sync state tracked by [State Manager](managers/09-state-manager.md).
 
 ### 11.2 Flow
 
-* State Manager selects eligible graph objects by domain and sequence.
-* Envelopes are constructed.
-* Key Manager signs the authenticated message header, including sender key id and ciphertext binding.
-* Network Manager establishes or reuses a peer connection, including solving required client puzzles during admission.
-* Key Manager looks up the recipient peer key material required for encryption.
-* Network Manager encrypts the payload for the remote peer.
-* Network Manager transmits the encrypted package over the established connection.
+* [State Manager](managers/09-state-manager.md) selects eligible graph objects by domain and sequence per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* Envelopes are constructed per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
+* [Key Manager](managers/03-key-manager.md) signs the authenticated message header, including sender key id and ciphertext binding per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [Network Manager](managers/10-network-manager.md) establishes or reuses a peer connection, including solving required client puzzles during admission per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* [Key Manager](managers/03-key-manager.md) looks up the recipient peer key material required for encryption per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* [Network Manager](managers/10-network-manager.md) encrypts the payload for the remote peer per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [Network Manager](managers/10-network-manager.md) transmits the encrypted package over the established connection.
 
 ### 11.3 Allowed behavior
 
@@ -361,7 +372,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 ### 11.5 Failure behavior
 
 * Transmission failure does not affect local state.
-* Retry behavior is controlled exclusively by State Manager.
+* Retry behavior is controlled exclusively by [State Manager](managers/09-state-manager.md).
 
 ## 12. Derived and cached data flow
 
@@ -390,7 +401,7 @@ Derived data includes in-memory indices, caches, and precomputed query results.
 
 * All rejections propagate to the original caller.
 * Remote rejections are reflected in peer sync state.
-* Rejections are observable by Log Manager and audit systems.
+* Rejections are observable by [Log Manager](managers/12-log-manager.md) and audit systems.
 
 ### 13.2 Forbidden behavior
 
@@ -399,7 +410,7 @@ Derived data includes in-memory indices, caches, and precomputed query results.
 
 ## 14. Trust boundaries
 
-The following trust boundaries are explicitly crossed:
+The following trust boundaries are explicitly crossed as defined in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md):
 
 * Frontend to backend API boundary.
 * Backend to storage boundary.
@@ -421,10 +432,10 @@ This data flow model guarantees:
 * Uniform authorization, domain, and schema enforcement.
 * Visibility suppression without data loss.
 * Authenticated before decrypt processing for all remote ingress payloads.
-* Replay protection enforced by State Manager using ordering and peer sync state.
-* Confidentiality and integrity for peer transport via encryption and signed authenticated headers.
-* DoS containment on peer connections via DoS Guard Manager admission control with dynamic difficulty challenges.
+* Replay protection enforced by [State Manager](managers/09-state-manager.md) using ordering and peer sync state per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+* Confidentiality and integrity for peer transport via encryption and signed authenticated headers per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* DoS containment on peer connections via [DoS Guard Manager](managers/14-dos-guard-manager.md) admission control with dynamic difficulty challenges per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
 * Derived and cached data is non-authoritative and cannot affect correctness when lost.
-* Network retry decisions are owned by State Manager and driven by per-peer sync state.
+* Network retry decisions are owned by [State Manager](managers/09-state-manager.md) and driven by per-peer sync state per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Predictable fail-closed behavior under error or load.
 * No implicit or hidden data paths.
