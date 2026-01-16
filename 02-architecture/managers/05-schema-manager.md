@@ -14,7 +14,7 @@ Schemas are stored as graph objects per the canonical Parent/Attribute represent
 
 This file specifies Schema Manager behavior only. It does not define schema authoring, schema mutation flows, envelope formats, ACL semantics, sync execution logic, or storage internals beyond what is required to implement this manager correctly.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../../01-protocol/)
 * [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
