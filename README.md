@@ -158,28 +158,53 @@ Our projects took different paths over the years, but that early work influenced
 ## References
 
 <a id="ref-1"></a>[1] Protocol overview - [01-protocol/00-protocol-overview.md](01-protocol/00-protocol-overview.md)
+
 <a id="ref-2"></a>[2] Identifiers and namespaces - [01-protocol/01-identifiers-and-namespaces.md](01-protocol/01-identifiers-and-namespaces.md)
+
 <a id="ref-3"></a>[3] Object model - [01-protocol/02-object-model.md](01-protocol/02-object-model.md)
+
 <a id="ref-4"></a>[4] Serialization and envelopes - [01-protocol/03-serialization-and-envelopes.md](01-protocol/03-serialization-and-envelopes.md)
+
 <a id="ref-5"></a>[5] Cryptography - [01-protocol/04-cryptography.md](01-protocol/04-cryptography.md)
+
 <a id="ref-6"></a>[6] Keys and identity - [01-protocol/05-keys-and-identity.md](01-protocol/05-keys-and-identity.md)
+
 <a id="ref-7"></a>[7] Access control model - [01-protocol/06-access-control-model.md](01-protocol/06-access-control-model.md)
+
 <a id="ref-8"></a>[8] Sync and consistency - [01-protocol/07-sync-and-consistency.md](01-protocol/07-sync-and-consistency.md)
+
 <a id="ref-9"></a>[9] Network transport requirements - [01-protocol/08-network-transport-requirements.md](01-protocol/08-network-transport-requirements.md)
+
 <a id="ref-10"></a>[10] Errors and failure modes - [01-protocol/09-errors-and-failure-modes.md](01-protocol/09-errors-and-failure-modes.md)
+
 <a id="ref-11"></a>[11] DoS guard and client puzzles - [01-protocol/11-dos-guard-and-client-puzzles.md](01-protocol/11-dos-guard-and-client-puzzles.md)
+
 <a id="ref-12"></a>[12] Managers overview - [02-architecture/managers/00-managers-overview.md](02-architecture/managers/00-managers-overview.md)
+
 <a id="ref-13"></a>[13] Config Manager - [02-architecture/managers/01-config-manager.md](02-architecture/managers/01-config-manager.md)
+
 <a id="ref-14"></a>[14] Storage Manager - [02-architecture/managers/02-storage-manager.md](02-architecture/managers/02-storage-manager.md)
+
 <a id="ref-15"></a>[15] Key Manager - [02-architecture/managers/03-key-manager.md](02-architecture/managers/03-key-manager.md)
+
 <a id="ref-16"></a>[16] Auth Manager - [02-architecture/managers/04-auth-manager.md](02-architecture/managers/04-auth-manager.md)
+
 <a id="ref-17"></a>[17] Schema Manager - [02-architecture/managers/05-schema-manager.md](02-architecture/managers/05-schema-manager.md)
+
 <a id="ref-18"></a>[18] ACL Manager - [02-architecture/managers/06-acl-manager.md](02-architecture/managers/06-acl-manager.md)
+
 <a id="ref-19"></a>[19] Graph Manager - [02-architecture/managers/07-graph-manager.md](02-architecture/managers/07-graph-manager.md)
+
 <a id="ref-20"></a>[20] App Manager - [02-architecture/managers/08-app-manager.md](02-architecture/managers/08-app-manager.md)
+
 <a id="ref-21"></a>[21] State Manager - [02-architecture/managers/09-state-manager.md](02-architecture/managers/09-state-manager.md)
+
 <a id="ref-22"></a>[22] Network Manager - [02-architecture/managers/10-network-manager.md](02-architecture/managers/10-network-manager.md)
+
 <a id="ref-23"></a>[23] Event Manager - [02-architecture/managers/11-event-manager.md](02-architecture/managers/11-event-manager.md)
+
 <a id="ref-24"></a>[24] Log Manager - [02-architecture/managers/12-log-manager.md](02-architecture/managers/12-log-manager.md)
+
 <a id="ref-25"></a>[25] Health Manager - [02-architecture/managers/13-health-manager.md](02-architecture/managers/13-health-manager.md)
+
 <a id="ref-26"></a>[26] DoS Guard Manager - [02-architecture/managers/14-dos-guard-manager.md](02-architecture/managers/14-dos-guard-manager.md)
