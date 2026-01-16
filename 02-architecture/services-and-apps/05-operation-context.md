@@ -191,6 +191,12 @@ OperationContext is immutable after construction.
 * Remote contexts must not include local-only fields (`requester_identity_id`, `device_id`, `delegated_key_id`, `capability`).
 * Violations result in immediate rejection, consistent with remote context construction rules in `01-protocol/03-serialization-and-envelopes.md`.
 
+### 5.5 Automation execution semantics
+
+* Automation contexts are local-only (`is_remote=false`) and never include remote-only fields.
+* `actor_type` must be `automation` and `capability` must be explicit for every job.
+* `requester_identity_id` is set only when the job acts on behalf of a user, otherwise it is absent.
+
 ---
 
 ## 6. Manager consumption requirements
