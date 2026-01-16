@@ -8,18 +8,6 @@
 
 This document specifies the App Manager component. The App Manager is responsible for defining, registering, resolving, and wiring applications within the backend. It establishes applications as first class system entities, assigns them stable identifiers, binds them to cryptographic identities, initializes their storage namespaces, and controls the loading and isolation of backend extension services.
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-* [04-interfaces/**](../../04-interfaces/)
-
 This specification applies strictly to backend application lifecycle management and application identity resolution. It defines no frontend behavior, no schemas, no access control rules, no network behavior, and no application domain logic.
 
 This specification consumes the protocol contracts defined in:
