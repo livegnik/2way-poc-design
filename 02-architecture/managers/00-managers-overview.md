@@ -4,19 +4,31 @@
 
 This document provides an implementation-ready overview of every backend manager in 2WAY and explains how the manager fabric fits together across responsibilities, invariants, lifecycle dependencies, and shared execution flows. It complements the detailed component specifications and the rest of the architecture corpus by aggregating the big-picture guidance needed before diving into the per-manager files. It does not redefine the individual contracts; instead it stitches them together so engineers and reviewers can see the system-wide shape and enforce the same fail-closed posture everywhere.
 
+This overview references:
+
+* [01-protocol/**](../../01-protocol/)
+* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
+* [02-architecture/01-component-model.md](../01-component-model.md)
+* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
+* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
+* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
+* [02-architecture/managers/**](../managers/)
+* [02-architecture/services-and-apps/**](../services-and-apps/)
+* [04-interfaces/**](../../04-interfaces/)
+
 This specification consumes the protocol contracts defined in:
-* `01-protocol/00-protocol-overview.md`
-* `01-protocol/01-identifiers-and-namespaces.md`
-* `01-protocol/02-object-model.md`
-* `01-protocol/03-serialization-and-envelopes.md`
-* `01-protocol/04-cryptography.md`
-* `01-protocol/05-keys-and-identity.md`
-* `01-protocol/06-access-control-model.md`
-* `01-protocol/07-sync-and-consistency.md`
-* `01-protocol/08-network-transport-requirements.md`
-* `01-protocol/09-errors-and-failure-modes.md`
-* `01-protocol/10-versioning-and-compatibility.md`
-* `01-protocol/11-dos-guard-and-client-puzzles.md`
+* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
+* [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md)
+* [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
+* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
+* [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
+* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
+* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
+* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
+* [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
+* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
+* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -37,14 +49,14 @@ If you are building or auditing the backend, start here to understand the manage
 
 All managers share a single fail-closed posture. Regardless of caller, transport, or execution context, these invariants hold:
 
-1. **Single-write path**: Only Graph Manager mutates canonical graph state, Storage Manager persists it, and State Manager orders it. Other managers (Config, Schema, ACL, Event, Log, etc.) must never write graph rows or bypass the envelope sequencing described in `01-protocol/03-serialization-and-envelopes.md`.
-2. **OperationContext discipline**: Auth Manager binds local requests to identities, App Manager binds them to apps, State Manager constructs the remote variant, and every manager consumes the immutable OperationContext before acting.
-3. **Protocol precedence**: Structural validation -> Schema validation -> ACL evaluation -> Persistence (`01-protocol/00-protocol-overview.md`). Config, Schema, ACL, and Graph Managers enforce that ordering; no step may be skipped.
-4. **Namespace isolation**: App IDs, domains, and sync domains never bleed across managers. App Manager registers identities, Schema Manager validates objects per app, ACL Manager enforces cross-app prohibitions, and Graph Manager refuses envelopes with mixed contexts (`01-protocol/01-identifiers-and-namespaces.md`).
-5. **Separation of configuration vs. data**: Configuration lives in `.env` + SQLite `settings` and belongs to Config Manager; graph state never stores node-local configuration, mirroring the bootstrap/data split in `01-protocol/00-protocol-overview.md` and the authority boundaries in `01-protocol/02-object-model.md`.
-6. **Cryptographic boundaries**: Only Key Manager accesses private keys. Network Manager, State Manager, and Graph Manager rely on it but never read raw key material (`01-protocol/04-cryptography.md`).
-7. **Admission and DoS**: DoS Guard Manager controls every inbound/outbound connection via Network Manager's Bastion Engine; when DoS Guard is unavailable, admissions fail closed per `01-protocol/08-network-transport-requirements.md` and `01-protocol/11-dos-guard-and-client-puzzles.md`.
-8. **Observability unity**: Log Manager is the only structured logging surface, Event Manager the only event surface, and Health Manager the only readiness/liveness authority. Managers emit telemetry exclusively through them, preserving the fail-closed reporting model in `01-protocol/09-errors-and-failure-modes.md`.
+1. **Single-write path**: Only Graph Manager mutates canonical graph state, Storage Manager persists it, and State Manager orders it. Other managers (Config, Schema, ACL, Event, Log, etc.) must never write graph rows or bypass the envelope sequencing described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+2. **OperationContext discipline**: Auth Manager binds local requests to identities, App Manager binds them to apps, State Manager constructs the remote variant, and every manager consumes the immutable [OperationContext](../services-and-apps/05-operation-context.md) before acting.
+3. **Protocol precedence**: Structural validation -> Schema validation -> ACL evaluation -> Persistence ([01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)). Config, Schema, ACL, and Graph Managers enforce that ordering; no step may be skipped.
+4. **Namespace isolation**: App IDs, domains, and sync domains never bleed across managers. App Manager registers identities, Schema Manager validates objects per app, ACL Manager enforces cross-app prohibitions, and Graph Manager refuses envelopes with mixed contexts ([01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md)).
+5. **Separation of configuration vs. data**: Configuration lives in `.env` + SQLite `settings` and belongs to Config Manager; graph state never stores node-local configuration, mirroring the bootstrap/data split in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and the authority boundaries in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
+6. **Cryptographic boundaries**: Only Key Manager accesses private keys. Network Manager, State Manager, and Graph Manager rely on it but never read raw key material ([01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)).
+7. **Admission and DoS**: DoS Guard Manager controls every inbound/outbound connection via Network Manager's Bastion Engine; when DoS Guard is unavailable, admissions fail closed per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+8. **Observability unity**: Log Manager is the only structured logging surface, Event Manager the only event surface, and Health Manager the only readiness/liveness authority. Managers emit telemetry exclusively through them, preserving the fail-closed reporting model in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 
 ## 3. Manager catalog and dependency graph
 
@@ -52,20 +64,20 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 
 | ID | Manager | Core responsibilities | Depends on | Consumed by |
 | --- | --- | --- | --- | --- |
-| 01 | Config | Configuration ingestion, schema registry for settings, namespace snapshots, reloads. | Storage (settings table), ACL (export filtering). | All managers/services needing configuration. |
-| 02 | Storage | SQLite lifecycle, schema materialization, transactional persistence, sequence helpers. | Config (db path). | Graph, State, Config, Schema, Log, Event, App. |
-| 03 | Key | Key generation, storage, signing, ECIES crypto. | Config (key paths). | Network, State, App, DoS Guard. |
-| 04 | Auth | Local HTTP/WebSocket authentication -> OperationContext inputs. | Config (routes), App (routing metadata), frontend session store. | HTTP layer, all managers via OperationContext. |
-| 05 | Schema | Loads/validates graph schemas, resolves type ids, compiles sync domains. | Graph (read access), Storage (type tables), Config (limits). | Graph, ACL, State, App, services. |
-| 06 | ACL | Authorization for all graph reads/writes. | Schema (defaults), Graph (state), Config (policy). | Graph, Event (capsules), services. |
-| 07 | Graph | Single write path, canonical read surface, traversal helpers. | Schema, ACL, Storage, Event, Log, State, Config, App. | State, Event (post-commit), services. |
-| 08 | App | Registers apps, app identities, backend extensions. | Storage, Key, Config. | HTTP router, Schema (per app), Graph, ACL. |
-| 09 | State | Sync metadata, inbound envelope coordination, outbound package construction. | Graph, Storage, Network, Config, Schema. | Network (packages), Health, services. |
-| 10 | Network | Transport surfaces, bastion admission, crypto verification, peer discovery. | DoS Guard, Key, State, Config, Health, Event, Log. | State (verified envelopes), Health. |
-| 11 | Event | Sole event publication surface (internal bus + WebSocket). | ACL (audience capsules), Graph, App, Config, Auth, DoS Guard. | Frontend clients, managers needing notifications. |
-| 12 | Log | Structured logging, audit/security sinks, query APIs. | Config (log.*), filesystem. | Event (bridged alerts), DoS Guard (abuse signals), operators, Health. |
-| 13 | Health | Aggregates readiness/liveness across managers. | All managers (signals), Config. | DoS Guard (admission multiplier), operators, Event. |
-| 14 | DoS Guard | Admission decisions, puzzles, telemetry to Network Manager. | Network (telemetry), Config (dos.*), Key (seeds), Health. | Network (bastion), Event, Log. |
+| 01 | [Config](01-config-manager.md) | Configuration ingestion, schema registry for settings, namespace snapshots, reloads. | Storage (settings table), ACL (export filtering). | All managers/services needing configuration. |
+| 02 | [Storage](02-storage-manager.md) | SQLite lifecycle, schema materialization, transactional persistence, sequence helpers. | Config (db path). | Graph, State, Config, Schema, Log, Event, App. |
+| 03 | [Key](03-key-manager.md) | Key generation, storage, signing, ECIES crypto. | Config (key paths). | Network, State, App, DoS Guard. |
+| 04 | [Auth](04-auth-manager.md) | Local HTTP/WebSocket authentication -> OperationContext inputs. | Config (routes), App (routing metadata), frontend session store. | HTTP layer, all managers via OperationContext. |
+| 05 | [Schema](05-schema-manager.md) | Loads/validates graph schemas, resolves type ids, compiles sync domains. | Graph (read access), Storage (type tables), Config (limits). | Graph, ACL, State, App, services. |
+| 06 | [ACL](06-acl-manager.md) | Authorization for all graph reads/writes. | Schema (defaults), Graph (state), Config (policy). | Graph, Event (capsules), services. |
+| 07 | [Graph](07-graph-manager.md) | Single write path, canonical read surface, traversal helpers. | Schema, ACL, Storage, Event, Log, State, Config, App. | State, Event (post-commit), services. |
+| 08 | [App](08-app-manager.md) | Registers apps, app identities, backend extensions. | Storage, Key, Config. | HTTP router, Schema (per app), Graph, ACL. |
+| 09 | [State](09-state-manager.md) | Sync metadata, inbound envelope coordination, outbound package construction. | Graph, Storage, Network, Config, Schema. | Network (packages), Health, services. |
+| 10 | [Network](10-network-manager.md) | Transport surfaces, bastion admission, crypto verification, peer discovery. | DoS Guard, Key, State, Config, Health, Event, Log. | State (verified envelopes), Health. |
+| 11 | [Event](11-event-manager.md) | Sole event publication surface (internal bus + WebSocket). | ACL (audience capsules), Graph, App, Config, Auth, DoS Guard. | Frontend clients, managers needing notifications. |
+| 12 | [Log](12-log-manager.md) | Structured logging, audit/security sinks, query APIs. | Config (log.*), filesystem. | Event (bridged alerts), DoS Guard (abuse signals), operators, Health. |
+| 13 | [Health](13-health-manager.md) | Aggregates readiness/liveness across managers. | All managers (signals), Config. | DoS Guard (admission multiplier), operators, Event. |
+| 14 | [DoS Guard](14-dos-guard-manager.md) | Admission decisions, puzzles, telemetry to Network Manager. | Network (telemetry), Config (dos.*), Key (seeds), Health. | Network (bastion), Event, Log. |
 
 ### 3.1 Dependency constraints
 
@@ -76,40 +88,40 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 
 ### 4.1 Local write pipeline (HTTP request -> graph commit)
 
-1. **HTTP interface** receives a request, authenticates it via Auth Manager, and constructs an OperationContext using App Manager resolution.
-2. **Client/service** calls Graph Manager with an envelope.
-3. Graph Manager sequences validation: structural checks -> Schema Manager validation -> ACL Manager authorization -> Storage Manager transaction (with Config-provided limits) -> commit, preserving the order mandated by `01-protocol/00-protocol-overview.md` and `01-protocol/03-serialization-and-envelopes.md`.
+1. **HTTP interface** ([04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md)) receives a request, authenticates it via Auth Manager, and constructs an [OperationContext](../services-and-apps/05-operation-context.md) using App Manager resolution.
+2. **Client/service** calls Graph Manager with an envelope defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+3. Graph Manager sequences validation: structural checks -> Schema Manager validation -> ACL Manager authorization -> Storage Manager transaction (with Config-provided limits) -> commit, preserving the order mandated by [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 4. Graph Manager notifies State Manager (commit event) and Event Manager (post-commit descriptor). Log Manager receives audit/security logs from Graph + ACL.
 5. Health Manager monitors Graph/Storage success metrics; DoS Guard may adjust admission if Graph emits sustained failures.
 
 ### 4.2 Controlled read pipeline
 
-1. Caller obtains OperationContext (Auth/App).
-2. Graph Manager enforces schema-aware filters, calls ACL Manager for read authorization (per `01-protocol/06-access-control-model.md`), queries Storage Manager via typed helpers, applies default visibility filtering, and returns immutable results.
+1. Caller obtains [OperationContext](../services-and-apps/05-operation-context.md) (Auth/App).
+2. Graph Manager enforces schema-aware filters, calls ACL Manager for read authorization (per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)), queries Storage Manager via typed helpers, applies default visibility filtering, and returns immutable results.
 3. Event Manager may deliver notifications summarizing the same objects but never bypasses ACL decisions; subscribers use reads for recovery.
 
 ### 4.3 Remote sync pipeline
 
-1. Network Manager admits a peer via DoS Guard (`01-protocol/08-network-transport-requirements.md`, `01-protocol/11-dos-guard-and-client-puzzles.md`), verifies signatures/decrypts envelopes via Key Manager (`01-protocol/04-cryptography.md`, `01-protocol/05-keys-and-identity.md`), and forwards plaintext packages plus transport metadata to State Manager.
-2. State Manager enforces ordering (global/domain sequences from Storage Manager) per `01-protocol/07-sync-and-consistency.md`, constructs a remote OperationContext, and invokes Graph Manager.
+1. Network Manager admits a peer via DoS Guard ([01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)), verifies signatures/decrypts envelopes via Key Manager ([01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)), and forwards plaintext packages plus transport metadata to State Manager.
+2. State Manager enforces ordering (global/domain sequences from Storage Manager) per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md), constructs a remote [OperationContext](../services-and-apps/05-operation-context.md), and invokes Graph Manager.
 3. Graph Manager executes the same pipeline as local writes. After commit, State Manager updates sync metadata and may schedule outbound packages. Event Manager receives descriptors; Log Manager records sync outcomes.
 
 ### 4.4 Configuration reload pipeline
 
 1. Admin (via CLI/HTTP) calls Config Manager `updateSettings` or `reload`.
-2. Config Manager merges sources, validates via the settings schema registry, and diffs namespace snapshots, preserving compatibility expectations in `01-protocol/10-versioning-and-compatibility.md`.
+2. Config Manager merges sources, validates via the settings schema registry, and diffs namespace snapshots, preserving compatibility expectations in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
 3. Affected managers enter prepare/commit handshake, and each can veto. Managers apply new snapshots (for example, Network updates limits, DoS Guard updates difficulty, Event updates queue sizes). Health Manager goes `not_ready` if any veto or failure occurs.
 4. Successful commit increments `cfg_seq`; Config Manager publishes audit logs/events; dependent managers report readiness once applied.
 
 ### 4.5 Observability and incident response
 
-* **Log Manager** records every critical action (auth failure, ACL denial, config reload, network admission decision) so error families remain observable per `01-protocol/09-errors-and-failure-modes.md`.
-* **Event Manager** broadcasts state changes to authorized subscribers (graph domain events, security alerts, network telemetry, health transitions) while honoring audience constraints derived from `01-protocol/06-access-control-model.md`.
-* **Health Manager** exposes readiness/liveness snapshots; when `ready=false`, DoS Guard raises puzzle difficulty and Network Manager stops new admissions, delivering the shutdown posture described in `01-protocol/08-network-transport-requirements.md`. Event Manager and Log Manager record the transition.
+* **Log Manager** records every critical action (auth failure, ACL denial, config reload, network admission decision) so error families remain observable per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* **Event Manager** broadcasts state changes to authorized subscribers (graph domain events, security alerts, network telemetry, health transitions) while honoring audience constraints derived from [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* **Health Manager** exposes readiness/liveness snapshots; when `ready=false`, DoS Guard raises puzzle difficulty and Network Manager stops new admissions, delivering the shutdown posture described in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). Event Manager and Log Manager record the transition.
 
 ## 5. Manager-by-manager summary
 
-### 5.1 Config Manager (01)
+### 5.1 [Config Manager](01-config-manager.md) (01)
 
 * **Scope**: Central authority for configuration sources: built-in defaults, `.env`, SQLite `settings`, environment overrides, and ephemeral overrides.
 * **Key services**:
@@ -125,12 +137,12 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 * **Interfaces**: Read APIs (`getNodeConfig`, `getManagerConfig`, `exportConfig`), mutation/reload APIs, version introspection.
 
 
-### 5.2 Storage Manager (02)
+### 5.2 [Storage Manager](02-storage-manager.md) (02)
 
 * **Scope**: Single owner of the SQLite database, WAL lifecycle, schema provisioning, and transactional primitives.
 * **Key services**:
   * Global table creation (`identities`, `apps`, `global_seq`, etc.) and per-app table families (`app_N_*`).
-  * Sequence Engine that persists `global_seq`, `domain_seq`, `sync_state` (`01-protocol/07-sync-and-consistency.md`).
+  * Sequence Engine that persists `global_seq`, `domain_seq`, `sync_state` ([01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)).
   * Transaction helpers (read-only, write, savepoints) with envelope-level atomicity.
 * **Dependencies**: Config Manager (database path).
 * **Critical invariants**:
@@ -139,7 +151,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Failed writes never advance sequences; corruption or migration failure halts startup.
 
 
-### 5.3 Key Manager (03)
+### 5.3 [Key Manager](03-key-manager.md) (03)
 
 * **Scope**: Generates, stores, loads, and uses secp256k1 key pairs for node, identity, and app scopes; performs signing and ECIES encryption/decryption.
 * **Key services**:
@@ -153,9 +165,9 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Key rotation retains old keys but forbids ambiguity.
 
 
-### 5.4 Auth Manager (04)
+### 5.4 [Auth Manager](04-auth-manager.md) (04)
 
-* **Scope**: Local authentication authority for HTTP/WebSocket entrypoints; resolves session tokens into backend identities and admin eligibility.
+* **Scope**: Local authentication authority for HTTP ([04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md)) and WebSocket ([04-interfaces/02-websocket-events.md](../../04-interfaces/02-websocket-events.md)) entrypoints; resolves session tokens into backend identities and admin eligibility.
 * **Key services**:
   * Token validation pipeline (presence, format, existence, expiry, identity mapping).
   * Admin gating evaluation for protected routes.
@@ -167,7 +179,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Missing or malformed tokens fail closed with explicit error categories.
 
 
-### 5.5 Schema Manager (05)
+### 5.5 [Schema Manager](05-schema-manager.md) (05)
 
 * **Scope**: Loads schema definitions from app_0, validates structure, compiles type registries and sync domain metadata, and exposes read-only schema APIs.
 * **Key services**:
@@ -181,7 +193,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Schema validation failures halt startup and mark health degraded.
 
 
-### 5.6 ACL Manager (06)
+### 5.6 [ACL Manager](06-acl-manager.md) (06)
 
 * **Scope**: Sole authorization engine for graph reads/writes, enforcing schema defaults, ownership rules, object-level ACLs, and remote execution constraints.
 * **Key services**:
@@ -195,7 +207,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Remote envelopes obey extra constraints (no local history rewrites).
 
 
-### 5.7 Graph Manager (07)
+### 5.7 [Graph Manager](07-graph-manager.md) (07)
 
 * **Scope**: Only path for persisted graph mutations and authoritative read surface; coordinates schema validation, ACL enforcement, sequencing, and event emission.
 * **Key services**:
@@ -210,7 +222,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Events never emit until commit succeeds; reads never leak unauthorized state.
 
 
-### 5.8 App Manager (08)
+### 5.8 [App Manager](08-app-manager.md) (08)
 
 * **Scope**: Declares and registers applications, assigns `app_id` values, binds app identities to keys, initializes per-app storage, and wires optional backend extensions.
 * **Key services**:
@@ -224,7 +236,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Extension services cannot bypass managers or access raw storage/key/network.
 
 
-### 5.9 State Manager (09)
+### 5.9 [State Manager](09-state-manager.md) (09)
 
 * **Scope**: Maintains sync metadata, orchestrates inbound remote envelopes, constructs outbound packages, and coordinates deterministic ordering with Graph/Storage.
 * **Key services**:
@@ -239,7 +251,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Failures default to rejection; no speculative or partial state is exposed.
 
 
-### 5.10 Network Manager (10)
+### 5.10 [Network Manager](10-network-manager.md) (10)
 
 * **Scope**: Owns transport surfaces, bastion admission, cryptographic binding at the edge, peer discovery, outbound scheduling, and integration with DoS Guard.
 * **Key services**:
@@ -255,9 +267,9 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Best-effort transport only; retries/persistence belong to State Manager.
 
 
-### 5.11 Event Manager (11)
+### 5.11 [Event Manager](11-event-manager.md) (11)
 
-* **Scope**: Exclusive event publication surface (internal manager bus + WebSocket to frontend); normalizes descriptors, enforces ACL-based audiences, and manages delivery.
+* **Scope**: Exclusive event publication surface (internal manager bus + WebSocket ([04-interfaces/02-websocket-events.md](../../04-interfaces/02-websocket-events.md)) to frontend); normalizes descriptors, enforces ACL-based audiences, and manages delivery.
 * **Key services**:
   * Source Intake -> Normalization -> Audience -> Delivery engines with bounded queues.
   * Subscription Registry (immutable filters, resume tokens, heartbeat/backpressure).
@@ -269,7 +281,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Delivery is best-effort; clients must use read APIs for recovery.
 
 
-### 5.12 Log Manager (12)
+### 5.12 [Log Manager](12-log-manager.md) (12)
 
 * **Scope**: Central structured logging authority; enforces record schema, routes to sinks (stdout, rolling files, Event bridge), and exposes read-only query APIs.
 * **Key services**:
@@ -283,13 +295,13 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Mandatory sinks failing forces readiness false and may cause request rejection.
 
 
-### 5.13 Health Manager (13)
+### 5.13 [Health Manager](13-health-manager.md) (13)
 
 * **Scope**: Aggregates readiness/liveness across managers, publishes snapshots, and enforces fail-closed gating.
 * **Key services**:
   * Signal Intake -> Validation -> Evaluation -> Publication pipeline.
   * Readiness evaluation requiring all critical managers to report `healthy`.
-  * HTTP/admin APIs and Event/Log notifications for state transitions.
+  * HTTP/admin APIs ([04-interfaces/**](../../04-interfaces/)) and Event/Log notifications for state transitions.
 * **Dependencies**: All managers (signals), Config (thresholds). Consumers: DoS Guard (admission throttle), Event (notifications), operators.
 * **Critical invariants**:
   * Readiness false until every critical manager reports `healthy`.
@@ -297,7 +309,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
   * Health data exposed only to admin identities; aggregate states available broadly.
 
 
-### 5.14 DoS Guard Manager (14)
+### 5.14 [DoS Guard Manager](14-dos-guard-manager.md) (14)
 
 * **Scope**: Admission control authority; issues/verifies puzzles, tracks abuse telemetry, and instructs Network Manager's Bastion Engine.
 * **Key services**:
@@ -346,6 +358,8 @@ Health Manager reports readiness only after every critical manager signals `heal
 Partial shutdown is forbidden; each manager must ensure no new requests are accepted after its shutdown begins.
 
 ## 7. OperationContext and trust boundaries
+
+[OperationContext](../services-and-apps/05-operation-context.md) defines the execution context shared by managers, while [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md) defines the enforcement posture across boundaries.
 
 * **Construction**:
   * Local: HTTP/WebSocket route -> Auth Manager -> App Manager binding -> OperationContext.
