@@ -8,15 +8,26 @@
 
 This document defines the backend component model of the 2WAY system as implemented in the proof of concept (PoC). It specifies component categories, responsibilities, invariants, allowed and forbidden interactions, trust boundaries, and failure behavior.
 
-This document is normative for backend structure and behavior. It does not define APIs, wire formats, schemas, storage layout, or runtime topology except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
+This document is normative for backend structure and behavior. It does not define APIs ([04-interfaces/**](../04-interfaces/)), wire formats ([01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)), schemas ([01-protocol/02-object-model.md](../01-protocol/02-object-model.md)), storage layout, or runtime topology ([02-runtime-topologies.md](02-runtime-topologies.md)) except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
+
+This overview references:
+
+* [01-protocol/**](../01-protocol/)
+* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
+* [02-architecture/02-runtime-topologies.md](02-runtime-topologies.md)
+* [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md)
+* [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md)
+* [02-architecture/managers/**](managers/)
+* [02-architecture/services-and-apps/**](services-and-apps/)
+* [04-interfaces/**](../04-interfaces/)
 
 ## 2. Component model overview
 
-The 2WAY backend is composed of managers and services running within a single long-lived backend process.
+The 2WAY backend is composed of managers and services running within a single long-lived backend process as described in [00-architecture-overview.md](00-architecture-overview.md).
 
-Managers form the protocol kernel. They implement all protocol-enforced behavior and invariants.
+Managers form the protocol kernel. They implement all protocol-enforced behavior and invariants defined in [01-protocol/**](../01-protocol/).
 
-Services implement domain logic on top of managers. Services never define protocol rules and never bypass managers.
+Services implement domain logic on top of managers. Services never define protocol rules and never bypass managers, consistent with [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md).
 
 The component model enforces the following system-wide rules:
 
@@ -39,10 +50,10 @@ Services are backend components that implement domain-specific workflows.
 
 Two service classes exist:
 
-- System services.
-- App extension services.
+- [System services](services-and-apps/02-system-services.md).
+- [App extension services](services-and-apps/03-app-backend-extensions.md).
 
-Both classes use managers exclusively to interact with system state.
+Both classes use managers exclusively to interact with system state. The taxonomy is defined in [02-architecture/services-and-apps/01-services-vs-apps.md](services-and-apps/01-services-vs-apps.md).
 
 ## 4. Manager responsibilities and boundaries
 
@@ -50,19 +61,19 @@ Both classes use managers exclusively to interact with system state.
 
 All managers collectively enforce the following invariants:
 
-- Graph Manager is the only component allowed to mutate graph state.
-- Storage Manager is the only component allowed to execute raw database operations.
-- Schema Manager is the only component allowed to interpret type and schema definitions.
-- ACL Manager is the only component allowed to make authorization decisions.
-- Key Manager is the only component allowed to access private key material.
-- State Manager is the only component allowed to manage sync state and reconciliation.
-- Network Manager is the only component allowed to perform peer communication and transport.
-- Event Manager is the only component allowed to publish backend events.
-- App Manager is the only component allowed to register, load, and bind apps.
-- Auth Manager is the only component allowed to resolve frontend identity and session context.
-- Log Manager is the only component allowed to emit structured logs.
-- Health Manager is the only component allowed to report system health.
-- DoS Guard Manager is the only component allowed to enforce rate limiting and abuse controls.
+- [Graph Manager](managers/07-graph-manager.md) is the only component allowed to mutate graph state.
+- [Storage Manager](managers/02-storage-manager.md) is the only component allowed to execute raw database operations.
+- [Schema Manager](managers/05-schema-manager.md) is the only component allowed to interpret type and schema definitions.
+- [ACL Manager](managers/06-acl-manager.md) is the only component allowed to make authorization decisions.
+- [Key Manager](managers/03-key-manager.md) is the only component allowed to access private key material.
+- [State Manager](managers/09-state-manager.md) is the only component allowed to manage sync state and reconciliation.
+- [Network Manager](managers/10-network-manager.md) is the only component allowed to perform peer communication and transport.
+- [Event Manager](managers/11-event-manager.md) is the only component allowed to publish backend events.
+- [App Manager](managers/08-app-manager.md) is the only component allowed to register, load, and bind apps.
+- [Auth Manager](managers/04-auth-manager.md) is the only component allowed to resolve frontend identity and session context.
+- [Log Manager](managers/12-log-manager.md) is the only component allowed to emit structured logs.
+- [Health Manager](managers/13-health-manager.md) is the only component allowed to report system health.
+- [DoS Guard Manager](managers/14-dos-guard-manager.md) is the only component allowed to enforce rate limiting and abuse controls.
 
 These invariants are mandatory. Violations invalidate correctness and security guarantees.
 
@@ -70,20 +81,20 @@ These invariants are mandatory. Violations invalidate correctness and security g
 
 Each manager owns a single responsibility domain:
 
-- Config Manager owns runtime configuration loading and access.
-- Storage Manager owns SQLite access, transactions, and persistence boundaries.
-- Key Manager owns node, user, and app key lifecycle, PEM file storage, signing, and decryption.
-- Auth Manager owns frontend authentication, session validation, and identity resolution.
-- Schema Manager owns schema objects, type resolution, and schema validation.
-- ACL Manager owns authorization evaluation using OperationContext and graph data.
-- Graph Manager owns all graph mutations, validation ordering, and global sequence assignment.
-- App Manager owns app identity registration, lifecycle, and backend extension loading.
-- State Manager owns sync domains, sequence tracking, reconciliation, and conflict handling.
-- Network Manager owns transport setup, message exchange, signing verification, and encryption.
-- Event Manager owns event publication and subscription.
-- Log Manager owns audit, diagnostic, and operational logging.
-- Health Manager owns liveness checks and health state reporting.
-- DoS Guard Manager owns request throttling and abuse mitigation.
+- [Config Manager](managers/01-config-manager.md) owns runtime configuration loading and access.
+- [Storage Manager](managers/02-storage-manager.md) owns SQLite access, transactions, and persistence boundaries.
+- [Key Manager](managers/03-key-manager.md) owns node, user, and app key lifecycle, PEM file storage, signing, and decryption aligned to [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md) and [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+- [Auth Manager](managers/04-auth-manager.md) owns frontend authentication, session validation, and identity resolution.
+- [Schema Manager](managers/05-schema-manager.md) owns schema objects, type resolution, and schema validation.
+- [ACL Manager](managers/06-acl-manager.md) owns authorization evaluation using [OperationContext](services-and-apps/05-operation-context.md) and graph data aligned to [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md).
+- [Graph Manager](managers/07-graph-manager.md) owns all graph mutations, validation ordering, and global sequence assignment.
+- [App Manager](managers/08-app-manager.md) owns app identity registration, lifecycle, and backend extension loading.
+- [State Manager](managers/09-state-manager.md) owns sync domains, sequence tracking, reconciliation, and conflict handling aligned to [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+- [Network Manager](managers/10-network-manager.md) owns transport setup, message exchange, signing verification, and encryption consistent with [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
+- [Event Manager](managers/11-event-manager.md) owns event publication and subscription.
+- [Log Manager](managers/12-log-manager.md) owns audit, diagnostic, and operational logging.
+- [Health Manager](managers/13-health-manager.md) owns liveness checks and health state reporting.
+- [DoS Guard Manager](managers/14-dos-guard-manager.md) owns request throttling and abuse mitigation aligned to [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
 
 Managers may call other managers only through explicit, validated inputs. Circular dependencies are forbidden.
 
@@ -111,7 +122,7 @@ Services may perform the following:
 - Emit domain events through Event Manager.
 - Expose backend endpoints through defined interfaces.
 
-Services must supply complete OperationContext to all manager calls.
+Services must supply complete [OperationContext](services-and-apps/05-operation-context.md) to all manager calls.
 
 ### 5.2 Service non-responsibilities
 
@@ -127,7 +138,7 @@ Services must not perform the following:
 
 ### 5.3 System services
 
-System services are backend services that exist independently of installed apps.
+System services are backend services that exist independently of installed apps, as defined in [02-architecture/services-and-apps/02-system-services.md](services-and-apps/02-system-services.md).
 
 System services:
 
@@ -140,7 +151,7 @@ System services depend on managers but are not depended on by managers.
 
 ### 5.4 App extension services
 
-App extension services are optional backend services tied to a single app identity.
+App extension services are optional backend services tied to a single app identity, as defined in [02-architecture/services-and-apps/03-app-backend-extensions.md](services-and-apps/03-app-backend-extensions.md).
 
 Additional constraints apply:
 
@@ -181,7 +192,7 @@ All interactions require a valid OperationContext.
 Frontend clients and remote peers are external to the component model:
 
 - All external input is treated as untrusted.
-- External input enters the system only through Auth Manager, Network Manager, or service interfaces.
+- External input enters the system only through Auth Manager, Network Manager, or [service interfaces](../04-interfaces/).
 - No external actor interacts directly with managers.
 
 ## 7. Forbidden interactions
@@ -200,7 +211,7 @@ The following interactions are explicitly forbidden:
 
 ## 8. Trust boundaries
 
-Each component defines a strict trust boundary:
+Each component defines a strict trust boundary as detailed in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md):
 
 - Managers trust only validated inputs from other managers.
 - Services trust managers but not external inputs.
