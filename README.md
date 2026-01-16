@@ -77,7 +77,7 @@ Applications do not manage storage or trust directly. They define schemas, domai
 
 At the center is a shared graph: the canonical record of identities, devices, apps, relationships, capabilities, and application objects. Every object has explicit ownership. Every relationship is typed. Nothing is implicit. Each change declares which identity authored it and under which rules it is allowed to exist.
 
-History is append-only and ordered. Once accepted, a change cannot be rewritten or physically removed; visibility suppression happens through Ratings at read time rather than deletes. Each entry references its structure, payload, and ancestry so it can be independently verified. Peers exchange signed sequences, then replay and validate them locally. A node accepts only what satisfies its own rules, using the same logic it applies to local changes.
+History is append-only and ordered. Once accepted, a change cannot be rewritten or physically removed; visibility suppression happens through Rating objects at read time rather than deletes. Each entry references its structure, payload, and ancestry so it can be independently verified. Peers exchange signed sequences, then replay and validate them locally. A node accepts only what satisfies its own rules, using the same logic it applies to local changes.
 
 The result is a system where correctness does not depend on transport, uptime, or coordination. State converges because it is verifiable, not because a server says so.
 
