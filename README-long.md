@@ -49,6 +49,7 @@ In 2WAY, application authors define schemas, optional domain logic, and user int
   * [18.10 What ties these examples together](#1810-what-ties-these-examples-together)
 * [19. Conformance](#19-conformance)
 * [20. Scope boundary and status](#20-scope-boundary-and-status)
+* [21. Acknowledgments](#21-acknowledgments)
 
 ---
 
