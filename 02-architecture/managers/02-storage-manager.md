@@ -8,7 +8,7 @@
 
 Storage Manager is the sole authority for durable persistence in the 2WAY backend. It owns the SQLite database lifecycle, schema materialization, per-app table provisioning, transactional boundaries, and persistence primitives consumed by all other managers and services.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../../01-protocol/)
 * [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
