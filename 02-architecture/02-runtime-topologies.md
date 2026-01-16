@@ -8,13 +8,24 @@
 
 This document defines the valid runtime topologies for a 2WAY node as specified by the PoC build guide. It describes how backend managers, services, frontend apps, storage, keys, and network components are arranged and interact at runtime. It specifies trust boundaries, allowed and forbidden interactions, and required failure behavior. It does not define deployment tooling, packaging, orchestration, scaling, or operational automation.
 
+This overview references:
+
+* [01-protocol/**](../01-protocol/)
+* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
+* [02-architecture/01-component-model.md](01-component-model.md)
+* [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md)
+* [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md)
+* [02-architecture/managers/**](managers/)
+* [02-architecture/services-and-apps/**](services-and-apps/)
+* [04-interfaces/**](../04-interfaces/)
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
-- Permitted runtime arrangements of backend managers, system services, app extension services, frontend apps, and network components.
-- Trust boundaries between backend, frontend, local storage, and remote peers.
-- Mandatory interaction paths between runtime components.
+- Permitted runtime arrangements of backend managers, system services, app extension services, frontend apps, and network components defined in [01-component-model.md](01-component-model.md) and [02-architecture/services-and-apps/**](services-and-apps/).
+- Trust boundaries between backend, frontend, local storage, and remote peers as defined in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md).
+- Mandatory interaction paths between runtime components aligned to [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md).
 - Runtime behavior under failure, rejection, or partial availability.
 
 This specification does not cover the following:
@@ -30,12 +41,12 @@ This specification does not cover the following:
 Across all runtime topologies, the following invariants and guarantees hold:
 
 - Exactly one backend instance owns the authoritative Graph Manager for a node.
-- All graph writes occur exclusively via the Graph Manager.
-- All ACL decisions are enforced exclusively by the ACL Manager.
-- All schema validation is enforced by the Schema Manager.
-- All persistent state is written only through the Storage Manager.
-- All private keys remain local to the backend and are owned by the Key Manager.
-- All network ingress and egress occurs through the Network Manager.
+- All graph writes occur exclusively via the [Graph Manager](managers/07-graph-manager.md).
+- All ACL decisions are enforced exclusively by the [ACL Manager](managers/06-acl-manager.md).
+- All schema validation is enforced by the [Schema Manager](managers/05-schema-manager.md).
+- All persistent state is written only through the [Storage Manager](managers/02-storage-manager.md).
+- All private keys remain local to the backend and are owned by the [Key Manager](managers/03-key-manager.md).
+- All network ingress and egress occurs through the [Network Manager](managers/10-network-manager.md).
 - Frontend apps never execute backend logic directly.
 - Backend services and extensions never bypass managers.
 - Local state correctness is independent of network availability.
@@ -57,15 +68,15 @@ All conforming implementations must match one of the defined topologies or be a 
 
 ### 5.1 Description
 
-The backend runs as a single long-lived process hosting all managers and services. Frontend apps execute locally and communicate with the backend over local HTTP and WebSocket interfaces.
+The backend runs as a single long-lived process hosting all managers and services. Frontend apps execute locally and communicate with the backend over local HTTP ([04-interfaces/01-local-http-api.md](../04-interfaces/01-local-http-api.md)) and WebSocket ([04-interfaces/02-websocket-events.md](../04-interfaces/02-websocket-events.md)) interfaces.
 
 ### 5.2 Component placement
 
 - Backend managers. Single process.
 - System services. Same process as managers.
 - App extension services. Same process as managers.
-- Storage. Local SQLite database owned by Storage Manager.
-- Key material. Local filesystem owned by Key Manager.
+- Storage. Local SQLite database owned by [Storage Manager](managers/02-storage-manager.md).
+- Key material. Local filesystem owned by [Key Manager](managers/03-key-manager.md).
 - Frontend apps. Local browser or UI process.
 
 ### 5.3 Trust boundaries
@@ -78,7 +89,7 @@ The backend runs as a single long-lived process hosting all managers and service
 
 - Frontend apps invoke backend APIs through the local HTTP interface.
 - Backend emits events to frontend clients through WebSocket.
-- Backend initiates outbound network communication via Network Manager.
+- Backend initiates outbound network communication via [Network Manager](managers/10-network-manager.md).
 - Backend performs autonomous sync and maintenance tasks.
 
 ### 5.5 Forbidden interactions
@@ -98,7 +109,7 @@ The backend runs as a single long-lived process hosting all managers and service
 
 ### 6.1 Description
 
-The backend runs as a standalone local service. Frontend apps run in a separate process or device and communicate with the backend over authenticated local HTTP and WebSocket interfaces.
+The backend runs as a standalone local service. Frontend apps run in a separate process or device and communicate with the backend over authenticated local HTTP ([04-interfaces/01-local-http-api.md](../04-interfaces/01-local-http-api.md)) and WebSocket ([04-interfaces/02-websocket-events.md](../04-interfaces/02-websocket-events.md)) interfaces.
 
 ### 6.2 Component placement
 
@@ -122,7 +133,7 @@ The backend runs as a standalone local service. Frontend apps run in a separate 
 
 - Frontend modifying backend configuration or state outside defined APIs.
 - Frontend injecting executable logic into backend runtime.
-- Backend delegating ACL, schema, or validation decisions to frontend.
+- Backend delegating ACL, schema, or validation decisions to frontend handled by [ACL Manager](managers/06-acl-manager.md) and [Schema Manager](managers/05-schema-manager.md).
 
 ### 6.6 Failure behavior
 
@@ -134,13 +145,13 @@ The backend runs as a standalone local service. Frontend apps run in a separate 
 
 ### 7.1 Description
 
-The backend runs without any attached frontend clients. It maintains local state, performs sync, and enforces policy autonomously.
+The backend runs without any attached frontend clients. It maintains local state, performs sync, and enforces policy autonomously as described in [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 ### 7.2 Component placement
 
 - Backend managers and services. Single process.
 - No frontend apps attached.
-- Network Manager active.
+- [Network Manager](managers/10-network-manager.md) active.
 
 ### 7.3 Trust boundaries
 
@@ -149,7 +160,7 @@ The backend runs without any attached frontend clients. It maintains local state
 
 ### 7.4 Allowed interactions
 
-- Peer-to-peer sync via Network Manager.
+- Peer-to-peer sync via [Network Manager](managers/10-network-manager.md).
 - Administrative access through authenticated backend interfaces.
 
 ### 7.5 Forbidden interactions
@@ -166,7 +177,7 @@ The backend runs without any attached frontend clients. It maintains local state
 
 ### 8.1 Description
 
-Multiple backend nodes represent the same user identity on different devices. Each node maintains its own local graph and syncs with peers according to State Manager rules.
+Multiple backend nodes represent the same user identity on different devices. Each node maintains its own local graph and syncs with peers according to [State Manager](managers/09-state-manager.md) rules and [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 ### 8.2 Component placement
 
@@ -181,7 +192,7 @@ Multiple backend nodes represent the same user identity on different devices. Ea
 
 ### 8.4 Allowed interactions
 
-- Device-to-device sync via Network Manager.
+- Device-to-device sync via [Network Manager](managers/10-network-manager.md).
 - Independent local operation when offline.
 
 ### 8.5 Forbidden interactions
@@ -198,7 +209,7 @@ Multiple backend nodes represent the same user identity on different devices. Ea
 
 ### 9.1 Description
 
-Nodes communicate with untrusted remote peers for domain-scoped synchronization of graph state.
+Nodes communicate with untrusted remote peers for domain-scoped synchronization of graph state as defined in [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 ### 9.2 Component placement
 
@@ -207,13 +218,13 @@ Nodes communicate with untrusted remote peers for domain-scoped synchronization 
 
 ### 9.3 Trust boundaries
 
-- Strong cryptographic boundary between nodes.
+- Strong cryptographic boundary between nodes as defined in [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 - No assumption of peer honesty, availability, or correctness.
 
 ### 9.4 Allowed interactions
 
-- Signed and optionally encrypted envelope exchange.
-- Capability negotiation and domain-scoped sync.
+- Signed and optionally encrypted envelope exchange as defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+- Capability negotiation and domain-scoped sync as defined in [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 ### 9.5 Forbidden interactions
 
@@ -223,24 +234,24 @@ Nodes communicate with untrusted remote peers for domain-scoped synchronization 
 
 ### 9.6 Failure behavior
 
-- Invalid, replayed, or unauthorized envelopes are rejected.
+- Invalid, replayed, or unauthorized envelopes are rejected as defined in [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
 - Peer misbehavior does not corrupt local state.
 
 ## 10. Cross-topology constraints
 
 Across all runtime topologies:
 
-- Graph Manager remains the single write authority.
-- Storage Manager remains the sole database access path.
-- Key Manager remains the sole owner of private keys.
-- Network Manager remains the sole network interface.
+- [Graph Manager](managers/07-graph-manager.md) remains the single write authority.
+- [Storage Manager](managers/02-storage-manager.md) remains the sole database access path.
+- [Key Manager](managers/03-key-manager.md) remains the sole owner of private keys.
+- [Network Manager](managers/10-network-manager.md) remains the sole network interface.
 - Managers enforce identical semantics regardless of topology.
 
 Any runtime arrangement that violates these constraints is non-conforming.
 
 ## 11. Rejection and invalid input handling
 
-- Requests crossing an invalid trust boundary are rejected.
+- Requests crossing an invalid trust boundary are rejected per [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md).
 - Requests violating topology constraints are rejected before state mutation.
 - Rejections do not modify persistent state.
 - Rejected inputs may be logged but must not trigger side effects.
