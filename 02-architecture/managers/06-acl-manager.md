@@ -12,18 +12,6 @@ This specification defines the responsibilities, boundaries, internal engines, e
 
 This specification defines authorization logic only. It does not define authentication, identity verification, graph mutation semantics, persistence, sync selection, transport behavior, encryption, signature verification, or logging implementation. Those concerns are handled by other protocol specifications such as [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-* [04-interfaces/**](../../04-interfaces/)
-
 This specification consumes the protocol contracts defined in:
 
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
