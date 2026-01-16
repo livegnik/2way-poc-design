@@ -61,12 +61,6 @@ The result is a system where correctness does not depend on transport, uptime, o
 
 ---
 
-Yes. You are right. The previous version explains *objects*, but it under-explains the *protocol shape*, especially how apps and schemas fit into the graph and why this is a protocol rather than just a data model.
-
-Here is a revised version that does that, keeps links grounded in the actual repo structure, and stays plain and non-listy.
-
----
-
 ## Graph, objects, and protocol model
 
 2WAY defines a protocol for how state is created, validated, ordered, and shared. That protocol is centered around a shared graph, not around APIs, endpoints, or databases. The graph is the only source of truth, and every node builds, validates, and evolves it using the same rules. The high-level structure of the protocol is introduced in `01-protocol/00-protocol-overview.md`.
