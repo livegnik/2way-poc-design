@@ -13,13 +13,13 @@ The Network Manager owns all peer-to-peer network I/O for a 2WAY node. It is the
 This specification defines internal engines and phases that together constitute the Network Manager. These engines, phases, and boundaries are normative and required for correct implementation.
 
 This specification consumes the protocol contracts defined in:
-* `01-protocol/03-serialization-and-envelopes.md`
-* `01-protocol/04-cryptography.md`
-* `01-protocol/05-keys-and-identity.md`
-* `01-protocol/07-sync-and-consistency.md`
-* `01-protocol/08-network-transport-requirements.md`
-* `01-protocol/09-errors-and-failure-modes.md`
-* `01-protocol/11-dos-guard-and-client-puzzles.md`
+* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
+* [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
+* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
+* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
+* [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
+* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -29,28 +29,28 @@ This document does not define synchronization policy, graph semantics, authoriza
 
 This specification is responsible for the following:
 
-* Owning all inbound and outbound listeners, sessions, and connection state machines for supported transports, consolidating the consumer boundary defined in `01-protocol/08-network-transport-requirements.md`.
-* Abstracting transport implementations while preserving peer context and transport metadata, exactly as required by `01-protocol/08-network-transport-requirements.md`.
-* Providing ordered startup and shutdown sequencing for all network surfaces, including onion service lifecycle where configured, so that surfaces mandated by `01-protocol/08-network-transport-requirements.md` are either ready or explicitly failed closed.
-* Enforcing hard transport-level limits for size, rate, concurrency, and buffering independently of any DoS policy, satisfying the resource-failure constraints defined in `01-protocol/08-network-transport-requirements.md` and `01-protocol/09-errors-and-failure-modes.md`.
-* Providing staged admission via a Bastion Engine that isolates unauthenticated peers and coordinates with DoS Guard for allow, deny, and challenge flows per `01-protocol/11-dos-guard-and-client-puzzles.md`.
-* Executing challenge transport as an opaque exchange, without interpreting puzzle content, difficulty, or verification logic, which are owned by DoS Guard and defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Owning all inbound and outbound listeners, sessions, and connection state machines for supported transports, consolidating the consumer boundary defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Abstracting transport implementations while preserving peer context and transport metadata, exactly as required by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Providing ordered startup and shutdown sequencing for all network surfaces, including onion service lifecycle where configured, so that surfaces mandated by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) are either ready or explicitly failed closed.
+* Enforcing hard transport-level limits for size, rate, concurrency, and buffering independently of any DoS policy, satisfying the resource-failure constraints defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Providing staged admission via a Bastion Engine that isolates unauthenticated peers and coordinates with [DoS Guard Manager](14-dos-guard-manager.md) for allow, deny, and challenge flows per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Executing challenge transport as an opaque exchange, without interpreting puzzle content, difficulty, or verification logic, which are owned by [DoS Guard Manager](14-dos-guard-manager.md) and defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 * Performing peer discovery for first-degree peers, including:
-  * requesting peer identity and node endpoint attributes from the State Manager
+  * requesting peer identity and node endpoint attributes from the [State Manager](09-state-manager.md)
   * resolving candidate endpoints for connectivity
   * scheduling and initiating outbound session attempts
   * maintaining reachability state used only for connection scheduling
 * Selecting endpoints deterministically and applying failure-based fallback and cooldown.
 * Scheduling outbound connection attempts fairly and safely, enforcing global and per-peer caps, and preventing connection storms.
 * Reusing existing admitted sessions when possible, and preventing redundant parallel connections, keyed by verified peer identity.
-* Binding transport sessions to cryptographic identity only through Key Manager verification, never through transport-provided identifiers, preserving the identity model in `01-protocol/05-keys-and-identity.md`.
-* Verifying signatures and decrypting inbound envelopes addressed to the local node, and attaching verified signer identity to the delivered package, exactly as mandated by `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
-* Signing and encrypting outbound envelopes as required by protocol rules and configuration, via the Key Manager, following the algorithms defined in `01-protocol/04-cryptography.md`.
-* Delivering only admitted and cryptographically verified inbound packages to the State Manager, preserving the envelope semantics of `01-protocol/03-serialization-and-envelopes.md` and the sync ordering rules of `01-protocol/07-sync-and-consistency.md`.
-* Transmitting outbound packages received from the State Manager, without adding retry semantics or persistence, thus honoring the best-effort semantics of `01-protocol/08-network-transport-requirements.md`.
-* Emitting explicit connection lifecycle events, discovery and reachability events, admission outcomes, transport failures, and health signals to the Event Manager and Health Manager, and emitting admission telemetry to DoS Guard as required by `01-protocol/08-network-transport-requirements.md` and `01-protocol/11-dos-guard-and-client-puzzles.md`.
-* Supporting multiple transport surfaces when configured, including the dual-surface model where a bastion surface is separated from an admitted data surface, without changing the trust boundary rules mandated in `01-protocol/08-network-transport-requirements.md`.
-* Surfacing network reachability facts to the State Manager and Event Manager without performing graph writes.
+* Binding transport sessions to cryptographic identity only through [Key Manager](03-key-manager.md) verification, never through transport-provided identifiers, preserving the identity model in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Verifying signatures and decrypting inbound envelopes addressed to the local node, and attaching verified signer identity to the delivered package, exactly as mandated by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Signing and encrypting outbound envelopes as required by protocol rules and configuration, via the [Key Manager](03-key-manager.md), following the algorithms defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* Delivering only admitted and cryptographically verified inbound packages to the [State Manager](09-state-manager.md), preserving the envelope semantics of [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the sync ordering rules of [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+* Transmitting outbound packages received from the [State Manager](09-state-manager.md), without adding retry semantics or persistence, thus honoring the best-effort semantics of [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Emitting explicit connection lifecycle events, discovery and reachability events, admission outcomes, transport failures, and health signals to the [Event Manager](11-event-manager.md) and [Health Manager](13-health-manager.md), and emitting admission telemetry to [DoS Guard Manager](14-dos-guard-manager.md) as required by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Supporting multiple transport surfaces when configured, including the dual-surface model where a bastion surface is separated from an admitted data surface, without changing the trust boundary rules mandated in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Surfacing network reachability facts to the [State Manager](09-state-manager.md) and [Event Manager](11-event-manager.md) without performing graph writes.
 
 This specification does not cover the following:
 
@@ -65,19 +65,19 @@ This specification does not cover the following:
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
-* All transport-derived input is untrusted until it passes bastion admission and cryptographic verification, consistent with `01-protocol/08-network-transport-requirements.md`.
+* All transport-derived input is untrusted until it passes bastion admission and cryptographic verification, consistent with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * No inbound data reaches any manager other than the Network Manager without passing Bastion admission.
 * No inbound package reaches the State Manager unless admission succeeded, signature verification succeeded, and decryption succeeded when required.
 * Transport-provided peer references are advisory only. They are never treated as authenticated identity evidence.
 * Identity binding occurs only after cryptographic verification, and is keyed to verified signer identity, not endpoint.
 * Peer discovery and reachability do not imply trust, authorization, or sync eligibility.
-* Envelope bytes retain the exact structure defined in `01-protocol/03-serialization-and-envelopes.md`. The Network Manager never rewrites them while verifying or forwarding packages.
-* All cryptographic operations use the algorithms defined in `01-protocol/04-cryptography.md`, and signer identity binding follows `01-protocol/05-keys-and-identity.md`.
-* Admission, deny, and challenge behaviors follow `01-protocol/11-dos-guard-and-client-puzzles.md`, including opacity of puzzles and the requirement to fail closed on DoS Guard unavailability.
+* Envelope bytes retain the exact structure defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md). The Network Manager never rewrites them while verifying or forwarding packages.
+* All cryptographic operations use the algorithms defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), and signer identity binding follows [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Admission, deny, and challenge behaviors follow [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md), including opacity of puzzles and the requirement to fail closed on DoS Guard unavailability.
 * Trust escalation is explicit, monotonic, and irreversible across the boundaries defined in this file.
 * The Network Manager never performs schema validation, ACL evaluation, graph mutation, sync ordering, or reconciliation.
-* The Network Manager never introduces delivery, ordering, deduplication, retry, or persistence guarantees beyond what the transport provides, as mandated by `01-protocol/08-network-transport-requirements.md`.
-* Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in `01-protocol/09-errors-and-failure-modes.md`.
+* The Network Manager never introduces delivery, ordering, deduplication, retry, or persistence guarantees beyond what the transport provides, as mandated by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
 ## 4. Internal engine structure
@@ -95,7 +95,7 @@ Responsibilities:
 * Loading network configuration and limits from Config Manager.
 * Binding to Key Manager, DoS Guard Manager, State Manager, Event Manager, and Health Manager.
 * Initializing transport adapters and registering transport error hooks.
-* Validating that each adapter satisfies the send, receive, framing, and telemetry expectations defined in `01-protocol/08-network-transport-requirements.md` before it is exposed downstream.
+* Validating that each adapter satisfies the send, receive, framing, and telemetry expectations defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) before it is exposed downstream.
 * Creating and starting inbound transport surfaces in a defined order:
   * Bastion ingress surface.
   * Optional admitted data surface, if configured as a distinct surface.
@@ -113,7 +113,7 @@ Responsibilities:
 * Starting runtime loop responsibilities that belong to this manager:
   * connection reaping and timeout enforcement
   * keepalive scheduling if the transport requires it
-  * handshake maintenance that is strictly transport-level and does not alter protocol semantics, per `01-protocol/08-network-transport-requirements.md`
+  * handshake maintenance that is strictly transport-level and does not alter protocol semantics, per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
   * outbound dial scheduling and concurrency control
 * Coordinating ordered shutdown and surfacing shutdown progress to Health Manager.
 * Ensuring shutdown sets readiness false immediately, then drains, then sets liveness false at completion.
@@ -141,25 +141,25 @@ Responsibilities:
 
 * Accepting initial inbound sessions from external peers on the bastion ingress surface.
 * Accepting outbound session attempts initiated by the Outgoing Engine or Peer Discovery Phase, treating them as unadmitted until admission succeeds.
-* Enforcing minimal framing and strict pre-admission limits to avoid expensive processing on hostile input, preserving the transport constraints defined in `01-protocol/08-network-transport-requirements.md`.
+* Enforcing minimal framing and strict pre-admission limits to avoid expensive processing on hostile input, preserving the transport constraints defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Maintaining provisional transport context for telemetry and throttling, without treating it as identity.
-* Emitting admission telemetry to DoS Guard and consuming DoS Guard directives defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
-* Executing the admission state machine for both inbound and outbound session attempts, exactly as defined in `01-protocol/11-dos-guard-and-client-puzzles.md`:
+* Emitting admission telemetry to [DoS Guard Manager](14-dos-guard-manager.md) and consuming DoS Guard directives defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Executing the admission state machine for both inbound and outbound session attempts, exactly as defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md):
   * allow admission
   * deny admission
   * require challenge, then re-evaluate on response
-* Exchanging opaque challenge and response payloads as instructed by DoS Guard, without interpreting the contents per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Exchanging opaque challenge and response payloads as instructed by [DoS Guard Manager](14-dos-guard-manager.md), without interpreting the contents per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 * Holding unadmitted sessions in bounded isolation, including bounded buffering and bounded concurrent challenged sessions.
-* Terminating, throttling, or pausing bastion sessions based on DoS Guard directives from `01-protocol/11-dos-guard-and-client-puzzles.md` and hard limits.
+* Terminating, throttling, or pausing bastion sessions based on DoS Guard directives from [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md) and hard limits.
 * Emitting explicit admission outcomes as events, including allow, deny, challenge timeout, and abort.
 
 Constraints:
 
-* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes, because `01-protocol/04-cryptography.md` confines those operations to the post-admission Key Manager boundary.
-* The Bastion Engine must not parse protocol semantics beyond minimal framing required to run the admission exchange, preserving the envelope opacity described in `01-protocol/03-serialization-and-envelopes.md`.
+* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes, because [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) confines those operations to the post-admission [Key Manager](03-key-manager.md) boundary.
+* The Bastion Engine must not parse protocol semantics beyond minimal framing required to run the admission exchange, preserving the envelope opacity described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * The Bastion Engine must not forward any payload to State Manager, Graph Manager, ACL Manager, or Storage Manager.
-* Challenge payloads are opaque. The Bastion Engine must not interpret puzzle content, difficulty, or correctness, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
-* A session is not admitted unless DoS Guard explicitly allows it, satisfying `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Challenge payloads are opaque. The Bastion Engine must not interpret puzzle content, difficulty, or correctness, per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* A session is not admitted unless [DoS Guard Manager](14-dos-guard-manager.md) explicitly allows it, satisfying [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 * If DoS Guard is unavailable, the Bastion Engine must fail closed for new admissions.
 
 ### 4.3 Incoming Engine
@@ -168,22 +168,22 @@ The Incoming Engine owns all inbound communication after successful bastion admi
 
 Responsibilities:
 
-* Receiving inbound envelopes from admitted peers on the admitted surface or admitted sessions, depending on transport configuration, while preserving the envelope shapes defined in `01-protocol/03-serialization-and-envelopes.md`.
+* Receiving inbound envelopes from admitted peers on the admitted surface or admitted sessions, depending on transport configuration, while preserving the envelope shapes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Enforcing post-admission limits, including maximum envelope size, maximum per-connection rate, and maximum buffering.
-* Performing full transport framing validation for admitted traffic, ensuring compliance with `01-protocol/08-network-transport-requirements.md`.
-* Invoking the Key Manager to verify envelope signatures and bind the envelope to a signer identity, exactly as defined in `01-protocol/04-cryptography.md` and `01-protocol/05-keys-and-identity.md`.
-* Invoking the Key Manager to decrypt envelopes addressed to the local node, when encryption is used, following `01-protocol/04-cryptography.md`.
+* Performing full transport framing validation for admitted traffic, ensuring compliance with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Invoking the [Key Manager](03-key-manager.md) to verify envelope signatures and bind the envelope to a signer identity, exactly as defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Invoking the [Key Manager](03-key-manager.md) to decrypt envelopes addressed to the local node, when encryption is used, following [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Constructing an internal delivery unit that contains:
   * the plaintext envelope bytes intended for the State Manager
   * verified signer identity
   * transport metadata and admission context required for downstream policy and telemetry
-* Forwarding only fully verified and decrypted packages to the State Manager, preserving sync semantics defined in `01-protocol/07-sync-and-consistency.md`.
+* Forwarding only fully verified and decrypted packages to the [State Manager](09-state-manager.md), preserving sync semantics defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Emitting bounded counters and events for rejected envelopes, without leaking payload content.
 
 Constraints:
 
 * Data from unadmitted sessions must never reach the Incoming Engine.
-* Partially verified, unverifiable, or undecipherable payloads must not be forwarded, consistent with `01-protocol/04-cryptography.md`.
+* Partially verified, unverifiable, or undecipherable payloads must not be forwarded, consistent with [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Authorization, schema validation, graph evaluation, reconciliation, and state mutation are forbidden.
 * The Incoming Engine must not implement retry, reordering, or deduplication.
 
@@ -193,12 +193,12 @@ The Outgoing Engine owns all outbound communication after successful bastion adm
 
 Responsibilities:
 
-* Establishing and maintaining outbound sessions to admitted peers, while respecting the transport abstractions in `01-protocol/08-network-transport-requirements.md`.
-* Performing bastion admission for outbound session attempts via the Bastion Engine path, before any admitted-data transmission, as required by `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* Establishing and maintaining outbound sessions to admitted peers, while respecting the transport abstractions in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+* Performing bastion admission for outbound session attempts via the Bastion Engine path, before any admitted-data transmission, as required by [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 * Reusing existing admitted sessions where available, keyed by verified peer identity.
-* Requesting outbound envelopes from the State Manager, including required destination metadata and transport hints, and ensuring the envelopes remain compliant with `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
-* Invoking the Key Manager to sign and encrypt outbound envelopes as required, following `01-protocol/04-cryptography.md`.
-* Applying transport framing and transmitting envelopes over admitted sessions without mutating the package bytes defined in `01-protocol/03-serialization-and-envelopes.md`.
+* Requesting outbound envelopes from the [State Manager](09-state-manager.md), including required destination metadata and transport hints, and ensuring the envelopes remain compliant with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+* Invoking the [Key Manager](03-key-manager.md) to sign and encrypt outbound envelopes as required, following [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* Applying transport framing and transmitting envelopes over admitted sessions without mutating the package bytes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Enforcing outbound limits, including per-peer rate caps, per-session buffering caps, global concurrency caps, and global outbound rate caps.
 * Emitting explicit transmission outcomes and connection state changes as events, without promising delivery.
 
@@ -206,12 +206,12 @@ Constraints:
 
 * Outbound traffic to unadmitted peers is forbidden.
 * The Outgoing Engine must not persist outbound messages for retry. If persistence or resend is required, it belongs to State Manager and its sync policy.
-* Implicit retry, replay, or backoff behavior is forbidden unless explicitly defined in `01-protocol/07-sync-and-consistency.md` and invoked by the State Manager, because transports remain best-effort per `01-protocol/08-network-transport-requirements.md`.
+* Implicit retry, replay, or backoff behavior is forbidden unless explicitly defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and invoked by the [State Manager](09-state-manager.md), because transports remain best-effort per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Cryptographic failure or transport failure must fail closed for that envelope. The envelope is not modified and not retried by this manager.
 
 ## 5. Transport surfaces and onion service lifecycle
 
-Transport surface behavior must remain consistent with `01-protocol/08-network-transport-requirements.md`.
+Transport surface behavior must remain consistent with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 
 ### 5.1 Transport surface types
 
@@ -384,7 +384,7 @@ The scheduler must include storm prevention:
 
 ## 8. Admission and DoS Guard integration
 
-Admission control semantics are defined in `01-protocol/11-dos-guard-and-client-puzzles.md`. The Network Manager acts as the transport boundary that supplies telemetry to DoS Guard and executes DoS Guard directives.
+Admission control semantics are defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md). The Network Manager acts as the transport boundary that supplies telemetry to [DoS Guard Manager](14-dos-guard-manager.md) and executes DoS Guard directives.
 
 ### 8.1 Bastion to DoS Guard inputs
 
@@ -482,7 +482,7 @@ Rules:
 * The Network Manager never reads private keys.
 * A cryptographic operation failure is treated as a hard failure for that envelope and fails closed.
 
-These interactions implement the cryptographic boundary described in `01-protocol/04-cryptography.md` and uphold the identity rules in `01-protocol/05-keys-and-identity.md`.
+These interactions implement the cryptographic boundary described in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and uphold the identity rules in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 
 ### 10.2 State Manager interaction
 
@@ -492,9 +492,9 @@ Inbound delivery:
 
 Outbound transmission:
 
-* Outgoing Engine receives outbound packages from the State Manager in a form that is already envelope-complete at the protocol level defined by `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
+* Outgoing Engine receives outbound packages from the [State Manager](09-state-manager.md) in a form that is already envelope-complete at the protocol level defined by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * State Manager may include destination identity and optional transport hints derived from node attributes.
-* The Network Manager may apply only cryptographic wrapping and transport framing, not protocol rewriting, preserving the semantics mandated by `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
+* The Network Manager may apply only cryptographic wrapping and transport framing, not protocol rewriting, preserving the semantics mandated by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 Discovery and endpoint inputs:
 
@@ -520,7 +520,7 @@ Rules:
 * Bastion emits telemetry for admission decisions and executes directives for allow, deny, and challenge.
 * DoS Guard unavailability causes fail-closed behavior for new admissions.
 
-All telemetry exchanges and directives must match the API defined in `01-protocol/11-dos-guard-and-client-puzzles.md`.
+All telemetry exchanges and directives must match the API defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 
 ### 10.4 Event Manager interaction
 
@@ -613,7 +613,7 @@ The Network Manager must not:
 * Deliver any inbound package to State Manager without successful verification, and successful decryption when required.
 * Treat transport-level peer identifiers or endpoints as authenticated identity.
 * Interpret, create, solve, or verify client puzzles, or choose puzzle difficulty.
-* Modify envelope contents, reorder envelope fields, normalize bytes, or synthesize protocol metadata, because the envelope structure is fixed by `01-protocol/03-serialization-and-envelopes.md`.
+* Modify envelope contents, reorder envelope fields, normalize bytes, or synthesize protocol metadata, because the envelope structure is fixed by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Persist raw network input, decrypted payloads, endpoint attributes, or outbound payloads for retry.
 * Implement implicit retry, replay, deduplication, or reordering semantics.
 * Perform ACL evaluation, schema validation, graph mutation, sync decisions, or trust scoring.
@@ -622,7 +622,7 @@ The Network Manager must not:
 
 ## 13. Failure and rejection behavior
 
-Failure handling maps each condition to symbolic error classes defined in `01-protocol/09-errors-and-failure-modes.md` and must preserve the fail-closed posture described there.
+Failure handling maps each condition to symbolic error classes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) and must preserve the fail-closed posture described there.
 
 ### 13.1 Invalid input and malformed framing
 
@@ -720,7 +720,7 @@ The Network Manager enforces mandatory limits, including:
 
 These limits are mandatory and cannot be disabled.
 
-They enforce hard-cap guidance from `01-protocol/08-network-transport-requirements.md`, preserve resource-failure semantics described in `01-protocol/09-errors-and-failure-modes.md`, and feed telemetry inputs consumed by `01-protocol/11-dos-guard-and-client-puzzles.md`.
+They enforce hard-cap guidance from [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), preserve resource-failure semantics described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md), and feed telemetry inputs consumed by [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 
 ## 15. Security considerations
 
