@@ -12,17 +12,6 @@ This document defines responsibilities, boundaries, invariants, guarantees, allo
 
 This file specifies graph level access behavior only. It does not define schema content, access control policy logic, synchronization protocol behavior, network transport, cryptographic verification, peer discovery, or storage internals, except where interaction boundaries are required.
 
-This specification references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](../02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](../03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](../managers/)
-* [02-architecture/services-and-apps/**](../services-and-apps/)
-
 This specification consumes the protocol contracts defined in:
 
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
