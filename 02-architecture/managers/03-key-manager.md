@@ -8,7 +8,7 @@
 
 This document defines the Key Manager component in the 2WAY backend. It specifies the authoritative handling of all local private key material and the narrowly scoped cryptographic operations permitted to be performed using those keys.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../../01-protocol/)
 * [02-architecture/00-architecture-overview.md](../00-architecture-overview.md)
