@@ -4,11 +4,13 @@
 
 # 2WAY design repository in short
 
-2WAY is a local-first, peer-to-peer protocol and backend for building collaborative software that does not depend on a central operator. Each device keeps its own keys, its own history, and its own view of shared state. Changes are checked locally against rules and permissions before they are accepted. Invalid, replayed, or unauthorized updates are rejected before they ever touch storage. Trust is enforced by structure, not by who runs the server.
+2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device holds its own keys, its own history, and its own copy of the rules, and no change is accepted unless it is valid, authorized, and structurally sound.
 
-The system is designed for situations where multiple people need to work on shared data without handing control to a single backend. Devices can create and modify records while offline, then reconcile their changes when they reconnect. Ownership stays explicit. History stays auditable. Conflicts are resolved by clear rules instead of arrival order or hidden server logic.
+The core idea is simple. Treat state as a cryptographically verifiable graph, not as mutable rows behind an API. Every write is checked against schema, ownership, and access rules before it is committed. Every accepted change becomes part of an append-only history with clear authorship and ordering. Sync does not trust transport, timing, or peers. It only trusts what can be verified.
 
-In practice, this makes it possible to build apps that keep working when networks fail, servers go down, or vendors disappear. Teams can continue to collaborate because the data, the rules, and the permissions live on their devices, not inside one service. The goal of 2WAY is simple. Make resilient, multi-party software practical, without asking users to give up control or trust an operator to behave forever.
+This makes a class of apps practical that usually fall apart under real-world conditions. Apps that work offline by default. Apps that survive node loss, network partitions, and server shutdowns. Apps where collaboration does not depend on one operator behaving correctly forever. The protocol handles the hard parts, validation, permissions, reconciliation, and provenance, so applications can focus on their data model and user experience.
+
+This repository defines the protocol, architecture, and invariants that make those guarantees hold. It is a design repo, not an SDK and not a demo. The goal is to specify a system that remains predictable under failure, adversarial input, and long time horizons.
 
 Looking for a more comprehensive read-through? See [README-long.md](README-long.md).
 
