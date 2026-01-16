@@ -25,6 +25,7 @@ Key Manager is responsible for key generation, durable storage, loading, and con
 This specification defines structure, responsibilities, invariants, lifecycle behavior, failure handling, and interaction contracts required to implement the Key Manager correctly.
 
 This specification consumes the protocol contracts defined in:
+
 * [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
