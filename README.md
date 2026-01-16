@@ -4,9 +4,13 @@
 
 # 2WAY design repository in short
 
-Looking for a more comprehensive read-through? See [README-long.md](README-long.md).
+2WAY is a local-first, peer-to-peer protocol and backend for building collaborative software that does not depend on a central operator. Each device keeps its own keys, its own history, and its own view of shared state. Changes are checked locally against rules and permissions before they are accepted. Invalid, replayed, or unauthorized updates are rejected before they ever touch storage. Trust is enforced by structure, not by who runs the server.
 
-2WAY is a local-first, peer-to-peer protocol and backend that gives decentralized applications device-level identity, permissions, ordering, sync, and audit guarantees so people can collaborate without trusting a central operator. Every device keeps its keys, write-once log, permission graph, and slice of shared state, and nodes validate each proposed change before it hits storage so malformed, replayed, or unauthorized input gets rejected at the boundary. The goal is to make resilient, multi-party software practical without trading away control.
+The system is designed for situations where multiple people need to work on shared data without handing control to a single backend. Devices can create and modify records while offline, then reconcile their changes when they reconnect. Ownership stays explicit. History stays auditable. Conflicts are resolved by clear rules instead of arrival order or hidden server logic.
+
+In practice, this makes it possible to build apps that keep working when networks fail, servers go down, or vendors disappear. Teams can continue to collaborate because the data, the rules, and the permissions live on their devices, not inside one service. The goal of 2WAY is simple. Make resilient, multi-party software practical, without asking users to give up control or trust an operator to behave forever.
+
+Looking for a more comprehensive read-through? See [README-long.md](README-long.md).
 
 ---
 
