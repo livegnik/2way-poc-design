@@ -14,8 +14,6 @@ This repository is the normative design set for the proof of concept. It records
 
 In 2WAY, application authors define schemas, optional domain logic, and user interfaces. The protocol and backend supply identity, storage, access control, cryptography, and peer-to-peer sync so developers can focus on the experiences they present to users.
 
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early epiphany about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit acknowledgement.
-
 ---
 
 ## Table of Contents
@@ -158,6 +156,12 @@ Modern systems falter because they concentrate authority. Root keys, ACLs, and d
 Even cooperative backends integrate poorly. Teams either expose every service or hide everything behind brittle federation bridges. Each new integration expands the blast radius of compromise, and org changes break the hand-built trust agreements those bridges rely on. Data outlives software, yet migrations still require freeze-and-cutover projects because authority and storage are welded together.
 
 2WAY exists to separate durable structure from transient software. Identities, relationships, ordering, and permissions live in a shared graph that every device enforces locally. Applications and operators can evolve or go offline without pulling authority with them. Compromise stays within the trust radius that granted access, and reconnecting peers replay signed history rather than trusting a central coordinator. Multiple implementations can cooperate without adopting each other's incentives or liabilities.
+
+---
+
+## Acknowledgments
+
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
 
 ---
 

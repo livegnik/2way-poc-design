@@ -8,13 +8,17 @@ Looking for a more comprehensive read-through? See [README-long.md](README-long.
 
 2WAY is a local-first, peer-to-peer protocol and backend that gives decentralized applications device-level identity, permissions, ordering, sync, and audit guarantees so people can collaborate without trusting a central operator. Every device keeps its keys, write-once log, permission graph, and slice of shared state, and nodes validate each proposed change before it hits storage so malformed, replayed, or unauthorized input gets rejected at the boundary. The goal is to make resilient, multi-party software practical without trading away control.
 
-Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
-
 ---
 
 ## Why it exists
 
 Centralized backends tie identity, policy, ordering, and storage to a single operator. If that operator changes plans, disappears, or gets compromised, users lose both history and authority. Federation often just moves trust to brittle bridges. 2WAY keeps durable structure separate from changing software: identities, relationships, and permissions live in a shared graph that each device enforces. Applications and vendors can evolve or even vanish without taking authority with them, and a device that reconnects later simply replays signed history until it catches up.
+
+---
+
+## Acknowledgments
+
+Credit to Martti Malmi (Sirius) for his work on Iris (formerly Identifi), an MIT-licensed project: https://github.com/irislib/iris-client. When it was still Identifi and a fork of the Bitcoin daemon in C++, seeing it sparked my early realization about what a private data layer could enable beyond simple broadcast messaging. Our projects evolved in different directions over the years, but his early work helped shape this thinking and deserves explicit credit.
 
 ---
 
