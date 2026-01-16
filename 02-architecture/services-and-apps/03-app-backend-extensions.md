@@ -86,7 +86,7 @@ App backend extensions sit between frontend applications and protocol managers. 
 
 * Every API, helper, or job constructs a complete OperationContext before calling managers, using the fields and immutability guarantees in `02-architecture/services-and-apps/05-operation-context.md`.
 * OperationContext always sets `app_id` to the owning application, stamps capability identifiers namespaced under the app (for example, `app.crm.ticket.create`), and records requester identity, device identity, trust posture, correlation IDs, and DoS Guard cost hints.
-* Automation jobs run with `actor_type=app_service` so ACL Manager can distinguish them from user traffic. Missing or partial contexts are rejected with canonical errors derived from `01-protocol/09-errors-and-failure-modes.md`.
+* Automation jobs run with `actor_type=automation` so ACL Manager can distinguish them from user traffic. Missing or partial contexts are rejected with canonical errors derived from `01-protocol/09-errors-and-failure-modes.md`.
 
 ### 2.5 Interface surfaces
 

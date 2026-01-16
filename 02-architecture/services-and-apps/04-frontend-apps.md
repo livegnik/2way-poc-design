@@ -77,7 +77,7 @@ Every frontend app must document which layers it implements and how they map to 
 Different surfaces share the same guarantees:
 
 * **Interactive contexts** (UI, CLI) must collect user consent for each capability invocation, surface backend admission errors or waits clearly, and display backend errors verbatim.
-* **Automation contexts** (background workers, scheduled tasks) must run under automation-specific OperationContext entries (`actor_type=app_automation`), publish schedule manifests, and respect backend throttling decisions communicated via standard error responses (`01-protocol/11-dos-guard-and-client-puzzles.md`).
+* **Automation contexts** (background workers, scheduled tasks) must run under automation-specific OperationContext entries (`actor_type=automation`), publish schedule manifests, and respect backend throttling decisions communicated via standard error responses (`01-protocol/11-dos-guard-and-client-puzzles.md`).
 * **Embedded contexts** (widgets, plugins) inherit the host container's capability posture but still identify themselves to the backend via their own app_id.
 
 ### 2.3 Mandatory components
@@ -117,7 +117,7 @@ Frontends must supply the following fields on every request before the backend c
 | `user_id`            | Authenticated session | Empty only for anonymous bootstrap endpoints explicitly marked as such.   |
 | `device_id`          | Device enrollment     | Must match Auth Manager's record.                                         |
 | `capability`         | Capability catalog    | One verb per request, multi-step workflows decompose into separate calls. |
-| `actor_type`         | Context               | Values: `user`, `app_service`, `automation`.                              |
+| `actor_type`         | Context               | Values: `user`, `service`, `automation`.                                  |
 | `correlation_id`     | Client generated UUID | Unique per request chain, logged locally and remotely.                    |
 | `locale`, `timezone` | User settings         | Optional but recommended for UX-driven validations.                       |
 
@@ -175,7 +175,7 @@ OperationContext objects are immutable snapshots. Once transmitted, the frontend
 ### 5.3 Capability enforcement
 
 * Frontends never attempt a call without first verifying that the session holds the required capability, per the capability edge rules in `01-protocol/06-access-control-model.md`. Attempting unauthorized calls intentionally is a violation logged as abuse.
-* Delegations (acting on behalf of another user or app) require explicit consent flows and distinct OperationContext entries (`actor_type=delegate`). Delegation tokens carry expirations and scoping rules identical to capability edges described in `01-protocol/06-access-control-model.md`.
+* Delegations (acting on behalf of another user or app) require explicit consent flows and distinct OperationContext entries (`actor_type=delegation`). Delegation tokens carry expirations and scoping rules identical to capability edges described in `01-protocol/06-access-control-model.md`.
 
 ### 5.4 Privacy and PII handling
 

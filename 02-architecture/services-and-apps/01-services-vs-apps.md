@@ -143,7 +143,7 @@ Frontend apps (native, mobile, CLI, or web) consume backend APIs or sync flows d
 Extensions may run scheduled work (e.g., a digest generator). Requirements:
 
 * Work must be triggered by timers owned by the backend scheduler, not by ad hoc threads that bypass Health Manager visibility.
-* Each job constructs a synthetic OperationContext that clearly states it is automation (e.g., `actor_type=app_service`). ACL Manager must see the owning app identity and enforce policy accordingly.
+* Each job constructs a synthetic OperationContext that clearly states it is automation (e.g., `actor_type=automation`). ACL Manager must see the owning app identity and enforce policy accordingly.
 * Jobs must respect DoS Guard quotas when enqueueing tasks that will result in outbound network traffic via Network Manager.
 
 ### 6.3 Remote peer interactions
