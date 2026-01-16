@@ -55,6 +55,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 * Auth Manager resolves the session token to an `identity_id`.
 * The HTTP layer constructs an `OperationContext` containing, at minimum, requester identity, `app_id`, a remote or local flag, and a trace id.
 * The caller submits a graph message envelope for all writes, even locally.
+* Local automation jobs or internal services construct an `OperationContext` with `is_remote=false` before submitting envelopes, following the same authorization and ordering rules as interactive requests.
 
 ### 5.2 Envelope construction and structural validation
 

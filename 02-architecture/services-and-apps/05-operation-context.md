@@ -18,7 +18,7 @@ This specification is responsible for the following:
 * Declaring deterministic construction rules for local execution paths and remote sync paths.
 * Defining immutability rules and lifecycle guarantees.
 * Specifying how services and internal engines may derive enriched contexts without mutating identity bindings, aligned with identity and key rules in `01-protocol/05-keys-and-identity.md`.
-* Defining how OperationContext is consumed by Graph Manager, ACL Manager, State Manager, Event Manager, Log Manager, and Health Manager.
+* Defining how OperationContext is consumed by Graph Manager, ACL Manager, State Manager, Event Manager, and Log Manager.
 * Defining failure and rejection posture for malformed or incomplete contexts.
 
 This specification does not cover the following:
@@ -37,7 +37,7 @@ Across all components, execution paths, and managers that use OperationContext, 
 * `app_id` is always present and correctly bound per `01-protocol/02-object-model.md`.
 * Local and remote semantics are explicitly distinguished and never inferred.
 * Remote OperationContexts are derived only from verified sync package metadata and local sync state, never from unauthenticated transport data.
-* Trace identifiers are present and stable for the lifetime of the operation.
+* Trace identifiers are present for the lifetime of the operation.
 * Missing or malformed OperationContexts are rejected before schema or ACL evaluation.
 
 These guarantees hold regardless of caller, execution engine, transport, or peer behavior unless explicitly stated otherwise.
@@ -63,10 +63,11 @@ OperationContext is referenced by protocol flows in `01-protocol/00-protocol-ove
 
 OperationContext exists in the following variants:
 
-| Variant       | Origin                                           | Characteristics                              |
-| ------------- | ------------------------------------------------ | -------------------------------------------- |
-| Local request | HTTP or WebSocket entrypoint after Auth Manager  | `is_remote=false`, requester identity bound  |
-| Remote sync   | State Manager after Network Manager verification | `is_remote=true`, remote peer identity bound |
+| Variant        | Origin                                           | Characteristics                              |
+| -------------- | ------------------------------------------------ | -------------------------------------------- |
+| Local request  | HTTP or WebSocket entrypoint after Auth Manager  | `is_remote=false`, requester identity bound  |
+| Automation job | Scheduler or internal engine                    | `is_remote=false`, `actor_type=automation`   |
+| Remote sync    | State Manager after Network Manager verification | `is_remote=true`, remote peer identity bound |
 
 All variants share the same structural fields. Differences exist only in field population and trusted source.
 
@@ -79,12 +80,11 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | Field                     | Required    | Source                       | Semantics                                                           |
 | ------------------------- | ----------- | ---------------------------- | ------------------------------------------------------------------- |
 | `app_id`                  | Yes         | App Manager or routing layer | Owning application identity. System services use `app_0`.           |
-| `requester_identity_id`   | Local only  | Auth Manager                 | Local user or delegated identity; nullable for explicit public endpoints. |
+| `requester_identity_id`   | Local only  | Auth Manager                 | Local user or delegated identity; nullable only for explicit public endpoints. |
 | `device_id`               | Optional    | Auth Manager                 | Bound device identity for local users.                              |
 | `delegated_key_id`        | Optional    | Auth Manager                 | Delegated signing key reference.                                    |
-| `actor_type`              | Yes         | Entry layer or service       | `user`, `app_service`, `app_automation` (alias: `automation`), `delegate`, `remote_peer`. |
+| `actor_type`              | Yes         | Entry layer or service       | Declares the caller category: `user`, `service`, `automation`, or `delegation`, aligned with `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`. |
 | `capability`              | Local only  | Service or engine            | Explicit verb evaluated by ACL.                                     |
-| `is_admin`                | Optional    | Auth Manager                 | Administrative gating flag. Never bypasses ACL.                     |
 | `is_remote`               | Yes         | Construction layer           | Local or remote execution flag.                                     |
 | `sync_domain`             | Remote only | State Manager                | Domain being synchronized.                                          |
 | `remote_node_identity_id` | Remote only | State Manager                | Verified peer identity.                                             |
@@ -93,7 +93,6 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | `app_version`             | Optional    | Frontend or service          | Diagnostic metadata.                                                |
 | `locale`                  | Optional    | Frontend                     | Non-authoritative UX metadata.                                      |
 | `timezone`                | Optional    | Frontend                     | Non-authoritative UX metadata.                                      |
-| `dos_cost_class`          | Optional    | Service or engine            | DoS Guard cost hint.                                                |
 
 Field completeness is validated at construction time. Missing required fields result in immediate rejection.
 Field meaning and app scoping align with `01-protocol/02-object-model.md`, and ACL evaluation inputs align with `01-protocol/06-access-control-model.md`.
@@ -123,8 +122,7 @@ Identity and app bindings must remain consistent with `01-protocol/05-keys-and-i
 Permitted enrichment:
 
 * Capability specialization.
-* Actor type refinement for automation or delegation.
-* DoS Guard cost classification.
+* Actor type refinement for automation or delegation, consistent with `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
 * Correlation metadata.
 
 Forbidden actions:
@@ -148,26 +146,22 @@ Remote contexts never include local requester identity fields.
 
 ### 4.4 Automation jobs and internal execution
 
-Automation and scheduled work execute under synthetic OperationContexts.
+Automation and scheduled work execute under synthetic OperationContexts as described in `02-architecture/services-and-apps/01-services-vs-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
 
 Rules:
 
-* `actor_type` set to `app_service` or `app_automation`.
+* `actor_type` set according to the automation conventions defined in `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
 * `capability` explicitly defined.
 * `requester_identity_id` set only when acting on behalf of a user.
 * Each execution builds a fresh OperationContext.
 
+Automation variants are always local (`is_remote=false`) and must align with the 2.2 automation job variant.
+
 Reuse of contexts across runs is forbidden.
 
-### 4.5 Immutability and retries
+### 4.5 Immutability
 
-OperationContext is immutable.
-
-Retry behavior:
-
-* New `trace_id` generated.
-* Original `correlation_id` preserved if present.
-* No field reuse via mutation.
+OperationContext is immutable after construction.
 
 ---
 
@@ -182,9 +176,8 @@ Retry behavior:
 ### 5.2 Capability and actor type
 
 * `capability` must name the exact action being attempted.
-* `actor_type` distinguishes human, service, automation, delegation, and peer traffic.
-* `remote_peer` actor type is reserved exclusively for remote sync contexts.
-* Remote sync contexts may omit `capability`; authorization relies on identity, app, and schema constraints per `01-protocol/06-access-control-model.md`.
+* `actor_type` distinguishes human, service, automation, and delegation traffic per `02-architecture/services-and-apps/04-frontend-apps.md`.
+* Remote sync contexts do not include `capability`; authorization relies on identity, app, and schema constraints per `01-protocol/06-access-control-model.md`.
 
 ### 5.3 Trace and correlation identifiers
 
@@ -209,8 +202,7 @@ Managers consume OperationContext as follows:
 * **State Manager** uses context to gate sync application and domain enforcement per `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
 * **Event Manager** applies visibility filtering and audience scoping.
 * **Log Manager** records immutable context snapshots for audit trails.
-* **Health Manager** uses `is_admin` only for access gating, never as an ACL bypass.
-* **DoS Guard Manager** does not rely on OperationContext for admission decisions; cost hints are service metadata passed through the interface layer per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* **DoS Guard Manager** does not rely on OperationContext for admission decisions, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
 
 Managers must reject any invocation lacking required context fields.
 

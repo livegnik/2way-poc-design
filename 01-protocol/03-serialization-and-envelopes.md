@@ -51,7 +51,7 @@ This file does not define authorization, schema validity, or application semanti
 
 ### 4.1 Explicitly allowed
 
-* Local services and app extension services may submit graph message envelopes to Graph Manager using an OperationContext supplied by the HTTP layer.
+* Local services, app extension services, and automation jobs may submit graph message envelopes to Graph Manager using an OperationContext supplied by the HTTP layer or constructed by the local entrypoint.
 * State Manager may submit remote graph message envelopes to Graph Manager using an OperationContext that marks the request as remote and binds it to a sync domain.
 * A graph message envelope may contain a mixture of operation kinds, provided all are for supported object categories and pass validation.
 * A sync package may carry additional metadata fields that are required for sync state updates.
