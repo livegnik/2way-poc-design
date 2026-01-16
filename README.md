@@ -1,8 +1,25 @@
+# 2WAY design repository
 
+<br>
 
+**Table of Contents**
+- [1. 2WAY design repository in short](#1-2way-design-repository-in-short)
+- [2. Why it exists](#2-why-it-exists)
+- [3. Repository guide](#3-repository-guide)
+- [4. What 2WAY is](#4-what-2way-is)
+- [5. Graph, objects, and protocol model](#5-graph-objects-and-protocol-model)
+- [6. Backend component model](#6-backend-component-model)
+- [7. Security framing](#7-security-framing)
+- [8. Application model and use cases](#8-application-model-and-use-cases)
+- [9. Conformance](#9-conformance)
+- [10. Scope boundary and current status](#10-scope-boundary-and-current-status)
+- [11. How to use this README](#11-how-to-use-this-readme)
+- [12. Acknowledgments](#12-acknowledgments)
+- [13. References](#13-references)
 
+<br>
 
-# 2WAY design repository in short
+## 1. 2WAY design repository in short
 
 2WAY is a protocol and backend for building software that stays correct without a central authority. It gives apps a shared, local-first foundation for identity, permissions, ordering, storage, and sync, enforced at the system level instead of reimplemented in every app. Each device, user, and app holds its own keys and history, and enforces the same rules locally. No change is accepted unless it is valid, authorized, and structurally sound.
 
@@ -16,7 +33,7 @@ Looking for a more comprehensive read-through? See [`README-long.md`](README-lon
 
 ---
 
-## Why it exists
+## 2. Why it exists
 
 Most systems tie identity, permissions, ordering, and storage to whoever runs the backend. That makes the operator part of the trust model, whether you intend it or not. If the operator changes rules, gets compromised, shuts down, or simply makes a mistake, users lose authority over their own history. Federation usually does not fix this. It just spreads the same problem across fragile bridges and special cases.
 
@@ -28,7 +45,7 @@ The point is not decentralization for its own sake. The point is to make multi-p
 
 ---
 
-## Repository guide
+## 3. Repository guide
 
 This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security framing, flows, and acceptance criteria. Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
 
@@ -47,7 +64,7 @@ This repo is the main design set for the proof of concept. It defines scope, rul
 
 ---
 
-## What 2WAY is
+## 4. What 2WAY is
 
 2WAY is a protocol and backend that replaces the traditional server as the authority over application state. Every node runs the same core system for identity, permissions, ordering, storage, sync, and audit. Because those controls are enforced locally, devices can go offline, continue operating, and later reconcile changes without handing authority to a central service.
 
@@ -61,7 +78,7 @@ The result is a system where correctness does not depend on transport, uptime, o
 
 ---
 
-## Graph, objects, and protocol model
+## 5. Graph, objects, and protocol model
 
 2WAY defines a protocol for how state is created, validated, ordered, and shared. That protocol is centered around a shared graph, not around APIs, endpoints, or databases. The graph is the only source of truth, and every node builds, validates, and evolves it using the same rules. The high-level structure of the protocol is presented in the protocol overview. [[1](#ref-1)]
 
@@ -77,7 +94,7 @@ The result is a protocol where apps, schemas, identities, permissions, and recor
 
 ---
 
-## Backend component model
+## 6. Backend component model
 
 The backend is the part of 2WAY that makes the rules real. It is not a set of cooperating components that try to behave by convention. It is one integrated system that decides what is valid, what is allowed, what order changes land in, and what gets stored. If something fails validation, it does not become part of state, regardless of who sent it or how it arrived.
 
@@ -93,7 +110,7 @@ The point of this design is that the backend behaves like a kernel. It enforces 
 
 ---
 
-## Security framing
+## 7. Security framing
 
 2WAY assumes the network is adversarial and peers can be careless, compromised, or hostile. Security is enforced by protocol structure rather than operator policy. Each device, user, and app holds its own keys and history, and every node verifies incoming changes locally before accepting them [[5](#ref-5)] [[6](#ref-6)].
 
@@ -109,7 +126,7 @@ The protocol does not define social or political choices. Governance models, mod
 
 ---
 
-## Application model and use cases
+## 8. Application model and use cases
 
 In 2WAY, an application is not a backend service that owns data. It is a way of working with shared state that the system already knows how to protect. From a user's perspective, an app feels local and responsive. You can create, edit, and inspect records on your own device, even when you are offline. When the network is available again, your changes are checked, ordered, and merged with everyone else's in a predictable way. Nothing disappears because a server is down, and nothing silently changes because a service updated its logic.
 
@@ -123,7 +140,7 @@ In practice, this model fits domains where history, collaboration, and durabilit
 
 Across all of these cases, the common thread is that apps do not have to reinvent trust. Identity, permissions, ordering, and resilience are part of the system below them. That lets developers focus on what their app is for, and lets users keep control over their data and its history, regardless of which app or vendor they are using at the moment.
 
-## Conformance
+## 9. Conformance
 
 2WAY only works if the rules are followed exactly. An implementation either conforms or it does not. Validation, permissions, ordering, and storage must behave the same way in all conditions, including offline use and hostile input. Forbidden behavior must be impossible by design, not merely detected after the fact or left to operator judgment.
 
@@ -131,7 +148,7 @@ All state changes must pass through the same enforcement path. There are no shor
 
 ---
 
-## Scope boundary and current status
+## 10. Scope boundary and current status
 
 This repository only promises what it states explicitly. Examples are illustrative, not requirements. The proof of concept prioritizes correctness, clarity, and inspectability over polish or performance. Details may evolve over time, but changes are intentional and documented.
 
@@ -139,7 +156,7 @@ Treat this repository as the authoritative description of how the system is mean
 
 ---
 
-## How to use this README
+## 11. How to use this README
 
 This README is meant to give you the mental model. It explains what 2WAY is, why it exists, how the graph and backend work, and what guarantees the system enforces. It does not replace the detailed documents.
 
@@ -149,7 +166,7 @@ The key idea to keep in mind is that every node enforces the same structure loca
 
 ---
 
-## Acknowledgments
+## 12. Acknowledgments
 
 Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-licensed project available at [https://github.com/irislib/iris-client](https://github.com/irislib/iris-client). When the project was still Identifi and implemented as a fork of the Bitcoin daemon in C++, encountering it helped shape early ideas about private, user-controlled data layers that go beyond simple broadcast messaging with the help of a simple object model.
 
@@ -157,7 +174,7 @@ Our projects took different paths over the years, but that early work influenced
 
 ---
 
-## References
+## 13. References
 
 <br>
 
