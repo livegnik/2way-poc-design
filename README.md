@@ -41,7 +41,7 @@ This repo is the normative design set for the proof of concept. It defines scope
 
 2WAY is an application substrate that replaces the conventional backend. Each node runs the same authority stack: identity, permissions, ordering, storage, sync, and audit. Nodes can go offline, keep working, then reconcile without surrendering custody. Applications describe schemas and logic, interpret the ordered feed of accepted changes, and request new mutations through deterministic interfaces. They never bypass validation, own storage, or manage cryptographic keys directly.
 
-The shared graph is the fact store for identities, devices, relationships, capabilities, and application records. Ownership is explicit for every node and edge, so each mutation declares which identity governs it. History is append-only with verifiable ancestry, payload hashes, and schema references. Peers replay one another’s logs independently and accept only the parts that satisfy local invariants.
+The shared graph is the fact store for identities, devices, relationships, capabilities, and application records. Ownership is explicit for every node and edge, so each mutation declares which identity governs it. History is append-only with verifiable ancestry, payload hashes, and schema references. Peers replay one another's logs independently and accept only the parts that satisfy local invariants.
 
 ---
 
@@ -63,15 +63,20 @@ Every record carries shared metadata (`app_id`, category, ids, owner, `global_se
 
 The backend is a collection of singleton managers that make the protocol enforceable:
 
+- **Config Manager** loads configuration, validates it, and publishes safe runtime access.
 - **Auth Manager** resolves device and peer identity using local keys and append-only logs.
-- **Graph Manager** validates structure, orders writes, and assigns `global_seq`.
+- **Key Manager** owns key storage, signing, and cryptographic lifecycle.
 - **Schema Manager** enforces schemas and domain logic supplied by applications.
 - **ACL Manager** evaluates permissions using the current graph and `OperationContext`.
-- **Storage Manager** persists commits, histories, and cryptographic material.
+- **Graph Manager** validates structure, orders writes, and assigns `global_seq`.
+- **Storage Manager** persists commits and histories.
+- **App Manager** registers applications, scopes extensions, and enforces namespace boundaries.
 - **State Manager** streams accepted history to peers and reconciles inbound logs.
 - **Network Manager** handles peer exchange, pacing, and encrypted transport.
+- **Event Manager** emits deterministic signals for accepted outcomes.
+- **Log Manager** records structured reasons for accept or reject paths.
+- **Health Manager** publishes readiness and liveness posture.
 - **DoS Guard Manager** watches load and sheds work before corruption.
-- **Event and Log Managers** record deterministic reasons for accept or reject paths.
 
 Managers form one pipeline for reads and writes. Unsigned or ambiguous input never bypasses it, and there are no trusted fast paths. Optional services (applications, automation, UIs) sit above the managers and must obey the same interfaces.
 
@@ -88,7 +93,7 @@ Managers form one pipeline for reads and writes. Unsigned or ambiguous input nev
 - **Auditability**: Log Manager captures structured reasons for acceptance or rejection, and Event Manager emits deterministic signals so applications can react without heuristics.
 - **Replay and recovery**: rebuilding a node means replaying signed history; there are no special bootstrap modes or hidden overrides.
 
-The system guarantees that malformed writes never land, unauthorized operations fail identically everywhere, and history remains tamper-evident. What the protocol enables but does not define—governance, policy meanings, incentive design—lives entirely in application schemas and data.
+The system guarantees that malformed writes never land, unauthorized operations fail identically everywhere, and history remains tamper-evident. What the protocol enables but does not define: governance, policy meanings, incentive design, lives entirely in application schemas and data.
 
 ---
 
