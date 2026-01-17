@@ -8,20 +8,47 @@
 
 OperationContext is the immutable per-request envelope that binds identity, application, capability intent, trust posture, execution origin, and trace metadata to every backend action. It is the single authoritative structure used by managers to enforce authorization, app isolation, auditability, and local versus remote semantics. No service, extension, or manager that executes request-scoped work may be invoked without a complete and valid OperationContext.
 
-This specification defines the required fields, construction rules, lifecycle behavior, and consumption requirements for OperationContext across frontend requests, system services, app backend extensions, automation jobs, internal engines, and remote synchronization handling. It is the canonical source for OperationContext semantics referenced throughout the protocol and architecture.
+This overview defines the required fields, construction rules, lifecycle behavior, and consumption requirements for OperationContext across frontend requests, system services, app backend extensions, automation jobs, internal engines, and remote synchronization handling. It is the canonical source for OperationContext semantics referenced throughout the protocol and architecture, aligned with the component responsibilities in [02-architecture/01-component-model.md](../01-component-model.md) and the data flow posture in [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md), and complemented by manager and service specifications under [02-architecture/managers/**](../managers/) and [02-architecture/services-and-apps/**](./).
+
+This overview references:
+
+* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
+* [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
+* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
+* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
+* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
+* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
+* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [02-architecture/01-component-model.md](../01-component-model.md)
+* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
+* [02-architecture/managers/**](managers/)
+* [02-architecture/managers/04-auth-manager.md](../managers/04-auth-manager.md)
+* [02-architecture/managers/06-acl-manager.md](../managers/06-acl-manager.md)
+* [02-architecture/managers/07-graph-manager.md](../managers/07-graph-manager.md)
+* [02-architecture/managers/08-app-manager.md](../managers/08-app-manager.md)
+* [02-architecture/managers/09-state-manager.md](../managers/09-state-manager.md)
+* [02-architecture/managers/10-network-manager.md](../managers/10-network-manager.md)
+* [02-architecture/managers/11-event-manager.md](../managers/11-event-manager.md)
+* [02-architecture/managers/12-log-manager.md](../managers/12-log-manager.md)
+* [02-architecture/managers/14-dos-guard-manager.md](../managers/14-dos-guard-manager.md)
+* [02-architecture/services-and-apps/**](./)
+* [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md)
+* [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md)
 
 ### 1.1 Responsibilities and boundaries
 
-This specification is responsible for the following:
+This overview is responsible for the following:
 
 * Defining the canonical OperationContext structure and the semantics of every field.
 * Declaring deterministic construction rules for local execution paths and remote sync paths.
 * Defining immutability rules and lifecycle guarantees.
-* Specifying how services and internal engines may derive enriched contexts without mutating identity bindings, aligned with identity and key rules in `01-protocol/05-keys-and-identity.md`.
-* Defining how OperationContext is consumed by Graph Manager, ACL Manager, State Manager, Event Manager, and Log Manager.
+* Specifying how services and internal engines may derive enriched contexts without mutating identity bindings, aligned with identity and key rules in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Defining how OperationContext is consumed by [Graph Manager](../managers/07-graph-manager.md), [ACL Manager](../managers/06-acl-manager.md), [State Manager](../managers/09-state-manager.md), [Event Manager](../managers/11-event-manager.md), and [Log Manager](../managers/12-log-manager.md).
 * Defining failure and rejection posture for malformed or incomplete contexts.
 
-This specification does not cover the following:
+This overview does not cover the following:
 
 * Schema definitions, ACL rule syntax, or envelope serialization formats.
 * Cryptographic verification, handshake protocols, or transport-level concerns.
@@ -33,8 +60,8 @@ Across all components, execution paths, and managers that use OperationContext, 
 
 * Every request-scoped manager invocation receives a complete OperationContext.
 * OperationContext is immutable after construction. In-place mutation is forbidden.
-* Identity binding is authoritative and originates only from trusted managers, consistent with `01-protocol/05-keys-and-identity.md`.
-* `app_id` is always present and correctly bound per `01-protocol/02-object-model.md`.
+* Identity binding is authoritative and originates only from trusted managers, consistent with [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* `app_id` is always present and correctly bound per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Local and remote semantics are explicitly distinguished and never inferred.
 * Remote OperationContexts are derived only from verified sync package metadata and local sync state, never from unauthenticated transport data.
 * Trace identifiers are present for the lifetime of the operation.
@@ -57,7 +84,7 @@ OperationContext is the per-request execution contract that binds:
 * **How the action is observed**: traceability and audit scope.
 
 Managers treat OperationContext as authoritative metadata. No manager infers missing information from envelopes, payloads, schema content, or transport details.
-OperationContext is referenced by protocol flows in `01-protocol/00-protocol-overview.md` and used by State Manager during sync ingestion per `01-protocol/03-serialization-and-envelopes.md`.
+OperationContext is referenced by protocol flows in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and used by [State Manager](../managers/09-state-manager.md) during sync ingestion per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 2.2 Context variants
 
@@ -79,15 +106,15 @@ All fields use lowercase snake_case. All required fields must be present at cons
 
 | Field                     | Required    | Source                       | Semantics                                                           |
 | ------------------------- | ----------- | ---------------------------- | ------------------------------------------------------------------- |
-| `app_id`                  | Yes         | App Manager or routing layer | Owning application identity. System services use `app_0`.           |
-| `requester_identity_id`   | Local only  | Auth Manager                 | Local user or delegated identity; nullable only for explicit public endpoints. |
-| `device_id`               | Optional    | Auth Manager                 | Bound device identity for local users.                              |
-| `delegated_key_id`        | Optional    | Auth Manager                 | Delegated signing key reference.                                    |
-| `actor_type`              | Yes         | Entry layer or service       | Declares the caller category: `user`, `service`, `automation`, or `delegation`, aligned with `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`. |
+| `app_id`                  | Yes         | [App Manager](../managers/08-app-manager.md) or routing layer | Owning application identity. System services use `app_0`.           |
+| `requester_identity_id`   | Local only  | [Auth Manager](../managers/04-auth-manager.md)               | Local user or delegated identity; nullable only for explicit public endpoints. |
+| `device_id`               | Optional    | [Auth Manager](../managers/04-auth-manager.md)               | Bound device identity for local users.                              |
+| `delegated_key_id`        | Optional    | [Auth Manager](../managers/04-auth-manager.md)               | Delegated signing key reference.                                    |
+| `actor_type`              | Yes         | Entry layer or service       | Declares the caller category: `user`, `service`, `automation`, or `delegation`, aligned with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md). |
 | `capability`              | Local only  | Service or engine            | Explicit verb evaluated by ACL.                                     |
 | `is_remote`               | Yes         | Construction layer           | Local or remote execution flag.                                     |
-| `sync_domain`             | Remote only | State Manager                | Domain being synchronized.                                          |
-| `remote_node_identity_id` | Remote only | State Manager                | Verified peer identity.                                             |
+| `sync_domain`             | Remote only | [State Manager](../managers/09-state-manager.md)             | Domain being synchronized.                                          |
+| `remote_node_identity_id` | Remote only | [State Manager](../managers/09-state-manager.md)             | Verified peer identity.                                             |
 | `trace_id`                | Yes         | Entry layer or State Manager | Stable trace identifier.                                            |
 | `correlation_id`          | Optional    | Client or service            | Cross-request workflow identifier.                                  |
 | `app_version`             | Optional    | Frontend or service          | Diagnostic metadata.                                                |
@@ -95,7 +122,7 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | `timezone`                | Optional    | Frontend                     | Non-authoritative UX metadata.                                      |
 
 Field completeness is validated at construction time. Missing required fields result in immediate rejection.
-Field meaning and app scoping align with `01-protocol/02-object-model.md`, and ACL evaluation inputs align with `01-protocol/06-access-control-model.md`.
+Field meaning and app scoping align with [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md), and ACL evaluation inputs align with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ---
 
@@ -107,7 +134,7 @@ Construction flow:
 
 1. Interface authenticates request via Auth Manager.
 2. Auth Manager resolves requester identity, device, delegation, and admin gating.
-3. Interface binds `app_id`, sets `is_remote=false`, and generates `trace_id` per `01-protocol/00-protocol-overview.md`.
+3. Interface binds `app_id`, sets `is_remote=false`, and generates `trace_id` per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 4. Service or interface middleware assigns `capability` and `actor_type`.
 5. OperationContext is constructed and frozen.
 6. OperationContext is passed to all downstream managers.
@@ -117,12 +144,12 @@ OperationContext must never be created before authentication succeeds.
 ### 4.2 Service and engine enrichment
 
 Services and internal engines may derive enriched OperationContexts only by creating a new instance that copies identity and app bindings.
-Identity and app bindings must remain consistent with `01-protocol/05-keys-and-identity.md` and `01-protocol/02-object-model.md`.
+Identity and app bindings must remain consistent with [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
 Permitted enrichment:
 
 * Capability specialization.
-* Actor type refinement for automation or delegation, consistent with `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
+* Actor type refinement for automation or delegation, consistent with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
 * Correlation metadata.
 
 Forbidden actions:
@@ -133,7 +160,7 @@ Forbidden actions:
 
 ### 4.3 Remote sync ingestion
 
-Remote OperationContext construction is owned exclusively by State Manager after Network Manager verification and sync package validation per `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
+Remote OperationContext construction is owned exclusively by [State Manager](../managers/09-state-manager.md) after [Network Manager](../managers/10-network-manager.md) verification and sync package validation per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 Rules:
 
@@ -146,11 +173,11 @@ Remote contexts never include local requester identity fields.
 
 ### 4.4 Automation jobs and internal execution
 
-Automation and scheduled work execute under synthetic OperationContexts as described in `02-architecture/services-and-apps/01-services-vs-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
+Automation and scheduled work execute under synthetic OperationContexts as described in [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
 
 Rules:
 
-* `actor_type` set according to the automation conventions defined in `02-architecture/services-and-apps/04-frontend-apps.md` and `02-architecture/services-and-apps/03-app-backend-extensions.md`.
+* `actor_type` set according to the automation conventions defined in [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
 * `capability` explicitly defined.
 * `requester_identity_id` set only when acting on behalf of a user.
 * Each execution builds a fresh OperationContext.
@@ -171,25 +198,25 @@ OperationContext is immutable after construction.
 
 * Local identity is authoritative only when bound by Auth Manager.
 * Remote identity is authoritative only when bound by State Manager.
-* Device and delegated identifiers participate in ACL evaluation but do not replace identity, per `01-protocol/06-access-control-model.md`.
+* Device and delegated identifiers participate in ACL evaluation but do not replace identity, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ### 5.2 Capability and actor type
 
 * `capability` must name the exact action being attempted.
-* `actor_type` distinguishes human, service, automation, and delegation traffic per `02-architecture/services-and-apps/04-frontend-apps.md`.
-* Remote sync contexts do not include `capability`; authorization relies on identity, app, and schema constraints per `01-protocol/06-access-control-model.md`.
+* `actor_type` distinguishes human, service, automation, and delegation traffic per [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md).
+* Remote sync contexts do not include `capability`; authorization relies on identity, app, and schema constraints per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ### 5.3 Trace and correlation identifiers
 
 * `trace_id` is mandatory for all contexts.
-* If present in an envelope, it must be copied verbatim per `01-protocol/03-serialization-and-envelopes.md`.
+* If present in an envelope, it must be copied verbatim per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * `correlation_id` is optional and never authoritative.
 
 ### 5.4 Local and remote field separation
 
 * Local contexts must not include remote-only fields.
 * Remote contexts must not include local-only fields (`requester_identity_id`, `device_id`, `delegated_key_id`, `capability`).
-* Violations result in immediate rejection, consistent with remote context construction rules in `01-protocol/03-serialization-and-envelopes.md`.
+* Violations result in immediate rejection, consistent with remote context construction rules in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 5.5 Automation execution semantics
 
@@ -203,12 +230,12 @@ OperationContext is immutable after construction.
 
 Managers consume OperationContext as follows:
 
-* **Graph Manager** enforces app isolation, ownership, and remote sync constraints per `01-protocol/00-protocol-overview.md`.
-* **ACL Manager** evaluates identity, delegation, device, capability, and app bindings per `01-protocol/06-access-control-model.md`.
-* **State Manager** uses context to gate sync application and domain enforcement per `01-protocol/03-serialization-and-envelopes.md` and `01-protocol/07-sync-and-consistency.md`.
-* **Event Manager** applies visibility filtering and audience scoping.
-* **Log Manager** records immutable context snapshots for audit trails.
-* **DoS Guard Manager** does not rely on OperationContext for admission decisions, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* **[Graph Manager](../managers/07-graph-manager.md)** enforces app isolation, ownership, and remote sync constraints per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* **[ACL Manager](../managers/06-acl-manager.md)** evaluates identity, delegation, device, capability, and app bindings per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* **[State Manager](../managers/09-state-manager.md)** uses context to gate sync application and domain enforcement per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+* **[Event Manager](../managers/11-event-manager.md)** applies visibility filtering and audience scoping.
+* **[Log Manager](../managers/12-log-manager.md)** records immutable context snapshots for audit trails.
+* **[DoS Guard Manager](../managers/14-dos-guard-manager.md)** does not rely on OperationContext for admission decisions, per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 
 Managers must reject any invocation lacking required context fields.
 
@@ -220,7 +247,7 @@ Managers must reject any invocation lacking required context fields.
 * Structural failures are rejected before schema or ACL evaluation.
 * Attempted mutation after construction is logged and rejected.
 * Remote contexts missing required remote fields are rejected by State Manager.
-* Errors must use canonical classifications defined in `01-protocol/09-errors-and-failure-modes.md`.
+* Errors must use canonical classifications defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 
 ---
 
