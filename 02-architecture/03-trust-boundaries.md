@@ -10,7 +10,7 @@ This document defines the trust boundaries enforced by the 2WAY architecture as 
 
 This file covers architectural trust boundaries only. It does not define cryptographic primitives, schema semantics, ACL rule syntax, sync algorithms, or transport protocols. Those are defined elsewhere and are referenced here only where required to define boundary behavior.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../01-protocol/)
 * [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
