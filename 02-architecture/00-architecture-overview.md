@@ -165,6 +165,18 @@ Derived indices and caches exist solely for performance. They rebuild from autho
 
 All rejections propagate to the originator (local caller or peer). Log Manager captures failures, State Manager records peer rejections, and no hidden fallback paths exist.
 
+### 8.11 Configuration and policy reload flow
+
+Administrative configuration changes enter through Config Manager, are validated against the schema registry, and are published as immutable snapshots only after prepare/commit acknowledgements from dependent managers. Any veto or validation failure leaves the prior snapshot intact and forces a fail-closed posture until remediation.
+
+### 8.12 Health signal and readiness flow
+
+Managers emit heartbeat and threshold signals to Health Manager, which aggregates readiness and liveness, publishes transitions to Log Manager and Event Manager, and gates admissions through DoS Guard policy. Missing or invalid signals degrade readiness without mutating state.
+
+### 8.13 Audit and diagnostics flow
+
+Operational, audit, and security records are emitted through Log Manager, optionally bridged as high-level events. Audit and security records never bypass ACL controls, and failures in mandatory sinks surface as explicit readiness degradation rather than silent loss.
+
 ## 9. Guarantees and invariants
 
 * All persistent state is representable as graph objects governed by schema and ACL rules.
