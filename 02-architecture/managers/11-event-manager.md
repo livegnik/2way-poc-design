@@ -8,7 +8,7 @@
 
 The Event Manager is the authoritative component responsible for the scope described below. The Event Manager is the sole publication and subscription authority for backend events in the 2WAY node. It receives post commit facts from managers, normalizes them into immutable notifications, enforces audience and access constraints, and delivers them to subscribers over the single local WebSocket surface.
 
-This specification defines the event model, internal engines, ordering and delivery guarantees, subscription semantics, configuration surface, and trust boundaries for the [Event Manager](11-event-manager.md). It does not redefine schema semantics, persistence rules, network transport encodings, or UI behavior.
+This specification defines the event model, internal engines, ordering and delivery guarantees, subscription semantics, configuration surface, and trust boundaries for the Event Manager. It does not redefine schema semantics, persistence rules, network transport encodings, or UI behavior.
 
 This specification consumes the protocol contracts defined in:
 

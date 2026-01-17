@@ -8,7 +8,7 @@
 
 The Config Manager is the authoritative component responsible for the scope described below. This specification defines the authoritative responsibilities, invariants, and interfaces of the Config Manager within the 2WAY backend.
 
-[Config Manager](01-config-manager.md) owns configuration ingestion, layering, validation, publication, controlled mutation, and change propagation for all runtime configuration that affects manager and service behavior. This specification covers configuration sources, precedence rules, storage model, consumer APIs, trust boundaries, startup and shutdown behavior, reload semantics, and fail closed behavior. This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
+Config Manager owns configuration ingestion, layering, validation, publication, controlled mutation, and change propagation for all runtime configuration that affects manager and service behavior. This specification covers configuration sources, precedence rules, storage model, consumer APIs, trust boundaries, startup and shutdown behavior, reload semantics, and fail closed behavior. This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
 
 This specification consumes the protocol contracts defined in:
 

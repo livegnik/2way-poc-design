@@ -8,7 +8,7 @@
 
 The Graph Manager is the authoritative component responsible for the scope described below. The Graph Manager is the authoritative coordinator for graph state access within the local node. It is the only permitted write path for graph objects, and it provides the canonical read surface for graph objects where access control, application context, traversal constraints, consistency guarantees, and default visibility filtering must be enforced.
 
-This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, concurrency rules, component interactions, startup and shutdown behavior, internal execution engines, and failure handling for the [Graph Manager](07-graph-manager.md). This file specifies graph level access behavior only. It does not define schema content, access control policy logic, synchronization protocol behavior, network transport, cryptographic verification, peer discovery, or storage internals, except where interaction boundaries are required.
+This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, concurrency rules, component interactions, startup and shutdown behavior, internal execution engines, and failure handling for the Graph Manager. This file specifies graph level access behavior only. It does not define schema content, access control policy logic, synchronization protocol behavior, network transport, cryptographic verification, peer discovery, or storage internals, except where interaction boundaries are required.
 
 This specification consumes the protocol contracts defined in:
 
