@@ -8,7 +8,7 @@
 
 This document defines the valid runtime topologies for a 2WAY node as specified by the PoC build guide. It describes how backend managers, services, frontend apps, storage, keys, and network components are arranged and interact at runtime. It specifies trust boundaries, allowed and forbidden interactions, and required failure behavior. It does not define deployment tooling, packaging, orchestration, scaling, or operational automation.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../01-protocol/)
 * [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
