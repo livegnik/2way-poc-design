@@ -148,7 +148,7 @@ Incentives that matter to users and developers live above the protocol, inside a
 
 This separation is intentional. It prevents the protocol from baking in assumptions about value, scarcity, or motivation that may not hold across domains or over time. It also avoids coupling long-term infrastructure correctness to short-term incentive fashions. If an incentive model is flawed, it can be changed at the application level without forking the protocol or rewriting history.
 
-For operators and integrators, the incentive is leverage. By building on 2WAY, they avoid re-implementing identity, permissions, sync, and audit for every system. They gain durability and user trust without having to promise perpetual uptime or benevolent control. For users, the incentive is autonomy. Their data, history, and authority persist even if an app, vendor, or service disappears.
+For operators and integrators, the incentive is leverage. By building on 2WAY, they avoid re-implementing identity, permissions, sync, and audit for every system. They gain durability and user trust without having to promise perpetual uptime or benevolent control. Because apps share a common graph model and enforcement rules, they remain interoperable: developers can build on each other's schemas and data without lock-in, and removing one app does not break the system or invalidate the underlying state. For users, the incentive is autonomy. Their data, history, and authority persist even if an app, vendor, or service disappears.
 
 In short, 2WAY does not try to motivate participation with rewards. It motivates participation by making correct behavior the simplest path, abusive behavior ineffective, and long-term control stay with the people and applications that use the system.
 
