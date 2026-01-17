@@ -127,55 +127,55 @@ Every boundary fails closed: invalid input is rejected without partial writes, a
 
 ### 8.1 Node bootstrap and Server Graph initialization
 
-First-run execution generates node/server key material, creates Server Graph roots via Graph Manager, validates them through Schema and ACL Manager, persists atomically through Storage Manager, and anchors the global sequence. It runs exactly once per node and fails closed.
+First-run execution generates node/server key material, creates Server Graph roots via Graph Manager, validates them through Schema and ACL Manager, persists atomically through Storage Manager, and anchors the global sequence. It runs exactly once per node and fails closed. Bootstrap also initializes boot-critical configuration, ensures Key Manager has durable custody, and records audit events for the initial identity and graph roots. If any step fails, no partial state remains and the node does not proceed to serve requests.
 
 ### 8.2 User provisioning and User Graph creation
 
-Authorized admin requests trigger Auth Manager to build OperationContext, Key Manager to mint user keys, Graph Manager to create identity and User Graph roots, Schema and ACL Managers to validate and bind ownership, Storage Manager to persist atomically, and Event Manager to emit post-commit events. Failures roll back completely.
+Authorized admin requests trigger Auth Manager to build OperationContext, Key Manager to mint user keys, Graph Manager to create identity and User Graph roots, Schema and ACL Managers to validate and bind ownership, Storage Manager to persist atomically, and Event Manager to emit post-commit events. Failures roll back completely. Provisioning writes are monotonic and single-app scoped, and the resulting identities are immediately available for authorization decisions without separate activation steps. Log Manager records audit and security entries for each provisioning attempt.
 
 ### 8.3 Local read flow
 
-Reads begin at the API layer, construct OperationContext, pass through ACL Manager for authorization, invoke Storage Manager for constrained queries, optionally apply deterministic visibility suppression using Ratings, and return results. Unauthorized or cross-domain reads are rejected without side effects.
+Reads begin at the API layer, construct OperationContext, pass through ACL Manager for authorization, invoke Storage Manager for constrained queries, optionally apply deterministic visibility suppression using Ratings, and return results. Unauthorized or cross-domain reads are rejected without side effects. Reads never mutate state, never bypass ACL capsules, and always reflect the most recent committed graph state in order. Cache layers may be used for performance but must be invalidated on commits and must never widen visibility.
 
 ### 8.4 Local write flow
 
-Write requests submit envelopes that undergo Schema validation, ACL evaluation, exclusive sequencing by Graph Manager, atomic persistence via Storage Manager, and post-commit notifications through Event Manager. Writes outside this pipeline, cross-domain writes, or partial writes are forbidden.
+Write requests submit envelopes that undergo Schema validation, ACL evaluation, exclusive sequencing by Graph Manager, atomic persistence via Storage Manager, and post-commit notifications through Event Manager. Writes outside this pipeline, cross-domain writes, or partial writes are forbidden. Each accepted write advances `global_seq` exactly once, generates deterministic audit records, and becomes visible to reads only after commit. Rejections surface precise error codes and never emit events or log entries that imply a commit.
 
 ### 8.5 Visibility suppression via Ratings
 
-Ratings act as immutable suppression signals. They follow the standard write flow, never delete objects, and are interpreted deterministically at read time according to app policy. Suppression requires an explicit Rating; no implicit delete semantics exist.
+Ratings act as immutable suppression signals. They follow the standard write flow, never delete objects, and are interpreted deterministically at read time according to app policy. Suppression requires an explicit Rating; no implicit delete semantics exist. Ratings are scoped to the owning app and never alter the canonical object state, only its visibility. Any suppression decision must remain explainable from the recorded Rating objects and ACL rules.
 
 ### 8.6 Event emission flow
 
-Committed graph mutations emit domain events routed by Event Manager to subscribers over WebSocket. Events never mutate state, and delivery failures do not affect persistence or sequencing.
+Committed graph mutations emit domain events routed by Event Manager to subscribers over WebSocket. Events never mutate state, and delivery failures do not affect persistence or sequencing. Event envelopes include stable identifiers and ordering anchors derived from the commit, and authorization is enforced per subscriber using cached ACL capsules. Clients treat events as best-effort hints and must recover via read APIs when gaps occur.
 
 ### 8.7 Remote ingress flow
 
-Remote packages enter through Network Manager, pass DoS Guard Manager admission control, are verified and decrypted by Key Manager, are validated by State Manager for domain and ordering, derive a remote OperationContext, and finally enter the standard envelope pipeline. Invalid signatures, revoked keys, or ordering violations cause rejection without advancing sync state.
+Remote packages enter through Network Manager, pass DoS Guard Manager admission control, are verified and decrypted by Key Manager, are validated by State Manager for domain and ordering, derive a remote OperationContext, and finally enter the standard envelope pipeline. Invalid signatures, revoked keys, or ordering violations cause rejection without advancing sync state. State Manager enforces monotonic per-peer and per-domain sequencing and rejects out-of-order or replayed envelopes. All remote writes are treated as untrusted until the same schema and ACL gates applied to local writes are satisfied.
 
 ### 8.8 Remote egress flow
 
-State Manager selects eligible graph changes, constructs envelopes, Key Manager signs headers and encrypts payloads, Network Manager transmits them (solving client puzzles if required), and State Manager tracks per-peer sequencing. Only committed, in-domain data is transmitted.
+State Manager selects eligible graph changes, constructs envelopes, Key Manager signs headers and encrypts payloads, Network Manager transmits them, and State Manager tracks per-peer sequencing. Only committed, in-domain data is transmitted. Outbound packaging preserves ordering guarantees and never includes suppressed or unauthorized objects for the receiving peer. Delivery is best-effort and does not mutate local state beyond per-peer sync metadata.
 
 ### 8.9 Derived and cached data flow
 
-Derived indices and caches exist solely for performance. They rebuild from authoritative graph state, are never synced, and can be discarded without affecting correctness.
+Derived indices and caches exist solely for performance. They rebuild from authoritative graph state, are never synced, and can be discarded without affecting correctness. Derived data must not introduce new write paths or authorization decisions and must be invalidated on source changes. Any cache miss or corruption falls back to authoritative reads.
 
 ### 8.10 Rejection propagation and observability
 
-All rejections propagate to the originator (local caller or peer). Log Manager captures failures, State Manager records peer rejections, and no hidden fallback paths exist.
+All rejections propagate to the originator (local caller or peer). Log Manager captures failures, State Manager records peer rejections, and no hidden fallback paths exist. Rejection codes are deterministic and map to protocol failure categories, enabling audit and debugging without leaking sensitive data. Rejections never advance sequencing or change readiness by themselves unless they indicate systemic failure.
 
 ### 8.11 Configuration and policy reload flow
 
-Administrative configuration changes enter through Config Manager, are validated against the schema registry, and are published as immutable snapshots only after prepare/commit acknowledgements from dependent managers. Any veto or validation failure leaves the prior snapshot intact and forces a fail-closed posture until remediation.
+Administrative configuration changes enter through Config Manager, are validated against the schema registry, and are published as immutable snapshots only after prepare/commit acknowledgements from dependent managers. Any veto or validation failure leaves the prior snapshot intact and forces a fail-closed posture until remediation. Reloads are atomic at the namespace level and never expose partial updates to any manager. Successful reloads emit audit records and readiness transitions so operators can correlate behavior with applied policy.
 
 ### 8.12 Health signal and readiness flow
 
-Managers emit heartbeat and threshold signals to Health Manager, which aggregates readiness and liveness, publishes transitions to Log Manager and Event Manager, and gates admissions through DoS Guard policy. Missing or invalid signals degrade readiness without mutating state.
+Managers emit heartbeat and threshold signals to Health Manager, which aggregates readiness and liveness, publishes transitions to Log Manager and Event Manager, and gates admissions through DoS Guard policy. Missing or invalid signals degrade readiness without mutating state. Readiness changes are monotonic per transition and never suppressed; consumers must react immediately. Health signals do not carry application data and are bounded in size and rate.
 
 ### 8.13 Audit and diagnostics flow
 
-Operational, audit, and security records are emitted through Log Manager, optionally bridged as high-level events. Audit and security records never bypass ACL controls, and failures in mandatory sinks surface as explicit readiness degradation rather than silent loss.
+Operational, audit, and security records are emitted through Log Manager, optionally bridged as high-level events. Audit and security records never bypass ACL controls, and failures in mandatory sinks surface as explicit readiness degradation rather than silent loss. Log records include OperationContext when available and preserve ordering relative to the committed operation they describe. Operators must use read-only query interfaces for inspection; no log stream is writable by clients or apps.
 
 ## 9. Guarantees and invariants
 
