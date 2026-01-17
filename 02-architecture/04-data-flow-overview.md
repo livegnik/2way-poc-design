@@ -8,7 +8,7 @@
 
 This document defines the authoritative data flow model for the 2WAY system as implemented in the PoC. It specifies how data enters, moves through, mutates, and exits the system, including bootstrap, user provisioning, validation, authorization, sequencing, persistence, event emission, synchronization, rejection handling, and visibility suppression. It is limited to data flow semantics and boundaries and does not define schemas, envelopes, storage layouts, network formats, or UI behavior except where required for correctness.
 
-This overview references:
+This specification references:
 
 * [01-protocol/**](../01-protocol/)
 * [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
