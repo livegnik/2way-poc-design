@@ -18,7 +18,6 @@
 - [12. Scope boundary and current status](#12-scope-boundary-and-current-status)
 - [13. How to use this README](#13-how-to-use-this-readme)
 - [14. Acknowledgments](#14-acknowledgments)
-- [15. References](#15-references)
 
 <br>
 
@@ -85,15 +84,15 @@ The result is a system where correctness does not depend on transport, uptime, o
 
 ## 5. Graph, objects, and protocol model
 
-2WAY defines a protocol for how state is created, validated, ordered, and shared. That protocol is centered around a shared graph, not APIs, endpoints, or databases. The graph is the only source of truth, and every node builds, validates, and evolves it using the same rules. The protocol overview provides the high-level structure. [[1](#ref-1)]
+2WAY defines a protocol for how state is created, validated, ordered, and shared. That protocol is centered around a shared graph, not APIs, endpoints, or databases. The graph is the only source of truth, and every node builds, validates, and evolves it using the same rules. The [protocol overview](01-protocol/00-protocol-overview.md) provides the high-level structure.
 
-All application state is represented as graph records with formal object model definitions. [[3](#ref-3)] The model is small and explicit. Parents anchor identities, devices, apps, and domain objects. Attributes attach typed data to Parents. Edges express relationships, capabilities, and transitions. Ratings capture judgments such as endorsements or trust signals. Access control is not external logic. It is encoded into the same graph using constrained Parents and Attributes, keeping authorization visible, replayable, and verifiable like any other data. [[7](#ref-7)]
+All application state is represented as graph records with formal [object model](01-protocol/02-object-model.md) definitions. The model is small and explicit. Parents anchor identities, devices, apps, and domain objects. Attributes attach typed data to Parents. Edges express relationships, capabilities, and transitions. Ratings capture judgments such as endorsements or trust signals. Access control is not external logic. It is encoded into the same graph using constrained Parents and Attributes, keeping authorization visible, replayable, and verifiable like any other data, as described in the [access control model](01-protocol/06-access-control-model.md).
 
-Apps are first-class participants in the protocol. Each app has its own namespace, schemas, and portion of the graph. Schemas are defined by apps and stored in the graph itself. [[17](#ref-17)] [[3](#ref-3)] They specify which object types exist, how they relate, and what values are valid. The protocol does not interpret application meaning. It enforces that meaning structurally and consistently, so every node evaluates the same rules when deciding whether a change is acceptable.
+Apps are first-class participants in the protocol. Each app has its own namespace, schemas, and portion of the graph. Schemas are defined by apps and stored in the graph itself through the [Schema Manager](02-architecture/managers/05-schema-manager.md) and the shared [object model](01-protocol/02-object-model.md). They specify which object types exist, how they relate, and what values are valid. The protocol does not interpret application meaning. It enforces that meaning structurally and consistently, so every node evaluates the same rules when deciding whether a change is acceptable.
 
-Every proposed change is wrapped in a protocol envelope that specifies the operation records and required identifiers. [[4](#ref-4)] Sync packages add sender identity, domain metadata, and sequence fields for ordering and replay checks. When a node receives an envelope, it validates it locally. Structure is checked first, including object model invariants and app namespace boundaries. Schema rules are then applied to ensure the change fits the app's schema. Access control is evaluated next using graph-encoded permissions. Only if all checks succeed is the change assigned a global order and committed. This pipeline runs across the Graph, Schema, and ACL managers. [[19](#ref-19)] [[17](#ref-17)] [[18](#ref-18)]
+Every proposed change is wrapped in a protocol envelope that specifies the operation records and required identifiers, as defined in [Serialization and envelopes](01-protocol/03-serialization-and-envelopes.md). Sync packages add sender identity, domain metadata, and sequence fields for ordering and replay checks. When a node receives an envelope, it validates it locally. Structure is checked first, including object model invariants and app namespace boundaries. Schema rules are then applied to ensure the change fits the app's schema. Access control is evaluated next using graph-encoded permissions. Only if all checks succeed is the change assigned a global order and committed. This pipeline runs across the [Graph Manager](02-architecture/managers/07-graph-manager.md), [Schema Manager](02-architecture/managers/05-schema-manager.md), and [ACL Manager](02-architecture/managers/06-acl-manager.md).
 
-History is append-only and ordered. [[8](#ref-8)] Nodes exchange signed, ordered envelopes rather than mutable state. Each node replays those sequences independently and accepts only the parts that satisfy its local rules. Ordering comes from protocol-defined sequence assignment, not from message arrival or wall-clock time. This allows nodes to diverge temporarily, operate offline, and still converge without trusting transport or peers.
+History is append-only and ordered per [Sync and consistency](01-protocol/07-sync-and-consistency.md). Nodes exchange signed, ordered envelopes rather than mutable state. Each node replays those sequences independently and accepts only the parts that satisfy its local rules. Ordering comes from protocol-defined sequence assignment, not from message arrival or wall-clock time. This allows nodes to diverge temporarily, operate offline, and still converge without trusting transport or peers.
 
 The result is a protocol where apps, schemas, identities, permissions, and records all live in the same verifiable structure. The graph is not an internal implementation detail. It is the protocol surface. Everything else, networking, storage engines, frontend frameworks, exists only to move envelopes in and out of that structure.
 
@@ -105,7 +104,7 @@ The backend makes the rules real. It is one integrated system that decides what 
 
 That is the key difference from architectures built around loose roles like clients, servers, and relays. In those systems, correctness depends on assumptions, relay behavior, server-side logic, or social norms. In 2WAY, authority lives in the protocol enforcement pipeline that every node runs locally. A node does not accept state because a peer says it is fine. It accepts state because it can verify it and it passes the same checks it applies to its own writes.
 
-The backend is built from singleton managers with narrow jobs that form one path for reads and writes. [[12](#ref-12)] Config Manager loads configuration and rejects unsafe settings [[13](#ref-13)]. Auth Manager resolves local sessions into an `OperationContext` [[16](#ref-16)] [[1](#ref-1)]. Key Manager owns private keys and performs signing and encryption for trusted callers [[15](#ref-15)]. App Manager registers apps and app identities [[20](#ref-20)]. Schema Manager checks that a change matches the app's declared structure [[17](#ref-17)]. ACL Manager checks that the caller has the right to perform it, using the current `OperationContext` [[18](#ref-18)]. Graph Manager is the only place where writes are accepted. It validates object model invariants, assigns a `global_seq`, and commits through Storage Manager [[19](#ref-19)] [[14](#ref-14)]. State Manager coordinates ordered sync and package construction from accepted history [[21](#ref-21)]. Network Manager admits peers, verifies and transports packages with DoS Guard and Key Manager, and never changes protocol data [[22](#ref-22)] [[26](#ref-26)]. Event and Log Managers record what happened and why [[23](#ref-23)] [[24](#ref-24)]. Health and DoS Guard Managers keep the node stable and reject load before correctness can be threatened [[25](#ref-25)] [[26](#ref-26)].
+The backend is built from singleton managers with narrow jobs that form one path for reads and writes, as defined in the [Managers overview](02-architecture/managers/00-managers-overview.md). The [Config Manager](02-architecture/managers/01-config-manager.md) loads configuration and rejects unsafe settings. The [Auth Manager](02-architecture/managers/04-auth-manager.md) resolves local sessions into an `OperationContext` per the [protocol overview](01-protocol/00-protocol-overview.md). The [Key Manager](02-architecture/managers/03-key-manager.md) owns private keys and performs signing and encryption for trusted callers. The [App Manager](02-architecture/managers/08-app-manager.md) registers apps and app identities. The [Schema Manager](02-architecture/managers/05-schema-manager.md) checks that a change matches the app's declared structure. The [ACL Manager](02-architecture/managers/06-acl-manager.md) checks that the caller has the right to perform it, using the current `OperationContext`. The [Graph Manager](02-architecture/managers/07-graph-manager.md) is the only place where writes are accepted. It validates object model invariants, assigns a `global_seq`, and commits through the [Storage Manager](02-architecture/managers/02-storage-manager.md). The [State Manager](02-architecture/managers/09-state-manager.md) coordinates ordered sync and package construction from accepted history. The [Network Manager](02-architecture/managers/10-network-manager.md) admits peers, verifies and transports packages with the [DoS Guard Manager](02-architecture/managers/14-dos-guard-manager.md) and [Key Manager](02-architecture/managers/03-key-manager.md), and never changes protocol data. The [Event Manager](02-architecture/managers/11-event-manager.md) and [Log Manager](02-architecture/managers/12-log-manager.md) record what happened and why. The [Health Manager](02-architecture/managers/13-health-manager.md) and [DoS Guard Manager](02-architecture/managers/14-dos-guard-manager.md) keep the node stable and reject load before correctness can be threatened.
 
 Services sit above the managers and provide higher-level behavior. They turn user intent into protocol-compliant operations, expose backend endpoints, and do app-specific aggregation or validation when needed. They do not get special authority. They cannot write around the managers, bypass schema or ACL checks, or touch keys, storage, or sockets directly. They must always call into the same enforcement path with a complete `OperationContext`.
 
@@ -117,15 +116,15 @@ The point of this design is that the backend behaves like a kernel. It enforces 
 
 ## 7. Security model
 
-2WAY assumes the network is adversarial and peers can be careless, compromised, or hostile. Security is enforced by protocol structure rather than operator policy. Each device, user, and app holds its own keys and history, and every node verifies incoming changes locally before accepting them [[5](#ref-5)] [[6](#ref-6)].
+2WAY assumes the network is adversarial and peers can be careless, compromised, or hostile. Security is enforced by protocol structure rather than operator policy. Each device, user, and app holds its own keys and history, and every node verifies incoming changes locally before accepting them per [Cryptography](01-protocol/04-cryptography.md) and [Keys and identity](01-protocol/05-keys-and-identity.md).
 
-All writes, local or remote, use the same envelope path and validation order: structural checks first, then schema rules, then ACL authorization [[4](#ref-4)] [[7](#ref-7)]. Ordering is assigned locally and is repeatable, so replayed or reordered input cannot change outcomes [[8](#ref-8)].
+All writes, local or remote, use the same envelope path and validation order: structural checks first, then schema rules, then ACL authorization as defined in [Serialization and envelopes](01-protocol/03-serialization-and-envelopes.md) and the [access control model](01-protocol/06-access-control-model.md). Ordering is assigned locally and is repeatable, so replayed or reordered input cannot change outcomes per [Sync and consistency](01-protocol/07-sync-and-consistency.md).
 
-Sybil resistance comes from bounded reach, not global reputation. Identities are key-bound, app namespaces are isolated, and permissions are explicit in the graph, so unknown identities cannot gain broad access without explicit edges or ACL grants [[2](#ref-2)] [[7](#ref-7)]. This limits the blast radius of fake identities and impersonation attempts.
+Sybil resistance comes from bounded reach, not global reputation. Identities are key-bound, app namespaces are isolated, and permissions are explicit in the graph, so unknown identities cannot gain broad access without explicit edges or ACL grants per [Identifiers and namespaces](01-protocol/01-identifiers-and-namespaces.md) and the [access control model](01-protocol/06-access-control-model.md). This limits the blast radius of fake identities and impersonation attempts.
 
-Denial-of-service protection is part of the protocol pipeline, not a bolt-on. The DoS Guard Manager gates admission at the network boundary and can require client puzzles before any payload flows inward [[11](#ref-11)] [[9](#ref-9)]. Puzzle difficulty adjusts dynamically to load and abuse signals, and the system fails closed on policy or puzzle failures. Earlier stages reject malformed input without expensive work, and failures are classified consistently [[1](#ref-1)] [[10](#ref-10)].
+Denial-of-service protection is part of the protocol pipeline, not a bolt-on. The DoS Guard Manager gates admission at the network boundary and can require client puzzles before any payload flows inward, following [DoS guard and client puzzles](01-protocol/11-dos-guard-and-client-puzzles.md) and [Network transport requirements](01-protocol/08-network-transport-requirements.md). Puzzle difficulty adjusts dynamically to load and abuse signals, and the system fails closed on policy or puzzle failures. Earlier stages reject malformed input without expensive work, and failures are classified consistently by the [protocol overview](01-protocol/00-protocol-overview.md) and [Errors and failure modes](01-protocol/09-errors-and-failure-modes.md).
 
-Recovery is intentionally simple. Accepted changes are signed, ordered, and append-only, so a node can rebuild by replaying history and reapplying the same rules. Unverifiable history is rejected rather than patched or trusted [[8](#ref-8)].
+Recovery is intentionally simple. Accepted changes are signed, ordered, and append-only, so a node can rebuild by replaying history and reapplying the same rules. Unverifiable history is rejected rather than patched or trusted per [Sync and consistency](01-protocol/07-sync-and-consistency.md).
 
 The protocol does not define social or political choices. Governance models, moderation rules, incentives, and policy meaning live in application schemas and data. The protocol enforces correctness, authorship, and ordering, not policy content.
 
@@ -222,65 +221,3 @@ Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-
 Our projects took different paths over the years, but that early work influenced this line of thinking and deserves explicit acknowledgment.
 
 ---
-
-## 15. References
-
-<br>
-
-**Protocol references**
-
-<a id="ref-1"></a>[1] Protocol overview - [01-protocol/00-protocol-overview.md](01-protocol/00-protocol-overview.md)
-
-<a id="ref-2"></a>[2] Identifiers and namespaces - [01-protocol/01-identifiers-and-namespaces.md](01-protocol/01-identifiers-and-namespaces.md)
-
-<a id="ref-3"></a>[3] Object model - [01-protocol/02-object-model.md](01-protocol/02-object-model.md)
-
-<a id="ref-4"></a>[4] Serialization and envelopes - [01-protocol/03-serialization-and-envelopes.md](01-protocol/03-serialization-and-envelopes.md)
-
-<a id="ref-5"></a>[5] Cryptography - [01-protocol/04-cryptography.md](01-protocol/04-cryptography.md)
-
-<a id="ref-6"></a>[6] Keys and identity - [01-protocol/05-keys-and-identity.md](01-protocol/05-keys-and-identity.md)
-
-<a id="ref-7"></a>[7] Access control model - [01-protocol/06-access-control-model.md](01-protocol/06-access-control-model.md)
-
-<a id="ref-8"></a>[8] Sync and consistency - [01-protocol/07-sync-and-consistency.md](01-protocol/07-sync-and-consistency.md)
-
-<a id="ref-9"></a>[9] Network transport requirements - [01-protocol/08-network-transport-requirements.md](01-protocol/08-network-transport-requirements.md)
-
-<a id="ref-10"></a>[10] Errors and failure modes - [01-protocol/09-errors-and-failure-modes.md](01-protocol/09-errors-and-failure-modes.md)
-
-<a id="ref-11"></a>[11] DoS guard and client puzzles - [01-protocol/11-dos-guard-and-client-puzzles.md](01-protocol/11-dos-guard-and-client-puzzles.md)
-
-<br>
-
-**Architecture references**
-
-<a id="ref-12"></a>[12] Managers overview - [02-architecture/managers/00-managers-overview.md](02-architecture/managers/00-managers-overview.md)
-
-<a id="ref-13"></a>[13] Config Manager - [02-architecture/managers/01-config-manager.md](02-architecture/managers/01-config-manager.md)
-
-<a id="ref-14"></a>[14] Storage Manager - [02-architecture/managers/02-storage-manager.md](02-architecture/managers/02-storage-manager.md)
-
-<a id="ref-15"></a>[15] Key Manager - [02-architecture/managers/03-key-manager.md](02-architecture/managers/03-key-manager.md)
-
-<a id="ref-16"></a>[16] Auth Manager - [02-architecture/managers/04-auth-manager.md](02-architecture/managers/04-auth-manager.md)
-
-<a id="ref-17"></a>[17] Schema Manager - [02-architecture/managers/05-schema-manager.md](02-architecture/managers/05-schema-manager.md)
-
-<a id="ref-18"></a>[18] ACL Manager - [02-architecture/managers/06-acl-manager.md](02-architecture/managers/06-acl-manager.md)
-
-<a id="ref-19"></a>[19] Graph Manager - [02-architecture/managers/07-graph-manager.md](02-architecture/managers/07-graph-manager.md)
-
-<a id="ref-20"></a>[20] App Manager - [02-architecture/managers/08-app-manager.md](02-architecture/managers/08-app-manager.md)
-
-<a id="ref-21"></a>[21] State Manager - [02-architecture/managers/09-state-manager.md](02-architecture/managers/09-state-manager.md)
-
-<a id="ref-22"></a>[22] Network Manager - [02-architecture/managers/10-network-manager.md](02-architecture/managers/10-network-manager.md)
-
-<a id="ref-23"></a>[23] Event Manager - [02-architecture/managers/11-event-manager.md](02-architecture/managers/11-event-manager.md)
-
-<a id="ref-24"></a>[24] Log Manager - [02-architecture/managers/12-log-manager.md](02-architecture/managers/12-log-manager.md)
-
-<a id="ref-25"></a>[25] Health Manager - [02-architecture/managers/13-health-manager.md](02-architecture/managers/13-health-manager.md)
-
-<a id="ref-26"></a>[26] DoS Guard Manager - [02-architecture/managers/14-dos-guard-manager.md](02-architecture/managers/14-dos-guard-manager.md)
