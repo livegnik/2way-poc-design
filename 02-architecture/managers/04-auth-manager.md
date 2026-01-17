@@ -5,7 +5,7 @@
 
 ## 1. Purpose and scope
 
-The Auth Manager is the local authentication authority for the 2WAY backend. It resolves frontend-originated HTTP and WebSocket requests into authenticated backend identities and produces the identity-binding inputs required to construct a valid `OperationContext`.
+The Auth Manager is the authoritative component responsible for the scope described below. The Auth Manager is the local authentication authority for the 2WAY backend. It resolves frontend-originated HTTP and WebSocket requests into authenticated backend identities and produces the identity-binding inputs required to construct a valid `OperationContext`.
 
 Its scope ends at the local entrypoints. It never authenticates remote peers, handles sync provenance, or performs cryptographic verification of envelopes, and it never overlaps with authorization, graph mutation, or session lifecycle management. Those responsibilities belong to other managers.
 
@@ -52,18 +52,18 @@ Across all relevant components and execution contexts defined in this file, the 
 
 * Authentication is strictly separated from authorization in accordance with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authentication never implies permission, visibility, or ownership.
-* Auth Manager never mutates backend graph state.
-* Auth Manager never accesses private keys or performs cryptographic operations, keeping cryptographic enforcement with the actors defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
-* Auth Manager never trusts client-supplied identity claims, consistent with the prohibition on inferred identity in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* [Auth Manager](04-auth-manager.md) never mutates backend graph state.
+* [Auth Manager](04-auth-manager.md) never accesses private keys or performs cryptographic operations, keeping cryptographic enforcement with the actors defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* [Auth Manager](04-auth-manager.md) never trusts client-supplied identity claims, consistent with the prohibition on inferred identity in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Every request produces exactly one explicit authentication outcome.
 * Authentication results are deterministic given identical session store state.
-* `OperationContext.requester_identity_id` is bound exclusively by Auth Manager so that the HTTP layer can provide the context described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Envelope-declared authorship is never overridden or inferred by Auth Manager, matching the authorship guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* `[OperationContext](../services-and-apps/05-operation-context.md).requester_identity_id` is bound exclusively by [Auth Manager](04-auth-manager.md) so that the HTTP layer can provide the context described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* Envelope-declared authorship is never overridden or inferred by [Auth Manager](04-auth-manager.md), matching the authorship guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * All guarantees hold regardless of caller, execution context, or input source.
 
 ## 4. Authentication lifecycle and execution phases
 
-Auth Manager operates as a pure execution engine with explicit phases. These phases are derived from legacy architecture flows and remain valid.
+[Auth Manager](04-auth-manager.md) operates as a pure execution engine with explicit phases. These phases are derived from legacy architecture flows and remain valid.
 
 ### 4.1 Input acquisition
 
@@ -115,7 +115,7 @@ All inputs are untrusted.
 
 ### 5.2 Outputs
 
-Auth Manager produces an authentication result containing:
+[Auth Manager](04-auth-manager.md) produces an authentication result containing:
 
 * `requester_identity_id`, integer or null.
 * Authentication state, authenticated, unauthenticated, or rejected.
@@ -124,11 +124,11 @@ Auth Manager produces an authentication result containing:
 
 ### 5.3 OperationContext construction requirements
 
-The interface layer MUST construct an [OperationContext](../services-and-apps/05-operation-context.md) only after Auth Manager success, matching the lifecycle defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+The interface layer MUST construct an [OperationContext](../services-and-apps/05-operation-context.md) only after [Auth Manager](04-auth-manager.md) success, matching the lifecycle defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
 Requirements:
 
-* `requester_identity_id` set exactly as produced by Auth Manager.
+* `requester_identity_id` set exactly as produced by [Auth Manager](04-auth-manager.md).
 * `app_id` supplied from trusted routing logic.
 * `is_remote` set to false, reflecting the local submission posture in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * `trace_id` generated by the interface layer.
@@ -146,11 +146,11 @@ Requests lacking sufficient metadata to build a valid [OperationContext](../serv
 * Each session maps to exactly one frontend user.
 * Each frontend user maps to exactly one backend identity.
 
-Auth Manager does not cache session resolutions.
+[Auth Manager](04-auth-manager.md) does not cache session resolutions.
 
 ### 6.2 Validation requirements
 
-For authenticated endpoints, Auth Manager validates:
+For authenticated endpoints, [Auth Manager](04-auth-manager.md) validates:
 
 * Token presence.
 * Token format.
@@ -206,12 +206,12 @@ Trust boundary:
 
 ### 8.3 Storage access
 
-* Auth Manager reads frontend session and user records through approved interfaces.
-* Auth Manager never accesses backend graph tables or raw SQLite connections.
+* [Auth Manager](04-auth-manager.md) reads frontend session and user records through approved interfaces.
+* [Auth Manager](04-auth-manager.md) never accesses backend graph tables or raw SQLite connections.
 
 ### 8.4 Downstream managers
 
-* Identity binding flows only through `OperationContext`.
+* Identity binding flows only through `[OperationContext](../services-and-apps/05-operation-context.md)`.
 * [Graph Manager](07-graph-manager.md) enforces authorship and ownership independently per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * [ACL Manager](06-acl-manager.md) performs all authorization checks regardless of authentication outcome per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -264,9 +264,9 @@ These categories map to the canonical classification ordering in [01-protocol/09
 ### 10.3 Auditability
 
 * Authentication and admin gating failures are observable via [Log Manager](12-log-manager.md).
-* Auth Manager does not emit graph objects.
+* [Auth Manager](04-auth-manager.md) does not emit graph objects.
 
 ### 10.4 Local-only scope
 
-* Auth Manager never processes remote traffic.
+* [Auth Manager](04-auth-manager.md) never processes remote traffic.
 * Remote identities are introduced exclusively by [Network Manager](10-network-manager.md) and [State Manager](09-state-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).

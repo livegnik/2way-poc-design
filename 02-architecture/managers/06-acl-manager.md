@@ -6,11 +6,9 @@
 
 ## 1. Purpose and scope
 
-The ACL Manager is the sole authority for access control decisions over graph objects within the 2WAY system, implementing the normative behaviors defined in `01-protocol/06-access-control-model.md` and the pipeline positioning described in `01-protocol/00-protocol-overview.md`. It determines whether a requester may read or mutate graph state based on identity, app context, schema-defined defaults, ownership rules, group and relationship constraints, object-level ACL overrides, execution context, and sync constraints.
+The ACL Manager is the authoritative component responsible for the scope described below. The ACL Manager is the sole authority for access control decisions over graph objects within the 2WAY system, implementing the normative behaviors defined in `01-protocol/06-access-control-model.md` and the pipeline positioning described in `01-protocol/00-protocol-overview.md`. It determines whether a requester may read or mutate graph state based on identity, app context, schema-defined defaults, ownership rules, group and relationship constraints, object-level ACL overrides, execution context, and sync constraints.
 
-This specification defines the responsibilities, boundaries, internal engines, execution phases, invariants, guarantees, inputs, outputs, and failure behavior of the ACL Manager.
-
-This specification defines authorization logic only. It does not define authentication, identity verification, graph mutation semantics, persistence, sync selection, transport behavior, encryption, signature verification, or logging implementation. Those concerns are handled by other protocol specifications such as [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+This specification defines the responsibilities, boundaries, internal engines, execution phases, invariants, guarantees, inputs, outputs, and failure behavior of the [ACL Manager](06-acl-manager.md). This specification defines authorization logic only. It does not define authentication, identity verification, graph mutation semantics, persistence, sync selection, transport behavior, encryption, signature verification, or logging implementation. Those concerns are handled by other protocol specifications such as [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 This specification consumes the protocol contracts defined in:
 
@@ -35,7 +33,7 @@ This specification is responsible for the following:
   * Local frontend requests.
   * Backend system services.
   * Backend app extension services.
-  * State Manager driven remote sync application.
+  * [State Manager](09-state-manager.md) driven remote sync application.
 * Evaluating authorization using only:
   * Identity context.
   * App context.
@@ -65,7 +63,7 @@ This specification does not cover the following:
 
 Across all relevant components, boundaries, and contexts defined in this file, the following invariants and guarantees hold:
 
-* All access control decisions occur exclusively through the ACL Manager, preserving the single-authority requirement in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* All access control decisions occur exclusively through the [ACL Manager](06-acl-manager.md), preserving the single-authority requirement in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * No other manager, service, or app may implement independent authorization logic, in accordance with the trust boundaries in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authorization decisions are deterministic for identical inputs and identical graph state, mirroring [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authorization decisions rely solely on:
@@ -82,7 +80,7 @@ Across all relevant components, boundaries, and contexts defined in this file, t
 
 ## 4. Internal structure and engines
 
-The ACL Manager is internally structured as a set of deterministic engines executed in a strict order. These engines are logical components and do not imply separate processes or threads.
+The [ACL Manager](06-acl-manager.md) is internally structured as a set of deterministic engines executed in a strict order. These engines are logical components and do not imply separate processes or threads.
 
 ### 4.1 ACL Evaluation Engine
 
@@ -120,7 +118,7 @@ An internal, optional cache used to accelerate repeated authorization decisions.
 
 ### 5.1 Inputs
 
-The ACL Manager consumes the following inputs after the structural validation, signature verification, and schema validation stages described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+The [ACL Manager](06-acl-manager.md) consumes the following inputs after the structural validation, signature verification, and schema validation stages described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 #### OperationContext
 
@@ -157,7 +155,7 @@ Only locally persisted and authorized data sources listed in [01-protocol/06-acc
 
 #### Policy material
 
-* Compiled schema metadata supplied by Schema Manager.
+* Compiled schema metadata supplied by [Schema Manager](05-schema-manager.md).
 * Schema-defined default ACL rules.
 * Optional object-level ACL overrides attached to the Parent.
 
@@ -165,14 +163,14 @@ Overrides are stored using the ACL representation defined in [01-protocol/02-obj
 
 ### 5.2 Outputs
 
-The ACL Manager returns:
+The [ACL Manager](06-acl-manager.md) returns:
 
 * A binary authorization decision, allow or deny.
 * A stable rejection category suitable for logging and audit.
 
 Rejection categories map deterministically to the protocol errors in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) (for example `ERR_AUTH_ACL_DENIED`), ensuring consistent telemetry across managers.
 
-The ACL Manager does not emit events and does not mutate state, matching the side-effect restrictions in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+The [ACL Manager](06-acl-manager.md) does not emit events and does not mutate state, matching the side-effect restrictions in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 6. Evaluation order and execution model
 
@@ -240,7 +238,7 @@ Schema may declare graph-derived authorization constraints, including those enum
 * Degree-of-separation limits.
 * Trust or rating thresholds.
 
-The ACL Manager evaluates these constraints using only local graph state. Unauthorized graph reads are not permitted during evaluation. If required state cannot be resolved safely, access is denied, matching the fail-closed rule in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+The [ACL Manager](06-acl-manager.md) evaluates these constraints using only local graph state. Unauthorized graph reads are not permitted during evaluation. If required state cannot be resolved safely, access is denied, matching the fail-closed rule in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 12. Local and remote execution constraints
 
@@ -261,7 +259,7 @@ For remote execution during sync application, inside the envelope pipeline defin
 
 * Remote operations must not rewrite local history; rewrite attempts map to `ERR_SYNC_REWRITE_ATTEMPT` in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Remote operations must not mutate objects owned by local identities unless explicitly permitted, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Remote operations must respect sync domain rules enforced by State Manager, including per-domain acceptance gates.
+* Remote operations must respect sync domain rules enforced by [State Manager](09-state-manager.md), including per-domain acceptance gates.
 * Remote operations must not access objects outside the permitted app and domain.
 
 Any violation results in denial regardless of ACL content, and refusal reasons map to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
@@ -270,7 +268,7 @@ Any violation results in denial regardless of ACL content, and refusal reasons m
 
 ### 13.1 Allowed behavior
 
-The ACL Manager may:
+The [ACL Manager](06-acl-manager.md) may:
 
 * Cache compiled ACL data and recent decisions, provided cache hits never contradict the evaluation rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Query group membership and relationships through authorized interfaces exposed by [Graph Manager](07-graph-manager.md), retaining the manager boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
@@ -278,29 +276,29 @@ The ACL Manager may:
 
 ### 13.2 Forbidden behavior
 
-The ACL Manager must not:
+The [ACL Manager](06-acl-manager.md) must not:
 
 * Access the database directly, which would bypass [Graph Manager](07-graph-manager.md) and violate [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Mutate graph state, preserving the write-path exclusivity defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Perform network communication, so transport trust boundaries in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) remain intact.
 * Authenticate identities, which is governed by [Auth Manager](04-auth-manager.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Infer permissions from transport metadata, which is explicitly forbidden in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Bypass Schema Manager, Graph Manager, or State Manager.
+* Bypass [Schema Manager](05-schema-manager.md), [Graph Manager](07-graph-manager.md), or [State Manager](09-state-manager.md).
 * Grant access based on incomplete or implicit data, ensuring fail-closed behavior per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 14. Manager interactions
 
 ### 14.1 Graph Manager
 
-Graph Manager invokes ACL Manager for every mutation and restricted read, exactly as depicted in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+[Graph Manager](07-graph-manager.md) invokes [ACL Manager](06-acl-manager.md) for every mutation and restricted read, exactly as depicted in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
-The ACL Manager must return a decision before any write occurs to preserve the envelope validation order established in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+The [ACL Manager](06-acl-manager.md) must return a decision before any write occurs to preserve the envelope validation order established in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 14.2 Schema Manager
 
 [Schema Manager](05-schema-manager.md) provides authoritative schema metadata compiled from the object model described in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
-ACL Manager treats schema metadata as final and immutable for the duration of any evaluation.
+[ACL Manager](06-acl-manager.md) treats schema metadata as final and immutable for the duration of any evaluation.
 
 ### 14.3 Auth Manager and App Manager
 
@@ -310,9 +308,9 @@ If required context is missing, access is denied because the protocol forbids su
 
 ### 14.4 State Manager
 
-State Manager supplies sync domain and execution context per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+[State Manager](09-state-manager.md) supplies sync domain and execution context per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
-ACL Manager enforces remote constraints accordingly and denies access if State Manager inputs cannot be validated.
+[ACL Manager](06-acl-manager.md) enforces remote constraints accordingly and denies access if [State Manager](09-state-manager.md) inputs cannot be validated.
 
 ## 15. Failure and rejection behavior
 
@@ -347,6 +345,6 @@ If internal evaluation fails:
 
 ## 16. Readiness and liveness guarantees
 
-* ACL Manager is considered ready once schema metadata is loaded, mirroring the readiness expectations in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* ACL Manager has no long-running state.
-* ACL Manager failure results in fail-closed behavior across the system, ensuring the guarantees described in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* [ACL Manager](06-acl-manager.md) is considered ready once schema metadata is loaded, mirroring the readiness expectations in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* [ACL Manager](06-acl-manager.md) has no long-running state.
+* [ACL Manager](06-acl-manager.md) failure results in fail-closed behavior across the system, ensuring the guarantees described in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).

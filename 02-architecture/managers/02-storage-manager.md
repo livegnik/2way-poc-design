@@ -6,13 +6,9 @@
 
 ## 1. Purpose and scope
 
-Storage Manager is the sole authority for durable persistence in the 2WAY backend. It owns the SQLite database lifecycle, schema materialization, per-app table provisioning, transactional boundaries, and persistence primitives consumed by all other managers and services.
+The Storage Manager is the authoritative component responsible for the scope described below. Storage Manager is the sole authority for durable persistence in the 2WAY backend. It owns the SQLite database lifecycle, schema materialization, per-app table provisioning, transactional boundaries, and persistence primitives consumed by all other managers and services.
 
-This specification defines the complete responsibilities, internal structure, invariants, APIs, and failure posture of Storage Manager. It is an implementation-facing design specification. It does not define higher-level graph semantics, ACL logic, schema meaning, sync policy, or network behavior, except where storage guarantees are required to support them.
-
-Storage Manager is a passive subsystem. It never interprets protocol meaning. It persists state exactly as instructed by higher-level managers defined in [01-component-model.md](../01-component-model.md) and guarantees durability, ordering, isolation, and integrity.
-
-Storage Manager enforces the canonical data and sequencing rules defined by the protocol corpus; those references are listed explicitly below.
+This specification defines the complete responsibilities, internal structure, invariants, APIs, and failure posture of [Storage Manager](02-storage-manager.md). It is an implementation-facing design specification. It does not define higher-level graph semantics, ACL logic, schema meaning, sync policy, or network behavior, except where storage guarantees are required to support them. [Storage Manager](02-storage-manager.md) is a passive subsystem. It never interprets protocol meaning. It persists state exactly as instructed by higher-level managers defined in [01-component-model.md](../01-component-model.md) and guarantees durability, ordering, isolation, and integrity. [Storage Manager](02-storage-manager.md) enforces the canonical data and sequencing rules defined by the protocol corpus; those references are listed explicitly below.
 
 This specification consumes the protocol contracts defined in:
 
@@ -66,8 +62,8 @@ Across all components and contexts defined in this file, the following invariant
 * `global_seq` is strictly monotonic and never reused in accordance with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * `domain_seq` and sync_state never advance when an operation fails, satisfying Section 3 of [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Graph rows are append only and never deleted, preserving the constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Storage Manager never interprets semantic meaning.
-* No component bypasses Storage Manager for persistence.
+* [Storage Manager](02-storage-manager.md) never interprets semantic meaning.
+* No component bypasses [Storage Manager](02-storage-manager.md) for persistence.
 * Failed writes leave no partial state or sequence movement, aligning with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Startup either completes fully or aborts entirely, honoring the fail-closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Corruption is detected and causes fail closed behavior.
@@ -76,7 +72,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 ## 4. Internal structure
 
-Storage Manager is internally divided into explicit engines. These engines are required for correctness and clarity.
+[Storage Manager](02-storage-manager.md) is internally divided into explicit engines. These engines are required for correctness and clarity.
 
 ### 4.1 Storage Engine
 
@@ -110,7 +106,7 @@ The Sequence Engine owns:
 * Persistence of per-(peer, sync_domain) `domain_seq` rows that track the highest accepted `global_seq`, as required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Persistence of peer `sync_state`, reflecting the exact ordering guarantees described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
-It does not decide when sequences advance. It only persists values supplied by Graph Manager or State Manager.
+It does not decide when sequences advance. It only persists values supplied by [Graph Manager](07-graph-manager.md) or [State Manager](09-state-manager.md).
 
 ### 4.4 Maintenance Engine
 
@@ -132,7 +128,7 @@ It never runs automatically without coordination.
 * WAL mode is mandatory.
 * Foreign keys are disabled at SQLite level.
 * Busy timeout is enforced.
-* Only Storage Manager holds the connection.
+* Only [Storage Manager](02-storage-manager.md) holds the connection.
 
 Failure to apply required pragmas aborts startup.
 
@@ -153,7 +149,7 @@ These tables are durable system state. Some are caches. Authority remains in the
 
 ### 5.3 Per-app tables
 
-For each registered app, Storage Manager ensures the existence of the following tables:
+For each registered app, [Storage Manager](02-storage-manager.md) ensures the existence of the following tables:
 
 * app_N_type
 * app_N_parent
@@ -166,7 +162,7 @@ All tables include `app_id` explicitly. All graph rows include `global_seq` and 
 
 No per-app table is dropped automatically.
 
-These per-app tables correspond to the canonical Parent, Attribute, Edge, and Rating object categories in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md). ACL structures are persisted by composing Parent and Attribute rows per Section 10 of that same document; Storage Manager never introduces a dedicated ACL table.
+These per-app tables correspond to the canonical Parent, Attribute, Edge, and Rating object categories in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md). ACL structures are persisted by composing Parent and Attribute rows per Section 10 of that same document; [Storage Manager](02-storage-manager.md) never introduces a dedicated ACL table.
 
 Each per-app table stores the immutable metadata fields described in Section 5.1 of [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`). Those fields are server assigned and never exposed for direct mutation, consistent with the operation constraints in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
@@ -186,8 +182,8 @@ Indexes are created idempotently.
 
 Startup proceeds as follows:
 
-1. Config Manager resolves database path.
-2. Storage Manager opens SQLite connection.
+1. [Config Manager](01-config-manager.md) resolves database path.
+2. [Storage Manager](02-storage-manager.md) opens SQLite connection.
 3. Pragmas are applied.
 4. Bootstrap transaction begins.
 5. Global tables are created if missing.
@@ -196,7 +192,7 @@ Startup proceeds as follows:
 8. Apps are enumerated.
 9. Per-app schemas are ensured.
 10. Bootstrap transaction commits.
-11. Storage Manager becomes available.
+11. [Storage Manager](02-storage-manager.md) becomes available.
 
 Any failure aborts startup.
 
@@ -213,7 +209,7 @@ Partial shutdown is forbidden.
 
 ## 8. APIs and helper contracts
 
-Storage Manager exposes typed helpers only.
+[Storage Manager](02-storage-manager.md) exposes typed helpers only.
 
 These helpers mirror the operation categories defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and operate exclusively on the canonical graph objects from [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
@@ -266,7 +262,7 @@ Transaction helpers guarantee that the entire envelope defined in [01-protocol/0
 * Busy timeouts are enforced.
 * Starvation is prevented by early locking.
 
-Storage Manager never spins or retries silently.
+[Storage Manager](02-storage-manager.md) never spins or retries silently.
 
 ## 10. Schema evolution and migrations
 
@@ -280,7 +276,7 @@ Migrations may add columns or tables only if they preserve the invariants define
 
 ## 11. Observability and diagnostics
 
-Storage Manager exposes:
+[Storage Manager](02-storage-manager.md) exposes:
 
 * database size
 * WAL size
@@ -296,13 +292,13 @@ Diagnostics never expose raw rows.
 * Database file permissions are restricted.
 * All SQL is parameterized.
 * No raw SQL is exposed.
-* Storage Manager assumes callers validated authorization.
+* [Storage Manager](02-storage-manager.md) assumes callers validated authorization.
 * Binary payloads remain opaque.
 * No cryptographic operations occur here.
 
 ## 13. Failure posture and recovery
 
-Storage Manager fails closed on:
+[Storage Manager](02-storage-manager.md) fails closed on:
 
 * open failure
 * corruption
@@ -316,10 +312,10 @@ Recovery requires operator intervention. Automatic repair is forbidden. Failures
 
 ### 14.1 Allowed
 
-* Typed persistence via Storage Manager.
+* Typed persistence via [Storage Manager](02-storage-manager.md).
 * Batch inserts coordinated by [Graph Manager](07-graph-manager.md).
 * Maintenance operations during quiescent windows.
-* App schema provisioning via App Manager.
+* App schema provisioning via [App Manager](08-app-manager.md).
 
 ### 14.2 Forbidden
 
@@ -327,5 +323,5 @@ Recovery requires operator intervention. Automatic repair is forbidden. Failures
 * Deleting graph rows.
 * Mutating sync_flags post insert.
 * Fabricating or reusing global_seq.
-* Treating Storage Manager as a queue.
+* Treating [Storage Manager](02-storage-manager.md) as a queue.
 * Silent repair or auto reset of corrupted state.

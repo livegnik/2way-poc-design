@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document specifies the App Manager component. The App Manager is responsible for defining, registering, resolving, and wiring applications within the backend. It establishes applications as first class system entities, assigns them stable identifiers, binds them to cryptographic identities, initializes their storage namespaces, and controls the loading and isolation of backend extension services.
+The App Manager is the authoritative component responsible for the scope described below. This document specifies the App Manager component. The App Manager is responsible for defining, registering, resolving, and wiring applications within the backend. It establishes applications as first class system entities, assigns them stable identifiers, binds them to cryptographic identities, initializes their storage namespaces, and controls the loading and isolation of backend extension services.
 
 This specification applies strictly to backend application lifecycle management and application identity resolution. It defines no frontend behavior, no schemas, no access control rules, no network behavior, and no application domain logic.
 
@@ -64,7 +64,7 @@ Application boundaries enforce the cross object isolation defined by the protoco
 
 ### 4.1 Persistent registry
 
-The App Manager maintains a persistent registry stored in the backend database. Each registry entry includes:
+The [App Manager](08-app-manager.md) maintains a persistent registry stored in the backend database. Each registry entry includes:
 
 * app_id
 * slug
@@ -85,7 +85,7 @@ The following invariants apply to the application registry:
 * app_id values are unique and never reused.
 * Registry entries are append only.
 * Removal or deactivation of an application does not delete graph data.
-* An app_id must not appear in OperationContext instances, schemas, or envelopes until its registry entry exists.
+* An app_id must not appear in [OperationContext](../services-and-apps/05-operation-context.md) instances, schemas, or envelopes until its registry entry exists.
 * Lookup of a non existent app_id is a structural error.
 
 Violation of these invariants is a fatal configuration error. These guarantees restate the declaration-before-use, uniqueness, and isolation rules from [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and ensure that every `app_id` referenced by envelopes in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and by objects in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) refers to a registered application.
@@ -94,7 +94,7 @@ Violation of these invariants is a fatal configuration error. These guarantees r
 
 Each application has a corresponding identity represented in the system graph.
 
-The App Manager ensures:
+The [App Manager](08-app-manager.md) ensures:
 
 * An application identity Parent exists for every registered application.
 * The application identity contains a valid pubkey Attribute.
@@ -108,7 +108,7 @@ Application identities are used for:
 
 * Application scoped ACL evaluation.
 * Authorship attribution in graph operations.
-* Distinguishing user intent from application intent in OperationContext instances.
+* Distinguishing user intent from application intent in [OperationContext](../services-and-apps/05-operation-context.md) instances.
 * App level signing and verification when required by other managers.
 
 Registration is not complete until the identity Parent and pubkey Attribute are persisted.
@@ -117,7 +117,7 @@ Registration is not complete until the identity Parent and pubkey Attribute are 
 
 ### 6.1 Registration
 
-During application registration, the App Manager performs the following actions in strict order:
+During application registration, the [App Manager](08-app-manager.md) performs the following actions in strict order:
 
 * Allocate a new `app_id` per the uniqueness and monotonicity constraints in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Persist the registry entry so declaration-before-use rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) are upheld.
@@ -131,7 +131,7 @@ Registration is idempotent per slug. Re registration of an existing slug must re
 
 ### 6.2 Resolution and lookup
 
-The App Manager provides lookup facilities for:
+The [App Manager](08-app-manager.md) provides lookup facilities for:
 
 * slug to app_id resolution.
 * app_id to slug resolution.
@@ -151,7 +151,7 @@ Backend extension services exist to perform backend only tasks such as indexing,
 
 ### 7.2 Loading and wiring
 
-At backend startup, the App Manager performs the following steps:
+At backend startup, the [App Manager](08-app-manager.md) performs the following steps:
 
 * Discover declared backend extension modules.
 * Resolve each module to a registered application slug.
@@ -180,13 +180,13 @@ The following interactions are explicitly forbidden:
 * Direct key access.
 * Direct network access.
 * Direct inter extension communication.
-* Invocation outside an OperationContext.
+* Invocation outside an [OperationContext](../services-and-apps/05-operation-context.md).
 
 These boundaries preserve the authorization layering rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ### 7.4 Isolation guarantees
 
-The App Manager guarantees:
+The [App Manager](08-app-manager.md) guarantees:
 
 * Extension services cannot access data belonging to other applications without ACL approval.
 * Extension services cannot modify protocol behavior or core manager invariants.
@@ -197,32 +197,32 @@ These guarantees restate the app domain and isolation rules defined in [01-proto
 
 ## 8. OperationContext integration
 
-For any request originating from an application, the App Manager ensures:
+For any request originating from an application, the [App Manager](08-app-manager.md) ensures:
 
-* The correct app_id is attached to the OperationContext.
+* The correct app_id is attached to the [OperationContext](../services-and-apps/05-operation-context.md).
 * The correct application identity is associated with the request.
 * Application impersonation across slugs is impossible.
 
-The App Manager does not construct [OperationContext](../services-and-apps/05-operation-context.md) instances. [OperationContext](../services-and-apps/05-operation-context.md) creation occurs in the HTTP layer per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [04-interfaces/**](../../04-interfaces/). The App Manager validates and enforces correct application binding before the context defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) is consumed by other managers.
+The [App Manager](08-app-manager.md) does not construct [OperationContext](../services-and-apps/05-operation-context.md) instances. [OperationContext](../services-and-apps/05-operation-context.md) creation occurs in the HTTP layer per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [04-interfaces/**](../../04-interfaces/). The [App Manager](08-app-manager.md) validates and enforces correct application binding before the context defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) is consumed by other managers.
 
 ## 9. Startup and shutdown behavior
 
 ### 9.1 Startup ordering
 
-The App Manager must initialize before:
+The [App Manager](08-app-manager.md) must initialize before:
 
 * [Schema Manager](05-schema-manager.md) loads application schemas.
 * [Auth Manager](04-auth-manager.md) resolves application scoped requests.
 * [Graph Manager](07-graph-manager.md) accepts application authored operations.
 
-The App Manager must initialize after:
+The [App Manager](08-app-manager.md) must initialize after:
 
 * [Storage Manager](02-storage-manager.md) is ready.
 * [Key Manager](03-key-manager.md) is ready.
 
 ### 9.2 Shutdown behavior
 
-During shutdown, the App Manager:
+During shutdown, the [App Manager](08-app-manager.md):
 
 * Stops routing requests to backend extension services.
 * Releases references to extension service instances.
@@ -235,17 +235,17 @@ Shutdown must not delete registry entries or application data.
 
 ### 10.1 Inputs
 
-The App Manager consumes:
+The [App Manager](08-app-manager.md) consumes:
 
 * Persistent registry state via [Storage Manager](02-storage-manager.md).
 * Key material via [Key Manager](03-key-manager.md).
 * Configuration data required for startup ordering.
 
-These inputs allow the App Manager to satisfy the identifier guarantees in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and the identity requirements in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+These inputs allow the [App Manager](08-app-manager.md) to satisfy the identifier guarantees in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and the identity requirements in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 
 ### 10.2 Outputs
 
-The App Manager provides:
+The [App Manager](08-app-manager.md) provides:
 
 * app_id resolution to HTTP routing and [Auth Manager](04-auth-manager.md).
 * Backend extension service references to the HTTP layer ([04-interfaces/**](../../04-interfaces/)).
@@ -255,7 +255,7 @@ These outputs satisfy the envelope construction requirements in [01-protocol/03-
 
 ### 10.3 Trust boundaries
 
-The App Manager is trusted to:
+The [App Manager](08-app-manager.md) is trusted to:
 
 * Bind application slugs to identities correctly.
 * Enforce application isolation at wiring boundaries.
@@ -266,7 +266,7 @@ These trust boundaries mirror the authorization posture documented in [01-protoc
 
 ## 11. Failure and rejection behavior
 
-The App Manager must reject or fail when:
+The [App Manager](08-app-manager.md) must reject or fail when:
 
 * An unknown application slug is requested.
 * An app_id is referenced that does not exist in the registry.

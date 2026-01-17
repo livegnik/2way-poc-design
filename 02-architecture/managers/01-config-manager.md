@@ -6,13 +6,9 @@
 
 ## 1. Purpose and scope
 
-This specification defines the authoritative responsibilities, invariants, and interfaces of the Config Manager within the 2WAY backend.
+The Config Manager is the authoritative component responsible for the scope described below. This specification defines the authoritative responsibilities, invariants, and interfaces of the Config Manager within the 2WAY backend.
 
-Config Manager owns configuration ingestion, layering, validation, publication, controlled mutation, and change propagation for all runtime configuration that affects manager and service behavior.
-
-This specification covers configuration sources, precedence rules, storage model, consumer APIs, trust boundaries, startup and shutdown behavior, reload semantics, and fail closed behavior.
-
-This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
+[Config Manager](01-config-manager.md) owns configuration ingestion, layering, validation, publication, controlled mutation, and change propagation for all runtime configuration that affects manager and service behavior. This specification covers configuration sources, precedence rules, storage model, consumer APIs, trust boundaries, startup and shutdown behavior, reload semantics, and fail closed behavior. This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
 
 This specification consumes the protocol contracts defined in:
 
@@ -49,13 +45,13 @@ This specification does not cover the following:
 * Creating, storing, or exporting cryptographic secret material, these are owned by [Key Manager](03-key-manager.md) or a dedicated secret store per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Defining graph schemas or ACL policies for protocol objects, these are owned by [Graph Manager](07-graph-manager.md) and [ACL Manager](06-acl-manager.md) per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Network transport behavior, onion service lifecycle, peer discovery, or message routing, these are owned by [Network Manager](10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Installation flows, admin account creation, or plugin installation, these are owned by Installation and App related components. Config Manager only provides a controlled settings interface used by those components.
+* Installation flows, admin account creation, or plugin installation, these are owned by Installation and App related components. [Config Manager](01-config-manager.md) only provides a controlled settings interface used by those components.
 
 ## 3. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
-* All configuration access is mediated by Config Manager APIs, no other component reads `.env` or `settings` directly.
+* All configuration access is mediated by [Config Manager](01-config-manager.md) APIs, no other component reads `.env` or `settings` directly.
 * No configuration value becomes visible to consumers unless it has passed schema based validation and policy checks.
 * Precedence is deterministic, stable across restarts, and identical for all consumers within a process.
 * Published snapshots are immutable, per namespace, and cannot be mutated by consumers.
@@ -75,7 +71,7 @@ The configuration layer exists to keep node local operational state self describ
 Configuration follows a strict split:
 
 * Values required before the backend can reliably open SQLite or locate key material live in `.env`.
-* All other configuration lives in SQLite in the `settings` table and is accessed only through Config Manager.
+* All other configuration lives in SQLite in the `settings` table and is accessed only through [Config Manager](01-config-manager.md).
 
 ### 4.1 Boot critical configuration in `.env`
 
@@ -96,7 +92,7 @@ PROTOCOL_VERSION=1.0.0
 Rules:
 
 * `.env` is parsed exactly once during startup.
-* After parsing, Config Manager keeps values in memory and no other component reads `.env` directly.
+* After parsing, [Config Manager](01-config-manager.md) keeps values in memory and no other component reads `.env` directly.
 * `.env` does not contain graph identifiers, graph state, or mutable feature flags.
 * `.env` is immutable after startup. Any change requires process restart.
 * `PROTOCOL_VERSION` is validated and published as `node.protocol.version`.
@@ -115,47 +111,47 @@ CREATE TABLE IF NOT EXISTS settings (
 Rules:
 
 * Values are stored as raw text.
-* Config Manager performs type conversion and validation before publishing values.
-* Config Manager is the sole reader and writer of this table. [Storage Manager](02-storage-manager.md) provides the transaction and query primitives, but does not interpret keys.
+* [Config Manager](01-config-manager.md) performs type conversion and validation before publishing values.
+* [Config Manager](01-config-manager.md) is the sole reader and writer of this table. [Storage Manager](02-storage-manager.md) provides the transaction and query primitives, but does not interpret keys.
 * Updates are atomic and recorded as a new committed snapshot with a new `cfg_seq`.
 
 ### 4.3 Namespaces and separation of concerns
 
-Config Manager partitions configuration keys into namespaces. Namespaces determine ownership, access rules, and reload contracts.
+[Config Manager](01-config-manager.md) partitions configuration keys into namespaces. Namespaces determine ownership, access rules, and reload contracts.
 
 Canonical namespaces:
 
 * `node.*` boot and identity of the local runtime environment, sourced from `.env` plus defaults.
-* `storage.*` storage tuning and operational settings, owned by Storage Manager.
-* `graph.*` graph engine operational settings, owned by Graph Manager, excluding graph state.
-* `network.*` network operational settings, owned by Network Manager, excluding keys and secrets.
-* `acl.*` access control operational settings, owned by ACL Manager, excluding graph ACL objects.
-* `log.*` logging thresholds and routing settings, owned by Log Manager.
+* `storage.*` storage tuning and operational settings, owned by [Storage Manager](02-storage-manager.md).
+* `graph.*` graph engine operational settings, owned by [Graph Manager](07-graph-manager.md), excluding graph state.
+* `network.*` network operational settings, owned by [Network Manager](10-network-manager.md), excluding keys and secrets.
+* `acl.*` access control operational settings, owned by [ACL Manager](06-acl-manager.md), excluding graph ACL objects.
+* `log.*` logging thresholds and routing settings, owned by [Log Manager](12-log-manager.md).
 * `dos.*` DoS containment thresholds, puzzle policy, and telemetry directives mandated by [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md), owned by [DoS Guard Manager](14-dos-guard-manager.md).
-* `event.*` event routing and websocket related operational settings, owned by Event Manager.
-* `health.*` health reporting and thresholds, owned by Health Manager.
+* `event.*` event routing and websocket related operational settings, owned by [Event Manager](11-event-manager.md).
+* `health.*` health reporting and thresholds, owned by [Health Manager](13-health-manager.md).
 * `app.<app_id>.*` app scoped settings owned by the app backend extension or [App Manager](08-app-manager.md).
 
 Rules:
 
 * Each namespace has a single owning manager or owning app backend.
 * A manager may only request its own namespace snapshot, unless an explicit export contract exists.
-* Frontend code never reads configuration directly. Frontend visible settings are obtained via services which call Config Manager export APIs under [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) filtering.
+* Frontend code never reads configuration directly. Frontend visible settings are obtained via services which call [Config Manager](01-config-manager.md) export APIs under [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) filtering.
 
 ### 4.4 Configuration is not stored in the graph
 
-Config Manager must not store node local operational configuration in the graph.
+[Config Manager](01-config-manager.md) must not store node local operational configuration in the graph.
 
 Reasons:
 
-* Configuration must be readable before OperationContext and graph initialization, otherwise bootstrap can deadlock.
+* Configuration must be readable before [OperationContext](../services-and-apps/05-operation-context.md) and graph initialization, otherwise bootstrap can deadlock.
 * Graph data replicates and is subject to ACL semantics intended for protocol objects, not node local state.
 * Syncing node local host parameters or operational secrets to peers is a confidentiality and integrity violation.
 * Keeping configuration out of the graph preserves protocol authority boundaries and prevents circular dependencies.
 
 ### 4.5 Protocol version tuple
 
-Config Manager is the sole owner of the locally configured protocol version required by [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+[Config Manager](01-config-manager.md) is the sole owner of the locally configured protocol version required by [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
 
 Rules:
 
@@ -166,7 +162,7 @@ Rules:
 
 ## 5. Configuration sources and precedence
 
-Config Manager enforces a deterministic precedence stack:
+[Config Manager](01-config-manager.md) enforces a deterministic precedence stack:
 
 1. Built in defaults compiled with the backend.
 2. `.env` boot configuration, limited to the keys described in section 4.1.
@@ -182,7 +178,7 @@ Rules:
 
 ## 6. Internal engines and lifecycle
 
-Config Manager is implemented as a set of internal engines with strict sequencing.
+[Config Manager](01-config-manager.md) is implemented as a set of internal engines with strict sequencing.
 
 ### 6.1 Internal engines
 
@@ -215,28 +211,28 @@ Startup is fail closed and must be deterministic.
 
 1. Schema Registry Engine registers all built in keys and defaults.
 2. Load Engine reads `.env`. Structural errors halt startup before any other manager initializes.
-3. [Storage Manager](02-storage-manager.md) is invoked to open SQLite. Config Manager ensures the `settings` table exists, then reads all keys.
+3. [Storage Manager](02-storage-manager.md) is invoked to open SQLite. [Config Manager](01-config-manager.md) ensures the `settings` table exists, then reads all keys.
 4. Load Engine merges defaults, `.env`, SQLite, then overrides per precedence.
 5. Validation Engine validates the merged tree, including `node.protocol.version` validation and build compatibility checks.
 6. Snapshot Engine creates the initial snapshot and assigns `cfg_seq`.
-7. Config Manager publishes namespace snapshots to managers during their initialization hooks. The `dos.*` namespace must reach [DoS Guard Manager](14-dos-guard-manager.md) as a single validated snapshot that satisfies the policy contract in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md); if publication fails, DoS Guard Manager must remain in fail-closed mode with no admissions.
+7. [Config Manager](01-config-manager.md) publishes namespace snapshots to managers during their initialization hooks. The `dos.*` namespace must reach [DoS Guard Manager](14-dos-guard-manager.md) as a single validated snapshot that satisfies the policy contract in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md); if publication fails, [DoS Guard Manager](14-dos-guard-manager.md) must remain in fail-closed mode with no admissions.
 8. Each manager must acknowledge acceptance. Failure to acknowledge halts startup. Partial initialization is forbidden.
-9. [Health Manager](13-health-manager.md) is notified that Config Manager is ready only after publication acknowledgements succeed.
+9. [Health Manager](13-health-manager.md) is notified that [Config Manager](01-config-manager.md) is ready only after publication acknowledgements succeed.
 
 ### 6.3 Shutdown behavior
 
-Config Manager shutdown is passive and must not mutate state.
+[Config Manager](01-config-manager.md) shutdown is passive and must not mutate state.
 
 Rules:
 
-* Config Manager does not flush configuration to disk on shutdown, except for in flight updates that have already been committed to SQLite.
-* Config Manager stops accepting update requests once shutdown begins.
-* Config Manager stops delivering change notifications once shutdown begins.
+* [Config Manager](01-config-manager.md) does not flush configuration to disk on shutdown, except for in flight updates that have already been committed to SQLite.
+* [Config Manager](01-config-manager.md) stops accepting update requests once shutdown begins.
+* [Config Manager](01-config-manager.md) stops delivering change notifications once shutdown begins.
 * The last committed snapshot remains available for in process reads until process termination, unless the process is already in teardown.
 
 ### 6.4 Readiness and liveness
 
-Config Manager exposes readiness and liveness signals consumed by [Health Manager](13-health-manager.md).
+[Config Manager](01-config-manager.md) exposes readiness and liveness signals consumed by [Health Manager](13-health-manager.md).
 
 Readiness:
 
@@ -244,12 +240,12 @@ Readiness:
 
 Liveness:
 
-* Live while the Config Manager event loop can service read requests and can serialize update or reload requests.
-* Repeated reload failures do not make Config Manager non live, but they mark it degraded.
+* Live while the [Config Manager](01-config-manager.md) event loop can service read requests and can serialize update or reload requests.
+* Repeated reload failures do not make [Config Manager](01-config-manager.md) non live, but they mark it degraded.
 
 ## 7. Schema registration contract
 
-Config Manager requires explicit registration for all keys that may appear in SQLite, overrides, or exports.
+[Config Manager](01-config-manager.md) requires explicit registration for all keys that may appear in SQLite, overrides, or exports.
 
 ### 7.1 Registration fields
 
@@ -281,7 +277,7 @@ A registration for a key includes:
 
 ## 8. Runtime APIs and consumption model
 
-Config Manager exposes a strict API surface. All call paths that can mutate state require an [OperationContext](../services-and-apps/05-operation-context.md).
+[Config Manager](01-config-manager.md) exposes a strict API surface. All call paths that can mutate state require an [OperationContext](../services-and-apps/05-operation-context.md).
 
 Read APIs:
 
@@ -293,7 +289,7 @@ Read APIs:
   * Rejected if the caller is not the owning manager or not explicitly whitelisted by an export contract.
 * `getAppConfig(app_id)`
   * Returns the immutable snapshot for an app namespace.
-  * Only callable by the owning app backend or App Manager under an app scoped OperationContext.
+  * Only callable by the owning app backend or [App Manager](08-app-manager.md) under an app scoped [OperationContext](../services-and-apps/05-operation-context.md).
 * `getSetting(key, default=None, type_hint=None)`
   * Returns a typed value derived from the current snapshot.
   * Rejects access if key visibility is not permitted for the caller context.
@@ -303,20 +299,20 @@ Read APIs:
 
 Export APIs:
 
-* `exportConfig(OperationContext, selector)`
+* `exportConfig([OperationContext](../services-and-apps/05-operation-context.md), selector)`
   * Returns a filtered and policy safe configuration view for service layer and frontend usage.
   * [ACL Manager](06-acl-manager.md) must authorize export, and the export filter must enforce key level export policies.
 
 Mutation APIs:
 
-* `updateSettings(OperationContext, updates)`
+* `updateSettings([OperationContext](../services-and-apps/05-operation-context.md), updates)`
   * Performs an atomic update of one or more SQLite backed keys.
   * Validates the resulting candidate snapshot before commit.
   * Emits audit log entries and a configuration update event through [Event Manager](11-event-manager.md) on success.
 
 Reload APIs:
 
-* `reload(OperationContext, reason=None)`
+* `reload([OperationContext](../services-and-apps/05-operation-context.md), reason=None)`
   * Re runs the full load and validation pipeline against current sources.
   * Only affects namespaces that are not immutable.
   * Must serialize with any concurrent updates.
@@ -339,24 +335,24 @@ API rules:
 
 * `node.*` is immutable after startup.
 * `node.protocol.version` is immutable and cannot be reloaded or overridden.
-* Keys not marked reloadable may be updated in SQLite, but the update must not take effect until restart if the owning manager declares that behavior. In that case, Config Manager must record the value but must not publish it as active.
+* Keys not marked reloadable may be updated in SQLite, but the update must not take effect until restart if the owning manager declares that behavior. In that case, [Config Manager](01-config-manager.md) must record the value but must not publish it as active.
 
 ### 9.2 Two phase change propagation
 
-Config Manager delivers change notifications in two phases:
+[Config Manager](01-config-manager.md) delivers change notifications in two phases:
 
 * Prepare phase
-  * Config Manager sends the diff for affected keys to the owning managers.
+  * [Config Manager](01-config-manager.md) sends the diff for affected keys to the owning managers.
   * Owning managers may veto the change with a structured rejection reason.
 
 * Commit phase
-  * If no veto occurs, Config Manager commits the new snapshot, increments `cfg_seq`, and publishes the new namespace snapshots.
+  * If no veto occurs, [Config Manager](01-config-manager.md) commits the new snapshot, increments `cfg_seq`, and publishes the new namespace snapshots.
   * Managers receive a commit notification after the snapshot becomes authoritative.
 
 Rules:
 
 * Veto cancels the entire update or reload attempt.
-* On veto, Config Manager must preserve the prior snapshot and must not partially apply any changes.
+* On veto, [Config Manager](01-config-manager.md) must preserve the prior snapshot and must not partially apply any changes.
 * Change notifications must be delivered in deterministic order, based on a fixed manager ordering, and must be consistent across runs.
 * `dos.*` policy updates must be committed atomically so that [DoS Guard Manager](14-dos-guard-manager.md) never observes partial policies, satisfying the policy update rule in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
 
@@ -364,30 +360,30 @@ Rules:
 
 * Concurrent updates and reloads are serialized.
 * A second request is queued behind the active request.
-* The queue is bounded. On overflow, Config Manager rejects requests with a fail closed error.
+* The queue is bounded. On overflow, [Config Manager](01-config-manager.md) rejects requests with a fail closed error.
 
 ### 9.4 Installation and bootstrap mode
 
 Some configuration must be set during initial node setup before normal administrative identity and permissions exist.
 
-Config Manager supports a limited bootstrap mode:
+[Config Manager](01-config-manager.md) supports a limited bootstrap mode:
 
-* Bootstrap writes are permitted only under an OperationContext that carries an explicit bootstrap capability issued and validated by the installation flow.
+* Bootstrap writes are permitted only under an [OperationContext](../services-and-apps/05-operation-context.md) that carries an explicit bootstrap capability issued and validated by the installation flow.
 * Bootstrap writes are limited to an allowlist of keys required to complete initial setup, such as network and privacy operational settings and initial plugin enablement flags.
 * Bootstrap writes are still validated via the schema registry.
 * Bootstrap mode ends when the installation flow marks the node as installed via an installation owned flag. After this, bootstrap capabilities are rejected.
 
-Config Manager does not create admin identities and does not own the installation state machine. It only enforces the capability and key allowlist rules for configuration writes.
+[Config Manager](01-config-manager.md) does not create admin identities and does not own the installation state machine. It only enforces the capability and key allowlist rules for configuration writes.
 
 ## 10. Security, secrecy, and trust boundaries
 
 * `.env`, environment overrides, and SQLite contents are untrusted until validated.
-* Config Manager must treat all loaded text as hostile input, including values sourced locally.
-* Secrets are not stored directly in SQLite settings. Config Manager stores only secret references, such as file paths or handle ids, and enforces secrecy classification to prevent export.
+* [Config Manager](01-config-manager.md) must treat all loaded text as hostile input, including values sourced locally.
+* Secrets are not stored directly in SQLite settings. [Config Manager](01-config-manager.md) stores only secret references, such as file paths or handle ids, and enforces secrecy classification to prevent export.
 * Export must be deny by default. Only keys explicitly marked exportable may be returned by `exportConfig`.
 * Access control for mutation and export flows through [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) authorization checks.
 * Managers and services cannot escalate by editing files. Direct file edits are outside protocol guarantees and must not be relied upon for authorized change paths.
-* Config Manager must log configuration source usage per load and reload attempt, enabling audit and drift detection.
+* [Config Manager](01-config-manager.md) must log configuration source usage per load and reload attempt, enabling audit and drift detection.
 
 ## 11. Failure posture and observability
 
@@ -406,7 +402,7 @@ Runtime failures:
 
 Observability:
 
-* Config Manager exposes metrics for Health Manager consumption:
+* [Config Manager](01-config-manager.md) exposes metrics for [Health Manager](13-health-manager.md) consumption:
   * current `cfg_seq`
   * last reload timestamp and duration
   * count of registered keys and namespaces
@@ -414,7 +410,7 @@ Observability:
   * veto counts by namespace
   * export requests count and denials count
 * Audit logs capture:
-  * who initiated an update or reload via OperationContext
+  * who initiated an update or reload via [OperationContext](../services-and-apps/05-operation-context.md)
   * which keys changed
   * which sources contributed to the new snapshot
   * whether a veto occurred and by whom
@@ -423,10 +419,10 @@ Observability:
 
 ### 12.1 Allowed
 
-* Reading configuration exclusively through Config Manager APIs.
+* Reading configuration exclusively through [Config Manager](01-config-manager.md) APIs.
 * Registering keys and schemas during the permitted registration windows.
 * Performing hot reload only for keys marked reloadable by the owning manager.
-* Updating SQLite backed settings only through authorized backend APIs that invoke Config Manager.
+* Updating SQLite backed settings only through authorized backend APIs that invoke [Config Manager](01-config-manager.md).
 * Exporting configuration only through `exportConfig` with explicit export policies and ACL authorization.
 * Using bootstrap mode only for the limited installation allowlist and only before installation completes.
 

@@ -6,13 +6,9 @@
 
 ## 1. Purpose and scope
 
-This specification defines the Schema Manager within the 2WAY architecture and implements the schema validation stage that `01-protocol/00-protocol-overview.md` requires between structural verification and ACL evaluation.
+The Schema Manager is the authoritative component responsible for the scope described below. This specification defines the Schema Manager within the 2WAY architecture and implements the schema validation stage that `01-protocol/00-protocol-overview.md` requires between structural verification and ACL evaluation.
 
-The Schema Manager is responsible for loading, validating, compiling, indexing, and exposing schema definitions stored in the graph so that the `type_key`/`type_id` constructs defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the sync domains described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) remain authoritative across the node.
-
-Schemas are stored as graph objects per the canonical Parent/Attribute representation in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) so they are ordered, replicated, validated, and audited using the same mechanisms as all other graph state. Any compiled or indexed representation is strictly derived and non-authoritative.
-
-This file specifies Schema Manager behavior only. It does not define schema authoring, schema mutation flows, envelope formats, ACL semantics, sync execution logic, or storage internals beyond what is required to implement this manager correctly.
+The [Schema Manager](05-schema-manager.md) is responsible for loading, validating, compiling, indexing, and exposing schema definitions stored in the graph so that the `type_key`/`type_id` constructs defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the sync domains described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) remain authoritative across the node. Schemas are stored as graph objects per the canonical Parent/Attribute representation in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) so they are ordered, replicated, validated, and audited using the same mechanisms as all other graph state. Any compiled or indexed representation is strictly derived and non-authoritative. This file specifies [Schema Manager](05-schema-manager.md) behavior only. It does not define schema authoring, schema mutation flows, envelope formats, ACL semantics, sync execution logic, or storage internals beyond what is required to implement this manager correctly.
 
 This specification consumes the protocol contracts defined in:
 
@@ -47,7 +43,7 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-* Creating, updating, or deleting schema graph objects, which belong to general graph mutation flows enforced by Graph Manager.
+* Creating, updating, or deleting schema graph objects, which belong to general graph mutation flows enforced by [Graph Manager](07-graph-manager.md).
 * Defining schema lifecycle policy beyond validation and reload semantics; those policies are governed by [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
 * Evaluating ACLs, ownership, or visibility rules, which are defined solely in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Performing graph writes except permitted creation of type_id mappings, and even those must honor the immutability rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
@@ -60,7 +56,7 @@ This specification does not cover the following:
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
-* Schemas stored in the graph are the only authoritative schema source, matching the expectation that Schema Manager supplies the type metadata omitted from [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+* Schemas stored in the graph are the only authoritative schema source, matching the expectation that [Schema Manager](05-schema-manager.md) supplies the type metadata omitted from [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * app_N_type tables are derived indices and are never authoritative.
 * Exactly one schema exists per app_id, preserving the application namespaces defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Multiple schemas or versions for the same app_id are forbidden.
@@ -73,7 +69,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Disagreement between compiled schema state and persisted indices is fatal.
 * Sync domain metadata reflects exactly what is declared in schemas, because domain-scoped sync in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) relies on deterministic membership.
 * Schema validation does not imply authorization; ACL evaluation remains the scope of [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* No manager may bypass Schema Manager for schema knowledge; [Graph Manager](07-graph-manager.md) must honor the validation ordering defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* No manager may bypass [Schema Manager](05-schema-manager.md) for schema knowledge; [Graph Manager](07-graph-manager.md) must honor the validation ordering defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
@@ -81,7 +77,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 ### 4.1 Inputs
 
-The Schema Manager consumes the following inputs:
+The [Schema Manager](05-schema-manager.md) consumes the following inputs:
 
 * Schema Parents and Attributes stored in app_0, encoded using the canonical structures in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * app_id values used to scope schema lookup and type resolution, honoring the namespace rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
@@ -91,7 +87,7 @@ The Schema Manager consumes the following inputs:
 
 ### 4.2 Outputs
 
-The Schema Manager produces the following outputs:
+The [Schema Manager](05-schema-manager.md) produces the following outputs:
 
 * A compiled, in-memory schema registry keyed by app_id.
 * Deterministic mappings from type_key to numeric type_id per app and kind so either identifier permitted by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) can be serviced.
@@ -102,9 +98,9 @@ The Schema Manager produces the following outputs:
 ### 4.3 Trust boundaries
 
 * Schema input from the graph is untrusted, matching the failure posture in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Callers trust the Schema Manager to enforce schema correctness.
-* The Schema Manager does not enforce ACLs and must not be used as an authorization oracle; that responsibility is defined separately in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* The Schema Manager does not trust storage indices without verification.
+* Callers trust the [Schema Manager](05-schema-manager.md) to enforce schema correctness.
+* The [Schema Manager](05-schema-manager.md) does not enforce ACLs and must not be used as an authorization oracle; that responsibility is defined separately in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* The [Schema Manager](05-schema-manager.md) does not trust storage indices without verification.
 
 ## 5. Schema representation and constraints
 
@@ -197,13 +193,13 @@ The Sync Domain Compilation Engine is responsible for:
 
 * Compiling sync domain declarations into efficient structures required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Resolving domain membership to app_ids and type_ids.
-* Exposing domain metadata to State Manager.
+* Exposing domain metadata to [State Manager](09-state-manager.md).
 
 ## 7. Startup and shutdown behavior
 
 ### 7.1 Startup
 
-On startup, the Schema Manager must:
+On startup, the [Schema Manager](05-schema-manager.md) must:
 
 * Initialize internal state.
 * Load all schemas from the graph.
@@ -214,11 +210,11 @@ On startup, the Schema Manager must:
 
 This sequence preserves the validation ordering mandated by [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md), where schema validation must succeed before [Graph Manager](07-graph-manager.md) persists any mutation.
 
-If any step fails, the Schema Manager must fail closed and report degraded health.
+If any step fails, the [Schema Manager](05-schema-manager.md) must fail closed and report degraded health.
 
 ### 7.2 Shutdown
 
-On shutdown, the Schema Manager must:
+On shutdown, the [Schema Manager](05-schema-manager.md) must:
 
 * Reject new schema-dependent requests.
 * Release in-memory structures.
@@ -259,7 +255,7 @@ Automatic or incremental reload is forbidden.
 
 ### 9.2 Creation constraints
 
-The Schema Manager may create missing mappings only if:
+The [Schema Manager](05-schema-manager.md) may create missing mappings only if:
 
 * The app_id exists.
 * The type_key exists in the loaded schema and matches a declaration that callers could reference via `type_key` in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
@@ -304,7 +300,7 @@ No inferred constraints are permitted.
 
 ### 11.1 Domain compilation
 
-The Schema Manager must compile domain configurations such that [State Manager](09-state-manager.md) can resolve the sync invariants required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md):
+The [Schema Manager](05-schema-manager.md) must compile domain configurations such that [State Manager](09-state-manager.md) can resolve the sync invariants required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md):
 
 * domain_name to configuration.
 * configuration to app_ids, parent_type_ids, and attribute_type_ids.
@@ -321,7 +317,7 @@ Domain mode is treated as metadata only. Enforcement is performed by [State Mana
 
 ## 12. Allowed behaviors
 
-The Schema Manager explicitly allows:
+The [Schema Manager](05-schema-manager.md) explicitly allows:
 
 * Multiple apps with independent schemas, matching the isolation rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Deterministic type resolution so operations defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) can choose either identifier form.
@@ -331,7 +327,7 @@ The Schema Manager explicitly allows:
 
 ## 13. Forbidden behaviors
 
-The Schema Manager explicitly forbids:
+The [Schema Manager](05-schema-manager.md) explicitly forbids:
 
 * Multiple schemas per app_id, which would violate [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Runtime mutation of compiled schemas outside explicit reloads.
@@ -347,9 +343,9 @@ The Schema Manager explicitly forbids:
 
 If startup fails:
 
-* The Schema Manager enters failed state.
+* The [Schema Manager](05-schema-manager.md) enters failed state.
 * Schema-dependent operations are rejected.
-* Health Manager must surface the failure.
+* [Health Manager](13-health-manager.md) must surface the failure.
 
 All such failures are reported using the schema error class defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 
@@ -370,8 +366,8 @@ Any detected inconsistency between schema declarations and persisted indices is 
 
 ## 16. Manager interactions
 
-* [Graph Manager](07-graph-manager.md) depends on Schema Manager for validation only, matching the processing order in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* [State Manager](09-state-manager.md) depends on Schema Manager for domain metadata only, consistent with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+* [Graph Manager](07-graph-manager.md) depends on [Schema Manager](05-schema-manager.md) for validation only, matching the processing order in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* [State Manager](09-state-manager.md) depends on [Schema Manager](05-schema-manager.md) for domain metadata only, consistent with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * [Storage Manager](02-storage-manager.md) is used only for type_id persistence and must uphold the immutability constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * [Health Manager](13-health-manager.md) consumes readiness and failure signals so system posture matches [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 

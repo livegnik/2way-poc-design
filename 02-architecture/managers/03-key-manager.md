@@ -6,11 +6,9 @@
 
 ## 1. Purpose and scope
 
-This document defines the Key Manager component in the 2WAY backend. It specifies the authoritative handling of all local private key material and the narrowly scoped cryptographic operations permitted to be performed using those keys.
+The Key Manager is the authoritative component responsible for the scope described below. This document defines the Key Manager component in the 2WAY backend. It specifies the authoritative handling of all local private key material and the narrowly scoped cryptographic operations permitted to be performed using those keys.
 
-Key Manager is responsible for key generation, durable storage, loading, and controlled use of private keys for signing and asymmetric encryption or decryption. It is a security critical manager with strict boundaries. It does not interpret protocol semantics, graph meaning, ACL rules, or sync logic. It performs cryptographic operations only when explicitly instructed by authorized backend components.
-
-This specification defines structure, responsibilities, invariants, lifecycle behavior, failure handling, and interaction contracts required to implement the Key Manager correctly.
+[Key Manager](03-key-manager.md) is responsible for key generation, durable storage, loading, and controlled use of private keys for signing and asymmetric encryption or decryption. It is a security critical manager with strict boundaries. It does not interpret protocol semantics, graph meaning, ACL rules, or sync logic. It performs cryptographic operations only when explicitly instructed by authorized backend components. This specification defines structure, responsibilities, invariants, lifecycle behavior, failure handling, and interaction contracts required to implement the [Key Manager](03-key-manager.md) correctly.
 
 This specification consumes the protocol contracts defined in:
 
@@ -62,14 +60,14 @@ Across all components and contexts defined in this file, the following invariant
 * No implicit scope selection or fallback is permitted.
 * Invalid, missing, or malformed keys cause explicit failure.
 * The node key must exist and be valid before startup completes, satisfying the node identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* The Key Manager never determines authorship or authority and defers to identity semantics defined in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Only the Key Manager may perform signing or decryption using private keys, keeping the private-key boundary enforced by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* The [Key Manager](03-key-manager.md) never determines authorship or authority and defers to identity semantics defined in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Only the [Key Manager](03-key-manager.md) may perform signing or decryption using private keys, keeping the private-key boundary enforced by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
 ## 4. Internal structure
 
-The Key Manager is internally structured into explicit engines. These engines are required for correctness and clarity.
+The [Key Manager](03-key-manager.md) is internally structured into explicit engines. These engines are required for correctness and clarity.
 
 ### 4.1 Key Storage Engine
 
@@ -118,7 +116,7 @@ Caching is an optimization only and must not change semantics.
 
 ## 5. Identity scopes and key classes
 
-Identity scopes are internal addressing constructs used by the Key Manager. They correspond to protocol identities represented as Parents in app_0, as described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), but do not appear on the wire.
+Identity scopes are internal addressing constructs used by the [Key Manager](03-key-manager.md). They correspond to protocol identities represented as Parents in app_0, as described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), but do not appear on the wire.
 
 ### 5.1 Node scope
 
@@ -134,7 +132,7 @@ Identity scopes are internal addressing constructs used by the Key Manager. They
 * One or more identity keypairs may exist locally for a given identity.
 * Identity keys may represent users or system identities.
 * Multiple keys over time are permitted to support rotation.
-* The Key Manager does not choose which identity key is active.
+* The [Key Manager](03-key-manager.md) does not choose which identity key is active.
 
 ### 5.3 App scopes
 
@@ -179,11 +177,11 @@ This directory must never be exposed via any API or static file server.
 
 ### 7.1 Binding contract
 
-* Public keys are derived by the Key Manager.
+* Public keys are derived by the [Key Manager](03-key-manager.md).
 * [Graph Manager](07-graph-manager.md) persists them as public key Attributes as defined in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * A public key binds permanently to one identity Parent.
 
-The Key Manager never writes to the graph directly.
+The [Key Manager](03-key-manager.md) never writes to the graph directly.
 
 ### 7.2 Identity existence requirement
 
@@ -192,8 +190,8 @@ The Key Manager never writes to the graph directly.
 
 ### 7.3 Authority split
 
-* Key Manager owns private keys and derivation.
-* Graph Manager owns persistence and binding.
+* [Key Manager](03-key-manager.md) owns private keys and derivation.
+* [Graph Manager](07-graph-manager.md) owns persistence and binding.
 
 ## 8. Interfaces and interactions
 
@@ -233,7 +231,7 @@ Requests that do not are rejected.
 
 ### 8.4 Authorization boundary
 
-* Only backend managers and services defined in [02-architecture/services-and-apps/**](../services-and-apps/) may call the Key Manager.
+* Only backend managers and services defined in [02-architecture/services-and-apps/**](../services-and-apps/) may call the [Key Manager](03-key-manager.md).
 * Scope and key identifiers are never inferred.
 * Missing or invalid keys cause rejection.
 
@@ -300,11 +298,11 @@ Silent fallback is forbidden.
 
 ### 11.3 Graph and key mismatch
 
-If graph state indicates revocation or mismatch, the Key Manager refuses use of the key when instructed by higher layers such as [Graph Manager](07-graph-manager.md) and [State Manager](09-state-manager.md). It does not repair graph state.
+If graph state indicates revocation or mismatch, the [Key Manager](03-key-manager.md) refuses use of the key when instructed by higher layers such as [Graph Manager](07-graph-manager.md) and [State Manager](09-state-manager.md). It does not repair graph state.
 
 ### 11.4 Rotation and revocation support
 
-The Key Manager supports rotation by:
+The [Key Manager](03-key-manager.md) supports rotation by:
 
 * Creating new keys on request.
 * Retaining old keys.

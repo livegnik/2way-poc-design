@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-The Log Manager is the sole authority for structured logging, audit capture, diagnostics, and notification bridging inside the 2WAY backend. It ingests structured log records from every manager and service, enforces mandatory metadata, normalizes each record, and routes it to the configured sinks (local files, stdout, in-memory buffers, and Event Manager bridges) without allowing any caller to bypass protocol-defined observability rules.
+The Log Manager is the authoritative component responsible for the scope described below. The Log Manager is the sole authority for structured logging, audit capture, diagnostics, and notification bridging inside the 2WAY backend. It ingests structured log records from every manager and service, enforces mandatory metadata, normalizes each record, and routes it to the configured sinks (local files, stdout, in-memory buffers, and Event Manager bridges) without allowing any caller to bypass protocol-defined observability rules.
 
 This specification defines the log record model, responsibility boundaries, ingestion and routing pipeline, configuration surface, retention and query posture, security constraints, and component interactions. It does not define frontend tooling, UI dashboards, or external SIEM integrations.
 
@@ -29,7 +29,7 @@ Those files remain normative for log classification, [OperationContext](../servi
 
 This specification is responsible for the following:
 
-* Owning every backend logging surface. No component writes logs directly to stdout, files, or remote channels. All records pass through Log Manager.
+* Owning every backend logging surface. No component writes logs directly to stdout, files, or remote channels. All records pass through [Log Manager](12-log-manager.md).
 * Enforcing the structured record format defined in this specification and ensuring records include the [OperationContext](../services-and-apps/05-operation-context.md) metadata necessary to map failures back to requesters or peers.
 * Maintaining separate pipelines for audit logs, security logs, operational diagnostics, and development traces without allowing cross-contamination, satisfying the observability requirements in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Applying routing policies from `log.*` configuration and guaranteeing that mandatory sinks (local audit file, stdout) are always populated if enabled so protocol-defined failure visibility ([01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)) is preserved.
@@ -37,28 +37,28 @@ This specification is responsible for the following:
 * Providing bounded retention per sink, including rolling files with integrity markers so audit logs remain verifiable.
 * Guaranteeing that identifier and namespace rejection events mandated by [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) are recorded as structured logs so [Graph Manager](07-graph-manager.md) and [Schema Manager](05-schema-manager.md) satisfy the protocol logging requirement.
 * Exposing structured log query APIs to managers and admin tooling (read-only, rate limited) as described in Section 6.2.
-* Emitting health signals to [Health Manager](13-health-manager.md) and Log Manager self-diagnostics (meta logs) when sinks or pipelines degrade.
+* Emitting health signals to [Health Manager](13-health-manager.md) and [Log Manager](12-log-manager.md) self-diagnostics (meta logs) when sinks or pipelines degrade.
 * Forwarding abuse and alarm conditions to [DoS Guard Manager](14-dos-guard-manager.md) via structured `security.*` records and optional alert events, without shifting admission control responsibilities, and ensuring per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md) that challenge metadata is logged while private puzzle payloads stay out of sinks.
 
 This specification does not cover the following:
 
-* Schema validation, ACL enforcement, or graph writes. Log Manager never mutates the graph and never participates in [OperationContext](../services-and-apps/05-operation-context.md) authorization.
-* Transport-level telemetry for remote peers. [Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) own admission telemetry and challenge state. Log Manager only records what they emit.
-* Event subscription semantics. [Event Manager](11-event-manager.md) owns event delivery. Log Manager only optionally mirrors high-severity records into the event pipeline according to the interaction rules in Section 9.
+* Schema validation, ACL enforcement, or graph writes. [Log Manager](12-log-manager.md) never mutates the graph and never participates in [OperationContext](../services-and-apps/05-operation-context.md) authorization.
+* Transport-level telemetry for remote peers. [Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) own admission telemetry and challenge state. [Log Manager](12-log-manager.md) only records what they emit.
+* Event subscription semantics. [Event Manager](11-event-manager.md) owns event delivery. [Log Manager](12-log-manager.md) only optionally mirrors high-severity records into the event pipeline according to the interaction rules in Section 9.
 * UI dashboards, CLI formatting, or external SIEM connectors. Those integrations sit outside the PoC scope.
 
 ## 3. Invariants and guarantees
 
 Across all relevant contexts defined here, the following invariants hold:
 
-* Log Manager is the only component allowed to emit structured logs, satisfying the manager invariants described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* [Log Manager](12-log-manager.md) is the only component allowed to emit structured logs, satisfying the manager invariants described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * All log records are immutable once accepted. They cannot be edited, deleted, or re-ordered. Retention only expires records based on configured windows.
 * Every record is tagged with [OperationContext](../services-and-apps/05-operation-context.md) identifiers (requester identity, app id, trace id, remote/local flag) when an [OperationContext](../services-and-apps/05-operation-context.md) exists. Internal background records use a generated context token so downstream correlation remains deterministic per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Audit and security logs fail closed. If the primary sink is unavailable, the request that produced the log is rejected unless the emitting manager explicitly overrides per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Log Manager never infers identities or ACL outcomes. It records the precise inputs supplied by the emitting manager, matching [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* [Log Manager](12-log-manager.md) never infers identities or ACL outcomes. It records the precise inputs supplied by the emitting manager, matching [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Logging never mutates graph state and never changes [OperationContext](../services-and-apps/05-operation-context.md) sequencing or ordering, preserving the monotonic guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Records are serialized using ASCII-safe JSON lines with deterministic field ordering so that replay and auditing remain consistent across nodes.
-* Log Manager itself produces meta logs when its sinks degrade, so logging failures are observable via the same pipeline.
+* [Log Manager](12-log-manager.md) itself produces meta logs when its sinks degrade, so logging failures are observable via the same pipeline.
 
 ## 4. Log record classification and structure
 
@@ -71,7 +71,7 @@ Across all relevant contexts defined here, the following invariants hold:
 | `operational.*` | Manager lifecycle events, configuration reloads, resource pressure, queue sizes.                                                                                                           | `component`, `state`, `limits`, `latency_ms`.                                                   | [Health Manager](13-health-manager.md), operators.              |
 | `diagnostic.*`  | Developer-focused traces gated by configuration. Never emitted in production mode unless `log.diagnostic.enabled` is true.                                                                 | `component`, `message`, `trace_id`.                                                             | Development tooling.                    |
 
-App backends may define additional subclasses under their own namespace (`app.<app_id>.audit.*`) but must register them with Log Manager via [App Manager](08-app-manager.md) so routing policies remain explicit.
+App backends may define additional subclasses under their own namespace (`app.<app_id>.audit.*`) but must register them with [Log Manager](12-log-manager.md) via [App Manager](08-app-manager.md) so routing policies remain explicit.
 
 Identifier or namespace violations described in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) must emit `audit.*` (if the rejection corresponds to a user-visible state change) or `operational.*` logs so the mandatory "record the rejection in the local log" requirement is fulfilled regardless of which manager detects the error.
 
@@ -81,7 +81,7 @@ Every record adheres to the format defined in this specification. Fields include
 
 | Field               | Description                                                                                                                                                                                                           |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `record_id`         | 128-bit random identifier assigned by Log Manager.                                                                                                                                                                    |
+| `record_id`         | 128-bit random identifier assigned by [Log Manager](12-log-manager.md).                                                                                                                                                                    |
 | `timestamp`         | Monotonic clock timestamp plus wall clock ISO8601 time, both captured at ingestion.                                                                                                                                   |
 | `class`             | One of the classes listed above.                                                                                                                                                                                      |
 | `component`         | Emitting manager or service name.                                                                                                                                                                                     |
@@ -96,23 +96,23 @@ Records that correspond to committed graph operations must include `global_seq` 
 
 ## 5. Log ingestion and routing lifecycle
 
-Log Manager executes a strict ingestion pipeline. Phases must not be reordered or bypassed.
+[Log Manager](12-log-manager.md) executes a strict ingestion pipeline. Phases must not be reordered or bypassed.
 
 ### 5.1 Submission
 
-* Managers invoke the Log Manager interface with a fully populated record template and their current [OperationContext](../services-and-apps/05-operation-context.md), matching the construction rules in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* Managers invoke the [Log Manager](12-log-manager.md) interface with a fully populated record template and their current [OperationContext](../services-and-apps/05-operation-context.md), matching the construction rules in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Submission occurs via in-process channels. Direct file writes, stdout writes, or network calls are forbidden.
 * The submission API enforces backpressure. If the per-component queue is full, the caller receives an explicit `log_queue_full` error and is responsible for retry semantics defined in their spec.
 
 ### 5.2 Validation
 
-* Log Manager validates the record structure against the schema described in Section 4. Missing required fields, invalid severities, or cross-app leakage cause rejection and synchronous error reporting to the caller.
+* [Log Manager](12-log-manager.md) validates the record structure against the schema described in Section 4. Missing required fields, invalid severities, or cross-app leakage cause rejection and synchronous error reporting to the caller.
 * Validation ensures the [OperationContext](../services-and-apps/05-operation-context.md) belongs to the emitting manager's declared app scope, preventing unauthorized log injection and enforcing the domain rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Validation failures are recorded as `operational.log_validation_failed` entries so the condition is observable.
 
 ### 5.3 Normalization
 
-* Log Manager assigns `record_id`, stamps timestamps, canonicalizes field ordering, and computes `integrity_hash` for sinks that require tamper detection.
+* [Log Manager](12-log-manager.md) assigns `record_id`, stamps timestamps, canonicalizes field ordering, and computes `integrity_hash` for sinks that require tamper detection.
 * Records are written into the in-memory journal ring buffer sized by `log.ingest.journal_size`. The journal provides the source of truth for fan-out to sinks and short-lived query APIs.
 
 ### 5.4 Routing
@@ -148,7 +148,7 @@ All inputs are trusted only if they originate from registered managers or the ba
 
 ## 7. Configuration surface (`log.*`)
 
-Log Manager owns the `log.*` namespace inside [Config Manager](01-config-manager.md). Primary keys include:
+[Log Manager](12-log-manager.md) owns the `log.*` namespace inside [Config Manager](01-config-manager.md). Primary keys include:
 
 | Key                           | Type                                    | Reloadable | Description                                                                     |
 | ----------------------------- | --------------------------------------- | ---------- | ------------------------------------------------------------------------------- |
@@ -164,11 +164,11 @@ Log Manager owns the `log.*` namespace inside [Config Manager](01-config-manager
 | `log.ingest.journal_size`     | Integer                                 | Yes        | Size (in records) of the in-memory ingestion journal.                           |
 | `log.diagnostic.enabled`      | Boolean                                 | Yes        | Allows `diagnostic.*` logs to be emitted.                                       |
 
-Startup fails if mandatory keys are missing or invalid. Reloads follow [Config Manager](01-config-manager.md)'s prepare or commit flow. Log Manager must acknowledge the reload only after verifying new sinks or limits can be applied without data loss.
+Startup fails if mandatory keys are missing or invalid. Reloads follow [Config Manager](01-config-manager.md)'s prepare or commit flow. [Log Manager](12-log-manager.md) must acknowledge the reload only after verifying new sinks or limits can be applied without data loss.
 
 ## 8. Internal engines and data paths
 
-Log Manager is composed of five mandatory internal engines. These engines define strict phase boundaries and must not be collapsed or bypassed.
+[Log Manager](12-log-manager.md) is composed of five mandatory internal engines. These engines define strict phase boundaries and must not be collapsed or bypassed.
 
 ### 8.1 Submission Engine
 
@@ -251,25 +251,25 @@ Constraints:
 
 ## 9. Component interactions
 
-* **[Config Manager](01-config-manager.md)**: Supplies `log.*` snapshots. Log Manager participates in the prepare and commit reload handshake and emits `operational.config_reload_applied` or `operational.config_reload_rejected` logs.
+* **[Config Manager](01-config-manager.md)**: Supplies `log.*` snapshots. [Log Manager](12-log-manager.md) participates in the prepare and commit reload handshake and emits `operational.config_reload_applied` or `operational.config_reload_rejected` logs.
 * **[Event Manager](11-event-manager.md)**: Receives high-priority log-derived events (`system.log_record_created`, `security.log_alert`). [Event Manager](11-event-manager.md) never writes logs. The bridge is one-way.
-* **[Health Manager](13-health-manager.md)**: Consumes readiness and liveness data plus sink metrics (queue depth, flush latency). Log Manager must flag readiness false when mandatory sinks or the journal are unavailable.
-* **[Auth Manager](04-auth-manager.md)**: Provides [OperationContext](../services-and-apps/05-operation-context.md) for HTTP and WebSocket calls. Log Manager relies on this context to tag audit entries.
-* **[Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md)**: Emit security logs for admission decisions per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md). Log Manager ensures those logs are routed to security sinks and optionally to [Event Manager](11-event-manager.md) while preserving the requirement to log challenge metadata but not raw puzzle payloads. [DoS Guard Manager](14-dos-guard-manager.md) may consume derived alert signals, but Log Manager does not initiate mitigations.
-* **[Storage Manager](02-storage-manager.md)**: Not used directly. Log retention occurs via filesystem operations performed by Log Manager itself.
+* **[Health Manager](13-health-manager.md)**: Consumes readiness and liveness data plus sink metrics (queue depth, flush latency). [Log Manager](12-log-manager.md) must flag readiness false when mandatory sinks or the journal are unavailable.
+* **[Auth Manager](04-auth-manager.md)**: Provides [OperationContext](../services-and-apps/05-operation-context.md) for HTTP and WebSocket calls. [Log Manager](12-log-manager.md) relies on this context to tag audit entries.
+* **[Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md)**: Emit security logs for admission decisions per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md). [Log Manager](12-log-manager.md) ensures those logs are routed to security sinks and optionally to [Event Manager](11-event-manager.md) while preserving the requirement to log challenge metadata but not raw puzzle payloads. [DoS Guard Manager](14-dos-guard-manager.md) may consume derived alert signals, but [Log Manager](12-log-manager.md) does not initiate mitigations.
+* **[Storage Manager](02-storage-manager.md)**: Not used directly. Log retention occurs via filesystem operations performed by [Log Manager](12-log-manager.md) itself.
 * **[App Manager](08-app-manager.md)**: Registers app-defined log namespaces and enforces that app extension services can only emit logs through approved channels.
 
 ## 10. Failure handling and rejection behavior
 
-* If validation fails, the caller receives a `log_validation_failed` error and must decide whether to retry or fail their operation, following the rejection precedence rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). Log Manager records the failure as an operational log.
-* If a mandatory sink fails, Log Manager marks readiness false, emits a `critical` log, and instructs the caller to reject the original request if logging is part of the acceptance criteria (for example audit-required flows), preserving the fail-closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* If the in-memory journal is exhausted, Log Manager backpressures new submissions and emits `operational.log_journal_full`. Managers experiencing backpressure must either retry with bounded attempts or fail closed, as required by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If validation fails, the caller receives a `log_validation_failed` error and must decide whether to retry or fail their operation, following the rejection precedence rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). [Log Manager](12-log-manager.md) records the failure as an operational log.
+* If a mandatory sink fails, [Log Manager](12-log-manager.md) marks readiness false, emits a `critical` log, and instructs the caller to reject the original request if logging is part of the acceptance criteria (for example audit-required flows), preserving the fail-closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If the in-memory journal is exhausted, [Log Manager](12-log-manager.md) backpressures new submissions and emits `operational.log_journal_full`. Managers experiencing backpressure must either retry with bounded attempts or fail closed, as required by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Identifier or namespace violations defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) are always captured as `audit.*` or `operational.*` records so that the "record the rejection in the local log" requirement is satisfied regardless of which manager surfaces the error.
-* Log Manager never drops accepted records silently. If a sink cannot be written after acceptance, the entire process halts (readiness false) until the operator intervenes, ensuring the integrity guarantees described in Section 12.
+* [Log Manager](12-log-manager.md) never drops accepted records silently. If a sink cannot be written after acceptance, the entire process halts (readiness false) until the operator intervenes, ensuring the integrity guarantees described in Section 12.
 
 ## 11. Security and trust boundary constraints
 
-* Log Manager treats all submission payloads as untrusted. Validation ensures no caller can inject scripts, binary blobs, or unbounded data into sinks.
+* [Log Manager](12-log-manager.md) treats all submission payloads as untrusted. Validation ensures no caller can inject scripts, binary blobs, or unbounded data into sinks.
 * Security and audit logs are stored in separate files with restricted file permissions so that secrecy guarantees from [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) remain intact.
 * Query APIs enforce ACLs: only admin [OperationContext](../services-and-apps/05-operation-context.md) identities (as defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)) can read security or audit logs. Operational logs may be exposed to broader system operators.
 * Integrity hashes use a key stored in process memory that never leaves [Key Manager](03-key-manager.md) custody boundaries described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md). Operators can export digest snapshots for remote verification.
@@ -278,13 +278,13 @@ Constraints:
 ## 12. Retention, storage, and backpressure
 
 * Rolling files rotate when size exceeds `log.retention.max_file_mb` (default 100 MB) or when age exceeds configured retention days so that historical audit trails remain aligned with the sequencing expectations in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Before deletion, Log Manager writes a manifest containing the file's hash and rotation metadata so integrity proofs remain verifiable.
+* Before deletion, [Log Manager](12-log-manager.md) writes a manifest containing the file's hash and rotation metadata so integrity proofs remain verifiable.
 * In-memory journals store at minimum the last `log.ingest.journal_size` records per class. Older entries are flushed to disk and removed.
 * Backpressure thresholds are configurable per class. Security and audit logs reserve capacity to prevent operational chatter from starving critical records.
 
 ## 13. Observability and telemetry outputs
 
-Log Manager emits the following telemetry:
+[Log Manager](12-log-manager.md) emits the following telemetry:
 
 * Queue depth per component and per class.
 * Sink flush latency histograms (files, stdout, event bridge).
@@ -298,10 +298,10 @@ Telemetry is routed through [Health Manager](13-health-manager.md) and also reco
 
 The following actions violate this specification:
 
-* Bypassing Log Manager by writing directly to stdout, files, or [Event Manager](11-event-manager.md).
+* Bypassing [Log Manager](12-log-manager.md) by writing directly to stdout, files, or [Event Manager](11-event-manager.md).
 * Emitting unstructured text logs or logs without [OperationContext](../services-and-apps/05-operation-context.md) metadata when one exists.
 * Rewriting or deleting accepted log entries prior to retention expiry.
 * Emitting security or audit payloads through [Event Manager](11-event-manager.md) or other broadcasts that bypass ACL-enforced query APIs.
 * Allowing app extensions to register sinks or routing policies without [App Manager](08-app-manager.md) mediation.
 
-Implementations must demonstrate adherence to the ingestion pipeline, sink integrity guarantees, configuration contracts, and fail-closed behavior described above before the Log Manager can be considered complete.
+Implementations must demonstrate adherence to the ingestion pipeline, sink integrity guarantees, configuration contracts, and fail-closed behavior described above before the [Log Manager](12-log-manager.md) can be considered complete.

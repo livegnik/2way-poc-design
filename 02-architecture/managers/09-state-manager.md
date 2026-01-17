@@ -6,11 +6,9 @@
 
 ## 1. Purpose and scope
 
-This document specifies the State Manager component within the 2WAY architecture. The State Manager is responsible for maintaining authoritative local state progression, coordinating accepted graph mutations, enforcing deterministic ordering guarantees, tracking synchronization progress with peers, and ensuring durability and recoverability of all state transitions required by the protocol.
+The State Manager is the authoritative component responsible for the scope described below. This document specifies the State Manager component within the 2WAY architecture. The State Manager is responsible for maintaining authoritative local state progression, coordinating accepted graph mutations, enforcing deterministic ordering guarantees, tracking synchronization progress with peers, and ensuring durability and recoverability of all state transitions required by the protocol.
 
-The State Manager acts as the single coordination layer between Graph Manager, Network Manager, and Storage Manager for all stateful operations that affect protocol-visible progression. It does not author graph mutations, perform cryptographic validation, or apply access control decisions. It ensures that only fully verified, correctly ordered, and durably persisted state transitions are exposed to internal components or propagated to peers.
-
-This specification defines state ownership, internal engines and phases, ordering rules, sync metadata handling, startup and shutdown behavior, failure handling, and explicit trust boundaries. It is an architectural specification, not an implementation.
+The [State Manager](09-state-manager.md) acts as the single coordination layer between [Graph Manager](07-graph-manager.md), [Network Manager](10-network-manager.md), and [Storage Manager](02-storage-manager.md) for all stateful operations that affect protocol-visible progression. It does not author graph mutations, perform cryptographic validation, or apply access control decisions. It ensures that only fully verified, correctly ordered, and durably persisted state transitions are exposed to internal components or propagated to peers. This specification defines state ownership, internal engines and phases, ordering rules, sync metadata handling, startup and shutdown behavior, failure handling, and explicit trust boundaries. It is an architectural specification, not an implementation.
 
 This specification consumes the protocol contracts defined in:
 
@@ -54,11 +52,11 @@ This specification does not cover the following:
 
 Canonical graph state consists of objects defined by the protocol object model in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md), including Parents, Attributes, Edges, Ratings, and ACLs, together with immutable commit metadata such as node-local `global_seq` identifiers, author identity, and domain attribution.
 
-Graph Manager is the sole component permitted to mutate canonical graph state. The State Manager never writes graph objects directly. Instead, it observes commit notifications and persistence confirmations in order to maintain authoritative progression metadata and to gate synchronization behavior.
+[Graph Manager](07-graph-manager.md) is the sole component permitted to mutate canonical graph state. The [State Manager](09-state-manager.md) never writes graph objects directly. Instead, it observes commit notifications and persistence confirmations in order to maintain authoritative progression metadata and to gate synchronization behavior.
 
 ### 3.2 State metadata owned by State Manager
 
-The State Manager owns and persists the following categories of state metadata defined for sync decisions in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md):
+The [State Manager](09-state-manager.md) owns and persists the following categories of state metadata defined for sync decisions in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md):
 
 * Local commit height and commit checkpoints.
 * Per-peer and per-domain sync state.
@@ -71,7 +69,7 @@ This metadata is authoritative and must be consistent with persisted graph state
 
 ### 3.3 Derived and transient structures
 
-The State Manager may maintain derived or transient structures such as:
+The [State Manager](09-state-manager.md) may maintain derived or transient structures such as:
 
 * Per-peer inbound queues.
 * Per-peer outbound backlog indexes.
@@ -87,7 +85,7 @@ All engines operate on graph message envelopes and sync packages defined in [01-
 
 The State Engine is the core coordination engine responsible for:
 
-* Observing commit events from Graph Manager.
+* Observing commit events from [Graph Manager](07-graph-manager.md).
 * Updating local progression metadata.
 * Managing derived state surfaces.
 * Enforcing global invariants.
@@ -124,7 +122,7 @@ The Read Surface Engine exposes strictly read-only views of state metadata to in
 
 ### 5.1 Global ordering guarantees
 
-All committed graph operations are totally ordered by the monotonic, node-local `global_seq` assigned by [Graph Manager](07-graph-manager.md) when applying the envelopes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md). This ordering model is identical to Section 5 of [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). The State Manager observes this order and ensures that:
+All committed graph operations are totally ordered by the monotonic, node-local `global_seq` assigned by [Graph Manager](07-graph-manager.md) when applying the envelopes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md). This ordering model is identical to Section 5 of [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). The [State Manager](09-state-manager.md) observes this order and ensures that:
 
 * No derived state reflects out-of-order commits.
 * No outbound sync package violates this order.
@@ -132,7 +130,7 @@ All committed graph operations are totally ordered by the monotonic, node-local 
 
 ### 5.2 Inbound ordering enforcement
 
-For each peer and domain, the State Manager enforces:
+For each peer and domain, the [State Manager](09-state-manager.md) enforces:
 
 * Strict monotonic sequence advancement.
 * No overlap or replay of previously accepted sequences.
@@ -142,7 +140,7 @@ Any violation results in rejection before [Graph Manager](07-graph-manager.md) i
 
 ### 5.3 Deterministic behavior
 
-Given identical persisted state and identical inputs, the State Manager must always produce identical acceptance or rejection outcomes. No non-deterministic inputs, timestamps, or external state may influence decisions, mirroring the deterministic guarantees mandated in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+Given identical persisted state and identical inputs, the [State Manager](09-state-manager.md) must always produce identical acceptance or rejection outcomes. No non-deterministic inputs, timestamps, or external state may influence decisions, mirroring the deterministic guarantees mandated in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 ## 6. Inbound remote envelope handling
 
@@ -161,7 +159,7 @@ At no point may inbound data bypass any stage, ensuring every envelope honors th
 
 ### 6.2 Operation context construction
 
-For each inbound envelope, the State Manager constructs an [OperationContext](../services-and-apps/05-operation-context.md) (per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)) that includes:
+For each inbound envelope, the [State Manager](09-state-manager.md) constructs an [OperationContext](../services-and-apps/05-operation-context.md) (per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)) that includes:
 
 * Remote origin flag.
 * Peer identity.
@@ -193,17 +191,17 @@ No speculative or uncommitted data may be included.
 
 ### 7.2 Progress advancement
 
-Outbound sync progress advances only after successful handoff to [Network Manager](10-network-manager.md) and confirmation that the package left the State Manager boundary. Transmission failure does not advance progress, preserving the advancement rules defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
+Outbound sync progress advances only after successful handoff to [Network Manager](10-network-manager.md) and confirmation that the package left the [State Manager](09-state-manager.md) boundary. Transmission failure does not advance progress, preserving the advancement rules defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
 ### 7.3 Visibility enforcement
 
-Outbound packages must respect domain visibility and revocation rules described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and the violation codes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). The State Manager must never export data a peer is not eligible to receive.
+Outbound packages must respect domain visibility and revocation rules described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and the violation codes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). The [State Manager](09-state-manager.md) must never export data a peer is not eligible to receive.
 
 ## 8. Persistence and durability
 
 ### 8.1 Persistence contract
 
-The State Manager persists all authoritative metadata via [Storage Manager](02-storage-manager.md). It does not implement its own storage layer and does not bypass transactional boundaries, ensuring that `global_seq`, sync checkpoints, and recovery markers always satisfy the durability rules that [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) assumes.
+The [State Manager](09-state-manager.md) persists all authoritative metadata via [Storage Manager](02-storage-manager.md). It does not implement its own storage layer and does not bypass transactional boundaries, ensuring that `global_seq`, sync checkpoints, and recovery markers always satisfy the durability rules that [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) assumes.
 
 ### 8.2 Atomicity requirements
 
@@ -211,13 +209,13 @@ State metadata updates that depend on graph commits must be atomic with respect 
 
 ### 8.3 No shadow persistence
 
-The State Manager must not maintain shadow copies of authoritative state outside Storage Manager.
+The [State Manager](09-state-manager.md) must not maintain shadow copies of authoritative state outside [Storage Manager](02-storage-manager.md).
 
 ## 9. Startup behavior
 
 ### 9.1 Initialization sequence
 
-On startup, the State Manager performs the following steps in order:
+On startup, the [State Manager](09-state-manager.md) performs the following steps in order:
 
 1. Load persisted metadata from [Storage Manager](02-storage-manager.md).
 2. Query [Graph Manager](07-graph-manager.md) or [Storage Manager](02-storage-manager.md) for highest committed sequence.
@@ -227,7 +225,7 @@ On startup, the State Manager performs the following steps in order:
 
 ### 9.2 Readiness signal
 
-The State Manager exposes readiness only when:
+The [State Manager](09-state-manager.md) exposes readiness only when:
 
 * All metadata is consistent with the invariants in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * No recovery errors are present.
@@ -237,7 +235,7 @@ The State Manager exposes readiness only when:
 
 ### 10.1 Graceful shutdown
 
-On shutdown, the State Manager:
+On shutdown, the [State Manager](09-state-manager.md):
 
 * Flushes any pending metadata updates.
 * Halts admission of new inbound data.
@@ -268,7 +266,7 @@ Any inconsistency between persisted metadata and canonical state results in fata
 
 ### 11.4 Degraded operation
 
-When durability guarantees cannot be met, the State Manager must refuse new state transitions while continuing to serve safe read-only views if possible.
+When durability guarantees cannot be met, the [State Manager](09-state-manager.md) must refuse new state transitions while continuing to serve safe read-only views if possible.
 
 ## 12. State access and exposure
 
@@ -278,11 +276,11 @@ All exposed state views are read-only and reflect only committed, durable state.
 
 ### 12.2 Access restrictions
 
-Only trusted internal components may access State Manager read surfaces. No direct external access is permitted.
+Only trusted internal components may access [State Manager](09-state-manager.md) read surfaces. No direct external access is permitted.
 
 ## 13. Trust boundaries
 
-The State Manager trusts:
+The [State Manager](09-state-manager.md) trusts:
 
 * [Network Manager](10-network-manager.md) for cryptographic verification and peer identity binding, as mandated in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and bounded by the transport guarantees of [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * [Graph Manager](07-graph-manager.md) for validation, authorization, sequencing, and persistence of the canonical objects described in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
@@ -305,13 +303,13 @@ All remote inputs are treated as untrusted until validated.
 * Advancing sync state without successful commit.
 * Guessing or repairing missing metadata.
 * Exposing speculative or partial state.
-* Bypassing Network Manager or Graph Manager.
+* Bypassing [Network Manager](10-network-manager.md) or [Graph Manager](07-graph-manager.md).
 
 ## 16. Invariants and guarantees
 
 Across all components and contexts defined in this file, the following invariants hold:
 
-* Canonical graph mutation occurs only via Graph Manager.
+* Canonical graph mutation occurs only via [Graph Manager](07-graph-manager.md).
 * State metadata is monotonic and authoritative.
 * Sync progression never regresses.
 * All exposed state is derived from committed, durable data.
