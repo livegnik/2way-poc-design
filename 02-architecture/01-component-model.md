@@ -10,7 +10,7 @@ This document defines the backend component model of the 2WAY system as implemen
 
 This document is normative for backend structure and behavior. It does not define APIs, wire formats, schemas, storage layout, or runtime topology except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
 
-This overview references:
+This component model references:
 
 * [01-protocol/**](../01-protocol/)
 * [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
