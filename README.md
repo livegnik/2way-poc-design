@@ -222,4 +222,6 @@ Credit to Martti Malmi (Sirius) for his work on Iris, formerly Identifi, an MIT-
 
 Our projects took different paths over the years, but that early work influenced this line of thinking and deserves explicit acknowledgment.
 
+Credit to Nick Szabo for his long-running work on decentralized systems and social contracts, and his public writing that sustained these ideas, encouraged continued exploration of this problem space well before 2WAY existed. His essay [Trusted Third Parties Are Security Holes](https://nakamotoinstitute.org/library/trusted-third-parties/) is a standout reference for its framing of trust boundaries, and a personal favorite.
+
 ---
