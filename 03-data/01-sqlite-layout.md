@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the complete SQLite storage layout for the 2WAY backend. It specifies database topology, table families, column contracts, sequencing state, and persistence guarantees required to store canonical graph objects and synchronization metadata. It is normative for Storage Manager behavior and is binding for Graph Manager persistence semantics.
+This document defines the complete SQLite storage layout for the 2WAY backend. It specifies database topology, table families, column contracts, sequencing state, and persistence guarantees required to store canonical graph objects and synchronization metadata. It is normative for [Storage Manager](../02-architecture/managers/02-storage-manager.md) behavior and is binding for [Graph Manager](../02-architecture/managers/07-graph-manager.md) persistence semantics.
 
 Storage Manager owns the database lifecycle and is the only component permitted to issue SQL statements. Graph Manager remains the only write path for graph objects. Every accepted envelope results in exactly one committed SQLite transaction, with no partial acceptance, in accordance with the envelope rules defined by the protocol.
 
