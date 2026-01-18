@@ -6,7 +6,16 @@
 
 ## 1. Purpose and scope
 
-This document defines the SQLite storage layout for the 2WAY backend. It is aligned with the protocol object model and the manager boundaries. Storage Manager owns the database lifecycle and is the only component allowed to issue SQL, while Graph Manager remains the only write path for graph objects. Every accepted envelope maps to exactly one committed SQLite transaction.
+This document defines the SQLite storage layout for the 2WAY backend. It is aligned with the protocol object model and the manager boundaries. Storage Manager owns the database lifecycle and is the only component allowed to issue SQL, while Graph Manager remains the only write path for graph objects. Every accepted envelope maps to exactly one committed SQLite transaction as required by the envelope rules in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
+
+This specification consumes the protocol contracts defined in:
+
+- [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
+- [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
+- [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
+- [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
+- [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+- [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -20,7 +29,7 @@ SQLite persistence is append only for graph objects, immutable metadata fields a
 
 ### 4.1 Connection and pragmas
 
-The database path is supplied by Config Manager and opened once by Storage Manager. WAL mode is mandatory, a busy timeout is enforced, and foreign key enforcement is disabled so referential integrity remains a protocol level concern. Failure to apply required pragmas aborts startup. Savepoints are used only for internal composition and never expose partial acceptance to callers.
+The database path is supplied by [Config Manager](../02-architecture/managers/01-config-manager.md) and opened once by [Storage Manager](../02-architecture/managers/02-storage-manager.md). WAL mode is mandatory, a busy timeout is enforced, and foreign key enforcement is disabled so referential integrity remains a protocol level concern defined by the object model in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md). Failure to apply required pragmas aborts startup. Savepoints are used only for internal composition and never expose partial acceptance to callers.
 
 ### 4.2 Global tables
 
@@ -28,36 +37,36 @@ Global tables exist once per database and store system state and sequencing meta
 
 ### 4.3 Per app table families
 
-Every registered application has a dedicated table family named with the `app_N_` prefix where `N` is the numeric app_id. app_0 is reserved for system owned graph data, including identities and schemas. Per app tables are never dropped automatically, and all rows include an explicit `app_id` column even when the table name is scoped.
+Every registered application has a dedicated table family named with the `app_N_` prefix where `N` is the numeric app_id as defined by [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md) and registered by [App Manager](../02-architecture/managers/08-app-manager.md). app_0 is reserved for system owned graph data, including identities and schemas defined in [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md) and managed by [Schema Manager](../02-architecture/managers/05-schema-manager.md). Per app tables are never dropped automatically, and all rows include an explicit `app_id` column even when the table name is scoped.
 
 The per app table family includes `app_N_type`, `app_N_parent`, `app_N_attr`, `app_N_edge`, `app_N_rating`, and `app_N_log`. These tables are append only, and Storage Manager does not expose update or delete helpers for graph rows. Updates to graph rows are limited to value bearing payload columns when the object model permits updates and higher level managers authorize them.
 
 ### 4.4 Common graph columns
 
-Every graph object row stores the immutable metadata fields `app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, and `sync_flags` as defined by the object model. These values are assigned by Graph Manager and Storage Manager and must never be supplied or modified by callers. `global_seq` is strictly monotonic for the local node and is used for sync ordering, while `sync_flags` records sync domain membership and is storage controlled. Object references are stored as explicit identifiers in the same app namespace, and cross app references or unresolved identifiers must be rejected before persistence.
+Every graph object row stores the immutable metadata fields `app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, and `sync_flags` as defined by the object model in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md). These values are assigned by [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [Storage Manager](../02-architecture/managers/02-storage-manager.md) and must never be supplied or modified by callers. `global_seq` is strictly monotonic for the local node and is used for sync ordering per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md), while `sync_flags` records sync domain membership and is storage controlled. Object references are stored as explicit identifiers in the same app namespace, and cross app references or unresolved identifiers must be rejected before persistence per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md).
 
 ### 4.5 Graph object tables
 
-`app_N_parent` stores Parent objects and includes `value_json` for the schema defined payload. `app_N_attr` stores Attribute objects and includes `src_parent_id` plus `value_json`. `app_N_edge` stores Edge objects and includes `src_parent_id` and exactly one destination selector, either `dst_parent_id` or `dst_attr_id`, with Graph Manager enforcing that only one destination column is populated. `app_N_rating` stores Rating objects and includes exactly one target selector, either `target_parent_id` or `target_attr_id`, plus `value_json` for the rating payload.
+`app_N_parent` stores Parent objects and includes `value_json` for the schema defined payload. `app_N_attr` stores Attribute objects and includes `src_parent_id` plus `value_json`. `app_N_edge` stores Edge objects and includes `src_parent_id` and exactly one destination selector, either `dst_parent_id` or `dst_attr_id`, with [Graph Manager](../02-architecture/managers/07-graph-manager.md) enforcing that only one destination column is populated. `app_N_rating` stores Rating objects and includes exactly one target selector, either `target_parent_id` or `target_attr_id`, plus `value_json` for the rating payload.
 
 ACL structures are represented using Parent and Attribute rows and are persisted in the same per app tables. There is no dedicated ACL table in the SQLite layout.
 
 ### 4.6 Type registry tables
 
-`app_N_type` stores derived type mappings produced by Schema Manager so `type_key` and `type_id` resolution is deterministic for each object kind. These rows are indices only, the authoritative schema source remains the graph objects stored in app_0, and type mappings are immutable once assigned.
+`app_N_type` stores derived type mappings produced by [Schema Manager](../02-architecture/managers/05-schema-manager.md) so `type_key` and `type_id` resolution is deterministic for each object kind. These rows are indices only, the authoritative schema source remains the graph objects stored in app_0, and type mappings are immutable once assigned.
 
 ### 4.7 Log tables
 
-`app_N_log` is reserved for internal per app bookkeeping and audit metadata owned by Storage Manager. It is not a graph object category and must not be written or read directly by other managers.
+`app_N_log` is reserved for internal per app bookkeeping and audit metadata owned by [Storage Manager](../02-architecture/managers/02-storage-manager.md). It is not a graph object category and must not be written or read directly by other managers.
 
 ## 5. Sequencing and sync state storage
 
-`global_seq` stores the local monotonic cursor used to order accepted envelopes and is never reused. `domain_seq` stores per peer and per domain ordering cursors, and `sync_state` stores the last accepted sequence and related acceptance metadata required by the sync protocol. These tables advance only when an envelope is fully accepted and persisted, and they never advance on rejection.
+`global_seq` stores the local monotonic cursor used to order accepted envelopes and is never reused. `domain_seq` stores per peer and per domain ordering cursors, and `sync_state` stores the last accepted sequence and related acceptance metadata required by the sync protocol in [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md). These tables advance only when an envelope is fully accepted and persisted, and they never advance on rejection.
 
 ## 6. Indexing posture
 
-Indexes exist to support global sequence scans, sync eligibility, type lookups, ownership queries, and edge directionality. Index definitions are specified in the indexing strategy document and created idempotently by Storage Manager, but the layout here guarantees that the indexed columns are present and stable.
+Indexes exist to support global sequence scans, sync eligibility, type lookups, ownership queries, and edge directionality. Index definitions are specified in [03-data/04-indexing-strategy.md](04-indexing-strategy.md) and created idempotently by [Storage Manager](../02-architecture/managers/02-storage-manager.md), but the layout here guarantees that the indexed columns are present and stable.
 
 ## 7. Migrations and failure posture
 
-Schema migrations are recorded in `schema_migrations` and run only during Storage Manager startup. Migrations must preserve the canonical object layout and downgrades are not supported. Any migration failure, corruption detection, or invariant violation causes the backend to fail closed without attempting repair, and recovery requires operator intervention.
+Schema migrations are recorded in `schema_migrations` and run only during [Storage Manager](../02-architecture/managers/02-storage-manager.md) startup. Migrations must preserve the canonical object layout and downgrades are not supported. Any migration failure, corruption detection, or invariant violation causes the backend to fail closed without attempting repair, and recovery requires operator intervention per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
