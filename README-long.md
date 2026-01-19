@@ -618,4 +618,8 @@ Credit to [Martti Malmi, a.k.a., Sirius](https://github.com/mmalmi) for his work
 
 Credit to [Nick Szabo](https://x.com/NickSzabo4) for his long-running work on decentralized systems and social contracts, and his public writing that sustained these ideas, encouraged continued exploration of this problem space well before 2WAY existed. His essay [Trusted Third Parties Are Security Holes](https://nakamotoinstitute.org/library/trusted-third-parties/) is a standout reference for its framing of trust boundaries, and a personal favorite.
 
+Credit to [Robert Hettinga, a.k.a., RAH](https://x.com/hettinga) for his essay [The Geodesic Market](https://nakamotoinstitute.org/library/the-geodesic-market/), which sharpened my understanding of how geodesic networks shift power, coordination, and resilience. That framing helped clarify why topology and path structure matter when you design systems meant to hold up without a central authority.
+
+Credit to [Ian Grigg](https://x.com/iang_fc) for his work on [Financial Cryptography in 7 Layers](https://iang.org/papers/fc7.html) and [The Ricardian Contract](https://iang.org/papers/ricardian_contract.html), and for the broader body of essays that shaped how I think about layered trust, contractual intent, and the boundary between protocol and policy. Those ideas influenced how this design separates enforceable structure from application meaning.
+
 ---
