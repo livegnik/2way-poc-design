@@ -69,11 +69,13 @@ Violation of these rules is a fatal implementation error.
 
 ## 5. System table catalog
 
+System tables are not graph objects. They exist outside the graph to store node local state that must be available before graph access is possible, or state that must never be replicated to peers. Graph objects are the source of truth for application data and identities, while system tables are operational registries, counters, and local policy state owned by Storage Manager. Each table below exists only because its data is required for startup, sequencing, sync tracking, or configuration, and because storing it in the graph would either violate the protocol boundaries or create circular dependencies during bootstrap.
+
 ### 5.1 identities
 
 #### Purpose
 
-Stores the durable identity registry that binds identity identifiers to cryptographic material and graph representation.
+Stores the durable identity registry that binds identity identifiers to cryptographic material and graph representation. It lives outside the graph because it is required to resolve identities during startup and sync validation before graph reads are permitted. The graph remains the authoritative identity model, while this table provides fast, local lookup for bootstrapping and verification.
 
 This table exists to support:
 
@@ -110,7 +112,7 @@ Failure to resolve an identity registry entry to a graph identity is fatal.
 
 #### Purpose
 
-Stores the application registry owned by [App Manager](../02-architecture/managers/08-app-manager.md).
+Stores the application registry owned by [App Manager](../02-architecture/managers/08-app-manager.md). It lives outside the graph because app identifiers must be declared before any graph objects can reference them, and because the registry is local node state rather than syncable graph data.
 
 This table defines which applications exist and assigns stable app_id values.
 
@@ -139,7 +141,7 @@ If an envelope references an unknown app_id, it is rejected per [01-protocol/01-
 
 #### Purpose
 
-Stores peer metadata required for network connectivity, trust evaluation, and sync coordination.
+Stores peer metadata required for network connectivity, trust evaluation, and sync coordination. It lives outside the graph because peer state is local policy and transport metadata that must not be replicated as graph data.
 
 This table represents local node knowledge and is not part of the graph.
 
@@ -165,7 +167,7 @@ Each row may include:
 
 #### Purpose
 
-Stores durable runtime configuration managed by [Config Manager](../02-architecture/managers/01-config-manager.md).
+Stores durable runtime configuration managed by [Config Manager](../02-architecture/managers/01-config-manager.md). It lives outside the graph because configuration is node local state and must be available before graph services are initialized.
 
 This table persists operational configuration across restarts.
 
@@ -192,7 +194,7 @@ Invalid settings cause Config Manager to signal degraded health.
 
 #### Purpose
 
-Tracks per peer and per sync domain acceptance state.
+Tracks per peer and per sync domain acceptance state. It lives outside the graph because it is local node sync bookkeeping and must never be replicated as graph data.
 
 This table enforces ordering, replay protection, and incremental sync correctness per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
@@ -219,7 +221,7 @@ This table is authoritative for sync replay protection.
 
 #### Purpose
 
-Tracks per domain high water marks for sequencing and domain scoped sync behavior.
+Tracks per domain high water marks for sequencing and domain scoped sync behavior. It lives outside the graph because it is local sequencing state tied to peer sync and must advance only on local acceptance.
 
 This table supports domain isolation and ordered replication per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
@@ -243,7 +245,7 @@ Domain sequence inconsistency is a fatal error.
 
 #### Purpose
 
-Stores the local monotonic sequence counter used to order all accepted operations per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+Stores the local monotonic sequence counter used to order all accepted operations per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md). It lives outside the graph because it must be available during write acceptance and cannot be influenced by graph mutations.
 
 This is the root ordering primitive of the system.
 
@@ -271,7 +273,7 @@ Violation of these rules invalidates sync correctness.
 
 #### Purpose
 
-Tracks executed storage migrations.
+Tracks executed storage migrations. It lives outside the graph because migrations are a storage concern executed before graph access is available and must not be synced or modeled as graph objects.
 
 This table prevents partial or repeated migrations.
 
