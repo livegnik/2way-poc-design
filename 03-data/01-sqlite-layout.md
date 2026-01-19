@@ -78,14 +78,14 @@ Global tables exist once per database and store system wide state, sequencing me
 
 The required global tables are:
 
-* `identities`
-* `apps`
-* `peers`
-* `settings`
-* `sync_state`
-* `domain_seq`
-* `global_seq`
-* `schema_migrations`
+* `identities` stores system wide identity records used for ownership, authorization, and peer association.
+* `apps` stores application registrations and their assigned numeric `app_id` values.
+* `peers` stores known peer records and metadata required for sync coordination.
+* `settings` stores persisted configuration and runtime operating flags.
+* `sync_state` stores per peer and per domain cursors required to resume incremental synchronization.
+* `domain_seq` stores per domain high water marks used to advance sync eligibility.
+* `global_seq` stores the single monotonic sequence cursor for the database.
+* `schema_migrations` stores applied migration identifiers to ensure ordered, idempotent upgrades.
 
 The initial `global_seq` row is seeded during bootstrap. Migrations are applied before any other manager becomes operational.
 
@@ -93,7 +93,7 @@ The initial `global_seq` row is seeded during bootstrap. Migrations are applied 
 
 Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. app_0 is reserved for system owned graph data, including identities, schemas, ACL structures, and protocol level metadata.
 
-Per app table families are created on demand by Storage Manager at app registration time. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope.
+Per app table families are created on demand by Storage Manager at app registration time and must be created within the same bootstrap transaction that inserts the app record. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope. Each app owns an independent `type_id` namespace and cannot observe or reference another app's object tables.
 
 The per app table family includes:
 
@@ -108,12 +108,12 @@ The per app table family includes:
 
 Every graph object row includes the following immutable metadata columns:
 
-* `app_id`
-* `id`
-* `type_id`
-* `owner_identity`
-* `global_seq`
-* `sync_flags`
+* `app_id` is the owning application scope for the object.
+* `id` is the stable object identifier within the app namespace.
+* `type_id` is the resolved integer type mapping for the object kind.
+* `owner_identity` is the identity that owns the object for ACL evaluation.
+* `global_seq` is the commit ordered sequence assigned on acceptance.
+* `sync_flags` stores protocol defined sync metadata for the object.
 
 These values are assigned exclusively by [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [Storage Manager](../02-architecture/managers/02-storage-manager.md). Callers must never supply or override them. Cross app references are forbidden and must be rejected before persistence.
 
@@ -153,6 +153,8 @@ The authoritative schema source remains graph objects stored in app_0.
 
 `global_seq` stores the local monotonic sequence cursor. It advances only after a successful commit of a full envelope. Values are never reused or rolled back.
 
+Storage Manager assigns the next `global_seq` value at commit time and writes it to every row persisted for the envelope. Sequence gaps may exist if a transaction fails before commit, but committed values remain strictly increasing.
+
 ### 5.2 Domain and peer sequencing
 
 `domain_seq` stores per domain high water marks. `sync_state` stores per peer and per domain cursors required to resume incremental synchronization as defined by [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
@@ -170,6 +172,8 @@ Indexes exist to support:
 * Edge directionality traversal.
 
 Index definitions are specified separately and applied idempotently by Storage Manager. This layout guarantees column stability required for indexing.
+
+Indexes are advisory for performance only and must never be relied on for correctness. Storage Manager may create, rebuild, or drop indexes during maintenance as long as the column contracts in this document remain unchanged.
 
 ## 7. Startup responsibilities
 
@@ -202,9 +206,9 @@ Any of the following conditions cause immediate fail closed behavior:
 * Sequence corruption.
 * Migration failure.
 * Detected invariant violation.
-* SQLite I O errors.
+* SQLite I/O errors.
 
-Recovery requires operator intervention. Automatic repair is forbidden. Crash recovery relies on SQLite WAL semantics and does not permit partial state exposure.
+Recovery requires operator intervention. Automatic repair is forbidden. Crash recovery relies on SQLite WAL semantics and does not permit partial state exposure or partial acceptance of any envelope.
 
 ## 10. Forbidden behaviors
 
