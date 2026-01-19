@@ -230,4 +230,6 @@ Credit to [Robert Hettinga, a.k.a., RAH](https://x.com/hettinga) for his essay [
 
 Credit to [Ian Grigg](https://x.com/iang_fc) for his work on [Financial Cryptography in 7 Layers](https://iang.org/papers/fc7.html) and [The Ricardian Contract](https://iang.org/papers/ricardian_contract.html), and for the broader body of essays that shaped how I think about layered trust, contractual intent, and the boundary between protocol and policy. Those ideas influenced how this design separates enforceable structure from application meaning.
 
+Credit to [Carsten Keutmann](https://x.com/keutmann/) for his work on the [Digital Trust Protocol](https://github.com/DigitalTrustProtocol) and for the practical insight that certain flows get faster and simpler when you treat RAM as scarce and disk as cheap. That framing helped me see where to favor durable, append-first structures over memory-heavy shortcuts.
+
 ---
