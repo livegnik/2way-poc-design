@@ -232,4 +232,8 @@ Credit to [Ian Grigg](https://x.com/iang_fc) for his work on [Financial Cryptogr
 
 Credit to [Carsten Keutmann](https://x.com/keutmann/) for his work on the [Digital Trust Protocol](https://github.com/DigitalTrustProtocol) and for the practical insight that certain flows get faster and simpler when you treat RAM as scarce and disk as cheap. That framing helped me see where to favor durable, append-first structures over memory-heavy shortcuts.
 
+Credit to [Adam Back](https://x.com/adam3us) for his work on proof of work with Hashcash, which grounded how I think about resource-based abuse resistance and the trade-offs in making spam and DoS expensive at the protocol edge.
+
+Credit to [Ari Juels](https://www.arijuels.com/) for his paper [New Client Puzzle Outsourcing Techniques for DoS Resistance](https://www.arijuels.com/wp-content/uploads/2013/09/WJHF04.pdf), which clarified how to structure puzzles so relays can resist abuse without outsourcing trust. That line of thinking connects directly to the DoS Guard Manager and puzzle flow in this design.
+
 ---
