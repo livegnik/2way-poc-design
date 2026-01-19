@@ -97,12 +97,12 @@ Per app table families are created on demand by Storage Manager at app registrat
 
 The per app table family includes:
 
-* `app_N_type`
-* `app_N_parent`
-* `app_N_attr`
-* `app_N_edge`
-* `app_N_rating`
-* `app_N_log`
+* `app_N_type` stores deterministic `type_key` to `type_id` mappings for the app.
+* `app_N_parent` stores Parent objects for the app.
+* `app_N_attr` stores Attribute objects for the app.
+* `app_N_edge` stores Edge objects for the app.
+* `app_N_rating` stores Rating objects for the app.
+* `app_N_log` stores Storage Manager owned operational records for the app.
 
 ### 4.4 Common graph metadata columns
 
