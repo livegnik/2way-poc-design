@@ -8,6 +8,21 @@
 
 This document defines the role and posture of the 2WAY protocol within the PoC design repository. It is a graph-native, envelope-based mutation and replication protocol intended for distrustful peers. It explains protocol boundaries, mandatory invariants, and how the protocol's subsystems compose, without redefining details owned by other protocol files.
 
+This overview references:
+
+* [01-protocol/**](./)
+* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+* [02-object-model.md](02-object-model.md)
+* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+* [04-cryptography.md](04-cryptography.md)
+* [05-keys-and-identity.md](05-keys-and-identity.md)
+* [06-access-control-model.md](06-access-control-model.md)
+* [07-sync-and-consistency.md](07-sync-and-consistency.md)
+* [08-network-transport-requirements.md](08-network-transport-requirements.md)
+* [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+* [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md)
+* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
@@ -33,19 +48,19 @@ This specification does not cover the following:
 
 ## 4. Protocol layers and companion specifications
 
-The protocol is intentionally partitioned so each layer owns a narrow set of invariants. Detailed behavior lives in companion specifications within this folder:
+The protocol is intentionally partitioned so each layer owns a narrow set of invariants. Detailed behavior lives in companion specifications within [01-protocol/**](./):
 
-* `01-identifiers-and-namespaces.md` defines identifier classes, namespace isolation, and rejection rules for ambiguous identifiers.
-* `02-object-model.md` defines Parent, Attribute, Edge, Rating, and ACL structures plus immutable metadata constraints.
-* `03-serialization-and-envelopes.md` defines graph message envelope structure, operation identifiers, signed portions, and structural validation rules.
-* `04-cryptography.md` defines secp256k1 signing, ECIES encryption usage, verification rules, and key handling boundaries.
-* `05-keys-and-identity.md` defines identity representation in `app_0`, key binding, authorship proof, and key lifecycle primitives.
-* `06-access-control-model.md` defines ownership semantics, ACL evaluation inputs, and authorization ordering.
-* `07-sync-and-consistency.md` defines sync domains, sequence tracking, package construction, package application, and monotonicity requirements.
-* `08-network-transport-requirements.md` defines the adversarial transport abstraction and mandatory signaling and delivery properties.
-* `09-errors-and-failure-modes.md` defines canonical error classes, precedence rules, and mandatory rejection behavior.
-* `10-versioning-and-compatibility.md` defines version tuples and compatibility checks.
-* `11-dos-guard-and-client-puzzles.md` defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
+* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md) defines identifier classes, namespace isolation, and rejection rules for ambiguous identifiers.
+* [02-object-model.md](02-object-model.md) defines Parent, Attribute, Edge, Rating, and ACL structures plus immutable metadata constraints.
+* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md) defines graph message envelope structure, operation identifiers, signed portions, and structural validation rules.
+* [04-cryptography.md](04-cryptography.md) defines secp256k1 signing, ECIES encryption usage, verification rules, and key handling boundaries.
+* [05-keys-and-identity.md](05-keys-and-identity.md) defines identity representation in `app_0`, key binding, authorship proof, and key lifecycle primitives.
+* [06-access-control-model.md](06-access-control-model.md) defines ownership semantics, ACL evaluation inputs, and authorization ordering.
+* [07-sync-and-consistency.md](07-sync-and-consistency.md) defines sync domains, sequence tracking, package construction, package application, and monotonicity requirements.
+* [08-network-transport-requirements.md](08-network-transport-requirements.md) defines the adversarial transport abstraction and mandatory signaling and delivery properties.
+* [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md) defines canonical error classes, precedence rules, and mandatory rejection behavior.
+* [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md) defines version tuples and compatibility checks.
+* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md) defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
 
 ## 5. Operation lifecycle
 
@@ -79,7 +94,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 
 * State Manager is the only producer of outbound sync packages and the only consumer of inbound sync packages.
 * Remote sync uses the same graph message envelope format as local writes, wrapped with sync metadata, including sender identity, sync domain name, and a declared sequence range such as `from_seq` and `to_seq`.
-* DoS Guard Manager enforces admission control and client puzzles before Network Manager processes inbound connections, per `01-protocol/11-dos-guard-and-client-puzzles.md`.
+* DoS Guard Manager enforces admission control and client puzzles before Network Manager processes inbound connections, per [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md).
 * Network Manager handles transport and cryptography, including signature creation and verification, and ECIES encryption where confidentiality is required.
 * The receiver enforces per-peer, per-domain ordering rules and must reject packages that are replayed, out of order, malformed, or inconsistent with known sync state.
 
