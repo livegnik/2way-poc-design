@@ -27,7 +27,7 @@
 
 State is a cryptographically verifiable graph, not mutable rows behind an API. Writes are checked against schema, ownership, and access before commit. Accepted changes form an append-only, ordered history with clear authorship. Sync trusts verification, not transport, timing, or peers.
 
-This structure enables offline-first tools, partition-tolerant collaboration, and multi-party records without a trusted server. The protocol handles validation, permissions, reconciliation, and provenance so apps can focus on data model and UX.
+This structure enables offline-first tools, partition-tolerant collaboration, and multi-party records without a trusted server. The protocol handles validation, permissions, reconciliation, and provenance so apps can focus on data model, business logic, and UX.
 
 This proof of concept defines the guarantees: a strict validation pipeline, graph-encoded permissions, replayable audit, and ordering assigned locally and replayable across nodes. Security assumes a hostile network, so every envelope is verified and rejected early if structure, schema, or authorization fail. Privacy is enforced by explicit read scopes, keeping data local by default and sharing only what a node is allowed to see. Incentives are neutral at the protocol layer, and conformance is binary.
 
