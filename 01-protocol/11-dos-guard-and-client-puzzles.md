@@ -7,9 +7,14 @@
 
 This document defines the normative requirements for the DoS Guard Manager and the client puzzle mechanism within the 2WAY protocol. It specifies how admission control operates at the network boundary, which inputs are consumed, which directives are emitted, and how puzzles are issued, validated, and expired. It also defines the trust and failure posture of the DoS Guard Manager. This specification does not redefine transport behavior, cryptographic verification, or sync semantics already covered in other protocol files.
 
+This specification references:
+
+- [08-network-transport-requirements.md](08-network-transport-requirements.md)
+- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+
 ## 2. Position in the system
 
-The DoS Guard Manager sits logically between the adversarial transport abstraction (`01-protocol/08-network-transport-requirements.md`) and the cryptographic boundary owned by Network Manager (`02-architecture/managers/10-network-manager.md`). It has no direct access to graph envelopes and never bypasses Network Manager; instead it consumes telemetry and provisional metadata, applies policy, and instructs Network Manager to allow, deny, or challenge a connection prior to cryptographic processing.
+The DoS Guard Manager sits logically between the adversarial transport abstraction ([08-network-transport-requirements.md](08-network-transport-requirements.md)) and the cryptographic boundary owned by [Network Manager](../02-architecture/managers/10-network-manager.md). It has no direct access to graph envelopes and never bypasses Network Manager; instead it consumes telemetry and provisional metadata, applies policy, and instructs Network Manager to allow, deny, or challenge a connection prior to cryptographic processing.
 
 ## 3. Responsibilities and boundaries
 
@@ -21,16 +26,16 @@ The DoS Guard Manager is responsible for:
 - Determining when client puzzles are required, selecting work factors, constructing puzzle payloads, and validating puzzle responses.
 - Emitting explicit directives to Network Manager (`allow`, `deny`, or `require_challenge`) for each admission request.
 - Tracking challenge lifetime, expiry, reuse, and replay protection.
-- Emitting telemetry and abuse events to the Event Manager for observability and audit.
-- Exposing readiness and health status to the Health Manager when admission control becomes degraded or unavailable.
+- Emitting telemetry and abuse events to the [Event Manager](../02-architecture/managers/11-event-manager.md) for observability and audit.
+- Exposing readiness and health status to the [Health Manager](../02-architecture/managers/13-health-manager.md) when admission control becomes degraded or unavailable.
 
 The DoS Guard Manager explicitly does **not**:
 
 - Perform cryptographic verification or decryption of packages.
-- Interpret graph envelopes, schema semantics, ACL rules, or application data.
+- Interpret [graph envelopes](03-serialization-and-envelopes.md), [schema semantics](../02-architecture/managers/05-schema-manager.md), [ACL rules](06-access-control-model.md), or application data.
 - Assign identity to peers solely from transport metadata or puzzle responses.
 - Persist envelopes or mutate state outside of its own counters and policy state.
-- Make authorization, sync ordering, or storage decisions.
+- Make [authorization](06-access-control-model.md), [sync ordering](07-sync-and-consistency.md), or storage decisions.
 
 ## 4. Invariants and guarantees
 
@@ -46,7 +51,7 @@ The DoS Guard Manager explicitly does **not**:
 
 ### 5.1 Telemetry inputs
 
-DoS Guard Manager consumes the following telemetry from Network Manager, as defined in `01-protocol/08-network-transport-requirements.md`:
+DoS Guard Manager consumes the following telemetry from [Network Manager](../02-architecture/managers/10-network-manager.md), as defined in [08-network-transport-requirements.md](08-network-transport-requirements.md):
 
 - Connection identifier and transport type.
 - Advisory peer references and routing metadata (for example, onion service id, IP + port, or Tor circuit id).
@@ -58,7 +63,7 @@ Telemetry is advisory and unauthenticated; it may be used only for admission pol
 
 ### 5.2 Configuration and policy inputs
 
-DoS Guard Manager receives policy definitions from Config Manager, including:
+DoS Guard Manager receives policy definitions from [Config Manager](../02-architecture/managers/01-config-manager.md), including:
 
 - Baseline rate limits per peer class.
 - Burst and decay windows for resource buckets.
@@ -75,10 +80,10 @@ DoS Guard Manager emits:
 - Admission directives: `allow`, `deny`, or `require_challenge`.
 - Optional throttling parameters (reduced rate, backoff window) to accompany allow directives.
 - Puzzle challenges containing the fields defined in Section 7.
-- Abuse and telemetry events routed to Event Manager.
-- Health state and readiness signals to Health Manager when policy is degraded.
+- Abuse and telemetry events routed to [Event Manager](../02-architecture/managers/11-event-manager.md).
+- Health state and readiness signals to [Health Manager](../02-architecture/managers/13-health-manager.md) when policy is degraded.
 
-Outputs must be delivered through the Network Manager API; no other component may directly consume DoS Guard directives.
+Outputs must be delivered through the [Network Manager](../02-architecture/managers/10-network-manager.md) API; no other component may directly consume DoS Guard directives.
 
 ## 7. Client puzzle lifecycle
 
@@ -117,31 +122,31 @@ On success, the admission decision upgrades to `allow`; on failure, DoS Guard Ma
 
 - Challenges expire automatically after `expires_at` or when the underlying connection closes, whichever occurs first.
 - Expired challenges are purged without side effects other than emitting a telemetry event.
-- Puzzle responses received after expiration are rejected with `ERR_RESOURCE_PUZZLE_FAILED` (see `01-protocol/09-errors-and-failure-modes.md`).
+- Puzzle responses received after expiration are rejected with `ERR_RESOURCE_PUZZLE_FAILED` (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
 
 ## 8. Admission decision matrix
 
-- **Allow**: Network Manager may proceed to Bastion admission and cryptographic verification. The decision may include throttling parameters (for example, maximum messages per second) that Network Manager must enforce.
+- **Allow**: [Network Manager](../02-architecture/managers/10-network-manager.md) may proceed to Bastion admission and [cryptographic verification](04-cryptography.md). The decision may include throttling parameters (for example, maximum messages per second) that Network Manager must enforce.
 - **Require challenge**: Network Manager must hold the connection at the Bastion boundary until a valid puzzle response is validated. No payload data may flow inward during this phase.
 - **Deny**: Network Manager must terminate the connection immediately and emit a rejection event with the provided reason code.
 
-Admission decisions must be logged with sufficient metadata (challenge id, peer reference hash, resource counters) for auditing, but logs must not store private payloads.
+Admission decisions must be logged with sufficient metadata (challenge id, peer reference hash, resource counters) for auditing (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)), but logs must not store private payloads.
 
 ## 9. Integration boundaries
 
-- Network Manager is the sole caller of the DoS Guard Manager API for runtime admission decisions.
-- Event Manager receives abuse events, challenge issuance, and resolution telemetry for observability.
-- Health Manager is informed when admission control is degraded (for example, policy storage unavailable or challenge generation failure).
-- Config Manager supplies policy snapshots. DoS Guard Manager must reject admission requests if policy is unknown or corrupted.
-- State Manager receives no direct data from DoS Guard Manager; it only benefits from the reduced abusive traffic.
+- [Network Manager](../02-architecture/managers/10-network-manager.md) is the sole caller of the DoS Guard Manager API for runtime admission decisions.
+- [Event Manager](../02-architecture/managers/11-event-manager.md) receives abuse events, challenge issuance, and resolution telemetry for observability.
+- [Health Manager](../02-architecture/managers/13-health-manager.md) is informed when admission control is degraded (for example, policy storage unavailable or challenge generation failure).
+- [Config Manager](../02-architecture/managers/01-config-manager.md) supplies policy snapshots. DoS Guard Manager must reject admission requests if policy is unknown or corrupted.
+- [State Manager](../02-architecture/managers/09-state-manager.md) receives no direct data from DoS Guard Manager; it only benefits from the reduced abusive traffic.
 
 ## 10. Failure behavior
 
 - **Policy load failure**: Fail closed, emit a critical event, and require administrative remediation before resuming admissions.
 - **Telemetry backlog**: Drop telemetry samples rather than delay admission decisions. Lack of telemetry must bias toward stricter decisions (challenge or deny).
-- **Puzzle generation failure**: Emit `ERR_RESOURCE_PUZZLE_FAILED`, deny the request, and mark readiness degraded.
+- **Puzzle generation failure**: Emit `ERR_RESOURCE_PUZZLE_FAILED` (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)), deny the request, and mark readiness degraded.
 - **Storage exhaustion of tracking tables**: Evict least-recently used challenges only after expiration; otherwise deny new admissions.
-- **Internal errors**: Halt new admissions, preserve existing admitted connections if safe, and escalate via Event Manager.
+- **Internal errors**: Halt new admissions, preserve existing admitted connections if safe, and escalate via [Event Manager](../02-architecture/managers/11-event-manager.md).
 
 ## 11. Compliance criteria
 
