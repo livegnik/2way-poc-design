@@ -8,20 +8,32 @@
 
 This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define transport formats, API payloads, logging, or user-facing presentation.
 
+This specification references:
+
+* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+* [02-object-model.md](02-object-model.md)
+* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+* [04-cryptography.md](04-cryptography.md)
+* [05-keys-and-identity.md](05-keys-and-identity.md)
+* [06-access-control-model.md](06-access-control-model.md)
+* [07-sync-and-consistency.md](07-sync-and-consistency.md)
+* [08-network-transport-requirements.md](08-network-transport-requirements.md)
+* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+
 ### 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
 * Defining the canonical set of protocol-level error classes and symbolic error codes.
-* Defining when an operation, envelope, or sync package must be rejected.
+* Defining when an operation, [envelope](03-serialization-and-envelopes.md), or [sync package](07-sync-and-consistency.md) must be rejected.
 * Defining invariants around rejection behavior and state safety.
 * Defining guarantees about side effects in the presence of failure.
-* Defining how failures are surfaced across trust boundaries.
+* Defining how failures are surfaced across trust boundaries (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 
 This specification does not cover the following:
 
 * UI error messages or localization.
-* HTTP status codes or transport-specific representations.
+* HTTP status codes or [transport-specific representations](08-network-transport-requirements.md).
 * Internal logging formats or telemetry.
 * Retry strategies, backoff policies, or scheduling.
 * Component-internal exceptions that do not cross protocol boundaries.
@@ -33,15 +45,15 @@ The following invariants apply to all failures defined in this file:
 * No rejected operation produces persistent state changes.
 * No rejected operation advances global or domain sequence counters.
 * Validation failures are deterministic for identical inputs and state.
-* Rejection reason depends only on envelope content and local state.
-* Rejected remote input is never re-broadcast or re-synced.
+* Rejection reason depends only on [envelope](03-serialization-and-envelopes.md) content and local state.
+* Rejected remote input is never re-broadcast or re-synced (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
 The protocol guarantees:
 
-* Structural invalidity is detected before authorization checks.
+* Structural invalidity is detected before [authorization](06-access-control-model.md) checks.
 * Authorization failure is detected before any write attempt.
-* Sync integrity violations are detected before object materialization.
-* Revocation state takes precedence over ordering and freshness.
+* [Sync integrity](07-sync-and-consistency.md) violations are detected before [object](02-object-model.md) materialization.
+* [Revocation state](05-keys-and-identity.md) takes precedence over ordering and freshness.
 
 ### 4. Allowed and forbidden behaviors
 
@@ -60,9 +72,9 @@ The protocol forbids:
 
 * Partial application of an invalid operation.
 * Automatic correction or mutation of invalid input.
-* Acceptance of objects with unverifiable authorship.
-* Acceptance of operations signed by revoked keys.
-* Acceptance of out-of-order or replayed sync packages.
+* Acceptance of objects with unverifiable authorship (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+* Acceptance of operations signed by revoked keys (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+* Acceptance of out-of-order or replayed [sync packages](07-sync-and-consistency.md).
 
 ### 5. Error classification
 
@@ -70,7 +82,7 @@ Errors are classified by the validation stage that detects them. Each operation 
 
 #### 5.1 Structural errors
 
-Structural errors indicate that an envelope or package is not well-formed.
+Structural errors indicate that an [envelope](03-serialization-and-envelopes.md) or [package](07-sync-and-consistency.md) is not well-formed.
 
 * Missing required envelope fields. `ERR_STRUCT_MISSING_FIELD`
 * Invalid object types or unknown object kinds. `ERR_STRUCT_INVALID_TYPE`
@@ -81,11 +93,11 @@ Structural errors are terminal for the input and must be rejected immediately.
 
 #### 5.2 Cryptographic and identity errors
 
-Cryptographic errors indicate that identity or authorship cannot be verified.
+Cryptographic errors indicate that identity or authorship cannot be verified (see [04-cryptography.md](04-cryptography.md) and [05-keys-and-identity.md](05-keys-and-identity.md)).
 
 * Invalid or unverifiable signature. `ERR_CRYPTO_INVALID_SIGNATURE`
 * Missing author identity reference. `ERR_CRYPTO_MISSING_AUTHOR`
-* Public key not present or not bound to the author Parent. `ERR_CRYPTO_KEY_NOT_BOUND`
+* Public key not present or not bound to the author [Parent](02-object-model.md). `ERR_CRYPTO_KEY_NOT_BOUND`
 * Signature mismatch with declared author. `ERR_CRYPTO_AUTHOR_MISMATCH`
 * Use of a revoked or superseded key. `ERR_CRYPTO_KEY_REVOKED`
 
@@ -93,7 +105,7 @@ Cryptographic errors are terminal and indicate untrusted input.
 
 #### 5.3 Schema and domain errors
 
-Schema errors indicate that an operation violates schema or domain constraints.
+Schema errors indicate that an operation violates [schema](../02-architecture/managers/05-schema-manager.md) or domain constraints.
 
 * Object type not allowed in the declared app or domain. `ERR_SCHEMA_TYPE_NOT_ALLOWED`
 * Attribute value does not match declared representation. `ERR_SCHEMA_INVALID_VALUE`
@@ -105,7 +117,7 @@ Schema errors are terminal for the operation.
 
 #### 5.4 Authorization errors
 
-Authorization errors indicate that the author identity lacks permission.
+Authorization errors indicate that the author identity lacks permission (see [06-access-control-model.md](06-access-control-model.md)).
 
 * Write attempted on an object not owned by the author. `ERR_AUTH_NOT_OWNER`
 * ACL evaluation denies the requested action. `ERR_AUTH_ACL_DENIED`
@@ -116,7 +128,7 @@ Authorization errors are terminal and must not leak additional state.
 
 #### 5.5 Sync integrity errors
 
-Sync integrity errors indicate invalid replication behavior.
+Sync integrity errors indicate invalid replication behavior (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
 * Declared sequence ranges do not match package contents. `ERR_SYNC_RANGE_MISMATCH`
 * Sequence numbers regress or overlap previously accepted ranges. `ERR_SYNC_SEQUENCE_INVALID`
@@ -128,7 +140,7 @@ Sync integrity errors invalidate the entire package.
 
 #### 5.6 Resource and load errors
 
-Resource errors indicate local inability to process input safely.
+Resource errors indicate local inability to process input safely (see [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)).
 
 * Rate limits exceeded. `ERR_RESOURCE_RATE_LIMIT`
 * Peer exceeds allowed request frequency. `ERR_RESOURCE_PEER_LIMIT`
@@ -152,9 +164,9 @@ On any failure:
 When multiple violations are present:
 
 * Structural errors take precedence over all others.
-* Cryptographic errors take precedence over schema and authorization.
-* Revocation state takes precedence over ordering and freshness.
-* Schema errors take precedence over authorization errors.
+* Cryptographic errors take precedence over [schema](../02-architecture/managers/05-schema-manager.md) and [authorization](06-access-control-model.md).
+* [Revocation state](05-keys-and-identity.md) takes precedence over ordering and freshness.
+* [Schema](../02-architecture/managers/05-schema-manager.md) errors take precedence over authorization errors.
 
 The first applicable failure class determines the rejection.
 
@@ -162,11 +174,11 @@ The first applicable failure class determines the rejection.
 
 Failures are detected at specific trust boundaries:
 
-* Graph Manager detects structural and ownership violations.
-* Schema Manager detects schema and domain violations.
-* ACL Manager detects authorization violations.
-* State Manager detects sync integrity violations.
-* Network Manager enforces rate and peer-level constraints.
+* [Graph Manager](../02-architecture/managers/07-graph-manager.md) detects structural and [ownership](02-object-model.md) violations.
+* [Schema Manager](../02-architecture/managers/05-schema-manager.md) detects schema and domain violations.
+* [ACL Manager](../02-architecture/managers/06-acl-manager.md) detects authorization violations.
+* [State Manager](../02-architecture/managers/09-state-manager.md) detects sync integrity violations.
+* [Network Manager](../02-architecture/managers/10-network-manager.md) enforces rate and peer-level constraints.
 
 Each component may reject input only within its responsibility boundary.
 
@@ -192,7 +204,7 @@ This specification defines no automatic recovery behavior.
 * Rejected input must be corrected and resubmitted.
 * Sync resumes only after invalid packages are discarded.
 
-Key recovery and revocation semantics are defined in the security specification and are not redefined here.
+Key recovery and revocation semantics are defined in [05-keys-and-identity.md](05-keys-and-identity.md) and are not redefined here.
 
 ### 9. Explicit exclusions
 
