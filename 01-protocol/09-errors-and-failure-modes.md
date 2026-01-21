@@ -6,7 +6,7 @@
 
 ### 1. Purpose and scope
 
-This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define transport formats, API payloads, logging, or user-facing presentation.
+This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define [transport formats](08-network-transport-requirements.md), API payloads, [logging](../02-architecture/managers/12-log-manager.md), or user-facing presentation.
 
 This specification references:
 
@@ -34,7 +34,7 @@ This specification does not cover the following:
 
 * UI error messages or localization.
 * HTTP status codes or [transport-specific representations](08-network-transport-requirements.md).
-* Internal logging formats or telemetry.
+* Internal logging formats or [telemetry](../02-architecture/managers/11-event-manager.md).
 * Retry strategies, backoff policies, or scheduling.
 * Component-internal exceptions that do not cross protocol boundaries.
 
@@ -42,8 +42,8 @@ This specification does not cover the following:
 
 The following invariants apply to all failures defined in this file:
 
-* No rejected operation produces persistent state changes.
-* No rejected operation advances global or domain sequence counters.
+* No rejected operation produces persistent state changes (see [02-architecture/managers/02-storage-manager.md](../02-architecture/managers/02-storage-manager.md)).
+* No rejected operation advances global or domain [sequence counters](07-sync-and-consistency.md).
 * Validation failures are deterministic for identical inputs and state.
 * Rejection reason depends only on [envelope](03-serialization-and-envelopes.md) content and local state.
 * Rejected remote input is never re-broadcast or re-synced (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
@@ -51,7 +51,7 @@ The following invariants apply to all failures defined in this file:
 The protocol guarantees:
 
 * Structural invalidity is detected before [authorization](06-access-control-model.md) checks.
-* Authorization failure is detected before any write attempt.
+* Authorization failure is detected before any [write attempt](../02-architecture/managers/02-storage-manager.md).
 * [Sync integrity](07-sync-and-consistency.md) violations are detected before [object](02-object-model.md) materialization.
 * [Revocation state](05-keys-and-identity.md) takes precedence over ordering and freshness.
 
@@ -63,7 +63,7 @@ The protocol allows:
 
 * Silent rejection of invalid remote input.
 * Early rejection without expensive validation.
-* Disconnection of peers that repeatedly trigger fatal failures.
+* Disconnection of peers that repeatedly trigger fatal failures (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 * Independent local enforcement of rejection rules per node.
 
 #### 4.2 Forbidden behaviors
@@ -187,7 +187,7 @@ Each component may reject input only within its responsibility boundary.
 For remote peers:
 
 * Rejected input may be silently dropped.
-* Repeated fatal violations may result in peer disconnect.
+* Repeated fatal violations may result in peer disconnect (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 * Nodes are not required to explain rejection reasons.
 * Nodes must not echo rejected input back to the sender.
 
@@ -202,7 +202,7 @@ This specification defines no automatic recovery behavior.
 
 * Recovery from failure is external to the protocol.
 * Rejected input must be corrected and resubmitted.
-* Sync resumes only after invalid packages are discarded.
+* Sync resumes only after invalid packages are discarded (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
 Key recovery and revocation semantics are defined in [05-keys-and-identity.md](05-keys-and-identity.md) and are not redefined here.
 
@@ -211,6 +211,6 @@ Key recovery and revocation semantics are defined in [05-keys-and-identity.md](0
 The following are explicitly out of scope:
 
 * User-facing error descriptions.
-* Transport-specific failure codes.
-* Logging verbosity or retention.
+* [Transport-specific failure codes](08-network-transport-requirements.md).
+* [Logging verbosity](../02-architecture/managers/12-log-manager.md) or retention.
 * Debug or diagnostic interfaces.
