@@ -8,6 +8,15 @@
 
 This document defines the protocol-level model for identities and cryptographic keys in 2WAY. It specifies how identities are represented in the graph, how public keys are bound to identities, how authorship is asserted and verified, and which invariants and failure conditions apply. It is limited to protocol semantics. Storage, rotation procedures, revocation mechanics, transport encryption, ACL evaluation, and device or app policy are defined in other documents and are only referenced where required for correctness.
 
+This specification references:
+
+- [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+- [02-object-model.md](02-object-model.md)
+- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+- [04-cryptography.md](04-cryptography.md)
+- [06-access-control-model.md](06-access-control-model.md)
+- [07-sync-and-consistency.md](07-sync-and-consistency.md)
+
 This document is normative for all 2WAY-compliant implementations.
 
 ## 2. Responsibilities and boundaries
@@ -23,10 +32,10 @@ This specification is responsible for the following:
 This specification does not cover the following:
 
 - Key generation or entropy requirements.
-- Private key storage or protection.
-- Key rotation, revocation, or recovery workflows.
-- Transport-level confidentiality.
-- Authorization rules or permission evaluation.
+- Private key storage or protection (see [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md)).
+- Key rotation, revocation, or recovery workflows (see [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md)).
+- Transport-level confidentiality (see [04-cryptography.md](04-cryptography.md)).
+- [Authorization rules](06-access-control-model.md) or permission evaluation.
 - Application-specific identity semantics.
 
 ## 3. Identity model
@@ -35,12 +44,12 @@ This specification does not cover the following:
 
 An identity is a first-class protocol entity that represents an actor capable of authorship.
 
-An identity is represented as a Parent object in app_0.
+An identity is represented as a [Parent](02-object-model.md) object in [app_0](01-identifiers-and-namespaces.md).
 
 An identity exists if and only if:
 
 - The Parent object exists in the graph.
-- The Parent has at least one bound public key Attribute that is valid under schema rules.
+- The Parent has at least one bound public key [Attribute](02-object-model.md) that is valid under [schema rules](../02-architecture/managers/05-schema-manager.md).
 
 Identities are not inferred, implicit, or contextual. All identities are explicit graph objects.
 
@@ -54,7 +63,7 @@ Identities may represent:
 - Backend services.
 - Delegated or automated actors.
 
-The protocol does not distinguish these categories at the identity layer. Distinctions, if any, are imposed by schema, ACL, or application logic.
+The protocol does not distinguish these categories at the identity layer. Distinctions, if any, are imposed by [schema](../02-architecture/managers/05-schema-manager.md), [ACL](06-access-control-model.md), or application logic.
 
 ## 4. Key model
 
@@ -64,15 +73,15 @@ Keys are asymmetric cryptographic keypairs.
 
 Protocol requirements for keys:
 
-- The public key is represented as an Attribute attached to an identity Parent.
+- The public key is represented as an [Attribute](02-object-model.md) attached to an identity Parent.
 - The private key is never represented in the graph or transmitted.
 - Each keypair uniquely identifies a signing authority.
 
-The specific algorithms and encodings are defined in the cryptography specification referenced by the PoC build guide.
+The specific algorithms and encodings are defined in [04-cryptography.md](04-cryptography.md) and the PoC build guide.
 
 ### 4.2 Key binding
 
-A public key is bound to an identity by being attached as an Attribute to the identity Parent.
+A public key is bound to an identity by being attached as an [Attribute](02-object-model.md) to the identity Parent.
 
 Key binding rules:
 
@@ -80,18 +89,18 @@ Key binding rules:
 - A bound public key cannot be reassigned to another identity.
 - Key binding is immutable once accepted into the graph.
 
-Multiple public keys may be bound to the same identity Parent, subject to schema and ACL constraints.
+Multiple public keys may be bound to the same identity Parent, subject to [schema](../02-architecture/managers/05-schema-manager.md) and [ACL](06-access-control-model.md) constraints.
 
 ## 5. Authorship and signatures
 
 ### 5.1 Authorship assertion
 
-Every operation envelope declares exactly one author identity.
+Every [operation envelope](03-serialization-and-envelopes.md) declares exactly one author identity.
 
 Authorship is asserted by:
 
 - Including the identity reference in the envelope.
-- Signing the envelope with a private key corresponding to a public key bound to that identity.
+- Signing the envelope with a private key corresponding to a public key bound to that identity, as defined in [04-cryptography.md](04-cryptography.md).
 
 The backend never infers authorship from transport, session state, or network metadata.
 
@@ -152,9 +161,9 @@ The following behaviors are explicitly forbidden:
 
 This specification consumes:
 
-- Operation envelopes with declared author identities.
-- Public key Attributes stored on identity Parents.
-- Schema definitions that classify identity Parents and key Attributes.
+- [Operation envelopes](03-serialization-and-envelopes.md) with declared author identities.
+- Public key [Attributes](02-object-model.md) stored on identity Parents.
+- [Schema definitions](../02-architecture/managers/05-schema-manager.md) that classify identity Parents and key Attributes.
 
 ### 9.2 Outputs
 
@@ -167,8 +176,8 @@ This specification produces:
 
 Identity and signature verification occurs before:
 
-- Schema semantic validation.
-- ACL evaluation.
+- [Schema semantic validation](../02-architecture/managers/05-schema-manager.md).
+- [ACL evaluation](06-access-control-model.md).
 - Any persistent graph mutation.
 
 No component may bypass identity verification.
@@ -186,7 +195,7 @@ An operation must be rejected if any of the following conditions occur:
 Rejected operations:
 
 - Must not be written to storage.
-- Must not advance sequence state.
+- Must not advance [sequence state](07-sync-and-consistency.md).
 - Must not produce side effects or events.
 
 Rejection is final for the envelope.
