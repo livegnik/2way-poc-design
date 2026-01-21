@@ -66,11 +66,11 @@ This document does not guarantee [schema validity](../02-architecture/managers/0
 
 2WAY defines five canonical graph object categories:
 
-* Parent
-* Attribute
-* Edge
-* Rating
-* [ACL](06-access-control-model.md)
+* [Parent](#6-parent). Entity root for an application domain; anchors other objects.
+* [Attribute](#7-attribute). Typed data attached to a source Parent.
+* [Edge](#8-edge). Typed relationship from a source Parent to a destination object.
+* [Rating](#9-rating). Typed evaluation issued toward a target Parent or Attribute.
+* [ACL](#10-acl). Authorization structures modeled as graph data ([06-access-control-model.md](06-access-control-model.md)).
 
 Parent, Attribute, Edge, and Rating are stored as first class object records. ACL is a canonical category at the protocol level and is represented structurally using Parent and Attribute records as defined in [06-access-control-model.md](06-access-control-model.md).
 
