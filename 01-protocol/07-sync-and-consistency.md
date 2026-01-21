@@ -8,6 +8,16 @@
 
 This document defines the protocol-level synchronization and consistency rules for 2WAY. It specifies how graph state is exchanged between peers, how ordering and integrity are enforced, and which guarantees are provided. It is limited to protocol semantics. It does not define transport mechanisms, cryptographic primitives, access control rules, or storage internals beyond what is required for correctness of sync.
 
+This specification references:
+
+- [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+- [02-object-model.md](02-object-model.md)
+- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+- [04-cryptography.md](04-cryptography.md)
+- [05-keys-and-identity.md](05-keys-and-identity.md)
+- [06-access-control-model.md](06-access-control-model.md)
+- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
@@ -21,12 +31,12 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-- Network transport selection or peer discovery.
-- Encryption algorithms or key derivation.
-- Access control semantics or ACL evaluation logic.
-- Application-level meaning of graph objects.
+- Network transport selection or peer discovery (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
+- Encryption algorithms or key derivation (see [04-cryptography.md](04-cryptography.md)).
+- [Access control](06-access-control-model.md) semantics or ACL evaluation logic.
+- [Application-level meaning of graph objects](02-object-model.md).
 - Conflict resolution beyond protocol-level rejection.
-- Storage engine layout or indexing strategy.
+- Storage engine layout or indexing strategy (see [03-data/01-sqlite-layout.md](../03-data/01-sqlite-layout.md)).
 
 ## 3. Sync model overview
 
@@ -36,7 +46,7 @@ Synchronization is:
 
 - Pull-based and push-based depending on peer role.
 - Incremental and stateful.
-- Scoped by sync domain.
+- Scoped by [sync domain](01-identifiers-and-namespaces.md).
 - Strictly ordered per sender.
 
 Nodes never perform full graph replication. Only objects belonging to explicitly shared domains are eligible for sync.
@@ -45,16 +55,16 @@ Nodes never perform full graph replication. Only objects belonging to explicitly
 
 ### 4.1 Envelope
 
-The atomic unit of synchronization is the envelope.
+The atomic unit of synchronization is the [envelope](03-serialization-and-envelopes.md).
 
 An envelope contains:
 
 - A single authored operation.
 - One or more graph objects produced by that operation.
-- Author identity reference.
-- Domain identifier.
+- Author identity reference ([05-keys-and-identity.md](05-keys-and-identity.md)).
+- Domain identifier ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 - Global sequence number assigned by the originating node.
-- Signature covering the envelope contents.
+- [Signature](04-cryptography.md) covering the envelope contents.
 
 An envelope is indivisible. Partial acceptance is forbidden.
 
@@ -65,7 +75,7 @@ Objects within an envelope must satisfy all of the following:
 - All objects share the same author.
 - All objects are created by the same operation.
 - All objects belong to the same sync domain.
-- All objects are valid according to their schema.
+- All objects are valid according to their [schema](../02-architecture/managers/05-schema-manager.md).
 
 Violation of any constraint causes rejection of the entire envelope.
 
@@ -73,7 +83,7 @@ Violation of any constraint causes rejection of the entire envelope.
 
 ### 5.1 Global sequence
 
-Each node assigns a strictly monotonic global sequence number to every envelope it accepts locally.
+Each node assigns a strictly monotonic global sequence number to every envelope it accepts locally (see [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)).
 
 Properties:
 
@@ -81,7 +91,7 @@ Properties:
 - Sequence numbers are never reused.
 - Sequence numbers define a total order of envelopes on that node.
 
-Global sequence numbers are used exclusively for sync ordering and replay detection.
+Global sequence numbers are used exclusively for sync ordering and replay detection (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
 
 ### 5.2 Domain sequence tracking
 
@@ -101,7 +111,7 @@ Sync state is maintained per peer and per domain.
 Sync state includes:
 
 - Highest accepted global sequence number.
-- Known revocation state affecting the peer.
+- Known [revocation state](05-keys-and-identity.md) affecting the peer.
 - Domain visibility constraints.
 
 Sync state is authoritative for acceptance decisions.
@@ -118,12 +128,12 @@ Rejected envelopes do not modify sync state.
 
 Each incoming envelope must pass, in order:
 
-- Structural validation of the envelope.
-- Signature verification against the author identity.
-- Domain membership validation.
-- Schema validation of all objects.
-- Ownership and immutability validation.
-- Access control validation.
+- [Structural validation](03-serialization-and-envelopes.md) of the envelope.
+- [Signature verification](04-cryptography.md) against the author identity.
+- [Domain membership](01-identifiers-and-namespaces.md) validation.
+- [Schema validation](../02-architecture/managers/05-schema-manager.md) of all objects.
+- [Ownership](02-object-model.md) and immutability validation.
+- [Access control](06-access-control-model.md) validation.
 - Sequence ordering validation.
 
 Failure at any stage results in rejection.
@@ -132,12 +142,12 @@ Failure at any stage results in rejection.
 
 An envelope is accepted if and only if:
 
-- The author identity exists and is not revoked.
-- The signature is valid.
-- The domain is known and permitted for the peer.
-- All objects are schema-valid.
+- The author identity exists and is not revoked (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+- The [signature](04-cryptography.md) is valid.
+- The domain is known and permitted for the peer (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
+- All objects are [schema-valid](../02-architecture/managers/05-schema-manager.md).
 - The author is permitted to create the objects.
-- Ownership invariants are preserved.
+- Ownership invariants are preserved (see [02-object-model.md](02-object-model.md)).
 - The global sequence advances sync state correctly.
 
 Acceptance is atomic.
@@ -146,12 +156,12 @@ Acceptance is atomic.
 
 The following behaviors are forbidden and must be rejected:
 
-- Replaying previously accepted envelopes.
+- Replaying previously accepted [envelopes](03-serialization-and-envelopes.md).
 - Introducing gaps or overlaps in declared sequence progression.
-- Modifying objects owned by a different identity without authorization.
-- Creating objects in unauthorized domains.
-- Mixing objects from multiple domains in one envelope.
-- Referencing unknown or incompatible schema definitions.
+- Modifying objects owned by a different identity without [authorization](06-access-control-model.md).
+- Creating objects in unauthorized domains (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
+- Mixing objects from multiple domains in one [envelope](03-serialization-and-envelopes.md).
+- Referencing unknown or incompatible [schema definitions](../02-architecture/managers/05-schema-manager.md).
 
 ## 8. Consistency guarantees
 
@@ -173,7 +183,7 @@ The protocol does not guarantee:
 
 ### 9.1 Conflict definition
 
-A conflict occurs when a valid envelope proposes state changes that violate schema rules, ownership invariants, or immutability guarantees when applied to current local state.
+A conflict occurs when a valid envelope proposes state changes that violate [schema rules](../02-architecture/managers/05-schema-manager.md), [ownership invariants](02-object-model.md), or immutability guarantees when applied to current local state.
 
 ### 9.2 Resolution behavior
 
@@ -197,7 +207,7 @@ On rejection:
 - No state changes occur.
 - Sync state is not advanced.
 
-Rejection reasons may be logged for audit purposes.
+Rejection reasons may be logged for audit purposes (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)).
 
 ### 10.2 Peer-level handling
 
@@ -217,13 +227,13 @@ Inputs:
 
 - Signed envelopes from peers.
 - Local sync state.
-- Domain and schema definitions.
+- Domain and [schema definitions](../02-architecture/managers/05-schema-manager.md).
 
 ### 11.2 Outputs
 
 Outputs:
 
-- Accepted envelopes persisted to storage.
+- Accepted envelopes persisted to [storage](../03-data/01-sqlite-layout.md).
 - Updated sync state.
 - Explicit acceptance or rejection outcomes.
 
