@@ -17,7 +17,7 @@ This specification references:
 * [06-access-control-model.md](06-access-control-model.md)
 * [07-sync-and-consistency.md](07-sync-and-consistency.md)
 
-This document does not define [serialization formats](03-serialization-and-envelopes.md), [envelope structures](03-serialization-and-envelopes.md), schema semantics, [ACL evaluation logic](06-access-control-model.md), [persistence layout](../03-data/01-sqlite-layout.md), or [synchronization behavior](07-sync-and-consistency.md). Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
+This document does not define [serialization formats](03-serialization-and-envelopes.md), [envelope structures](03-serialization-and-envelopes.md), [schema semantics](../02-architecture/managers/05-schema-manager.md), [ACL evaluation logic](06-access-control-model.md), [persistence layout](../03-data/01-sqlite-layout.md), or [synchronization behavior](07-sync-and-consistency.md). Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
 
 ## 2. Responsibilities and boundaries
 
@@ -58,7 +58,7 @@ When enforced as specified, the object model guarantees:
 * Structural isolation between application domains.
 * Deterministic rejection of structurally invalid objects.
 
-This document does not guarantee schema validity, authorization correctness, or semantic consistency beyond structural constraints.
+This document does not guarantee [schema validity](../02-architecture/managers/05-schema-manager.md), [authorization correctness](06-access-control-model.md), or semantic consistency beyond structural constraints.
 
 ## 4. Canonical object categories
 
@@ -107,7 +107,7 @@ For any persisted object:
 * `global_seq` MUST NOT change.
 * `sync_flags` MUST NOT change once persisted.
 
-If updates are supported, only value bearing fields defined for the object category may change, and only under external validation and authorization.
+If updates are supported, only value bearing fields defined for the object category may change, and only under external [validation](../02-architecture/managers/05-schema-manager.md) and [authorization](06-access-control-model.md).
 
 ### 5.3 Object reference form
 
@@ -297,7 +297,7 @@ The object model evaluates proposed object mutations that include:
 * Required fields for that category.
 * Declared `owner_identity`.
 
-Authentication, [signature verification](04-cryptography.md), schema validation, and [ACL evaluation](06-access-control-model.md) are assumed to occur outside this specification.
+Authentication, [signature verification](04-cryptography.md), [schema validation](../02-architecture/managers/05-schema-manager.md), and [ACL evaluation](06-access-control-model.md) are assumed to occur outside this specification.
 
 ### 12.2 Outputs
 
@@ -310,7 +310,7 @@ The object model produces one of two outcomes:
 
 * Caller supplied fields are not trusted.
 * Object existence checks must be explicit.
-* Structural validation is mandatory before any persistence.
+* [Structural validation](03-serialization-and-envelopes.md) is mandatory before any [persistence](../03-data/01-sqlite-layout.md).
 
 ## 13. Failure and rejection behavior
 
@@ -328,7 +328,7 @@ A proposed mutation MUST be rejected if:
 
 * Rejection produces no partial persistence.
 * Rejection is deterministic given the proposed mutation and current graph state.
-* Rejection reasons must distinguish structural violations from external validation failures.
+* Rejection reasons must distinguish structural violations from external [validation](../02-architecture/managers/05-schema-manager.md) failures.
 
 ## 14. Guarantees summary
 
