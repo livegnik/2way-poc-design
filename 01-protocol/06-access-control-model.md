@@ -25,7 +25,7 @@ This specification is responsible for the following:
 
 - Determining whether an authenticated identity is permitted to perform a specific operation on a specific graph object.
 - Enforcing ownership, schema rules, and explicit access control constraints.
-- Enforcing app and domain isolation during graph mutations and reads.
+- Enforcing app and domain isolation during [graph mutations](../02-architecture/managers/07-graph-manager.md) and reads.
 - Producing deterministic authorization decisions based solely on local state.
 
 This specification does not cover the following:
@@ -42,7 +42,7 @@ These concerns are defined in other documents.
 
 The access control model enforces the following invariants:
 
-- No operation may mutate graph state unless explicitly authorized.
+- No operation may mutate [graph state](../02-architecture/managers/07-graph-manager.md) unless explicitly authorized.
 - Authorization decisions are derived solely from local graph state and compiled [schemas](../02-architecture/managers/05-schema-manager.md).
 - Authorization evaluation has no side effects.
 - Authorization is evaluated before any persistent write occurs.
@@ -146,7 +146,7 @@ The following behaviors are explicitly forbidden:
 - Mutating objects owned by another identity without explicit permission.
 - Bypassing [schema](../02-architecture/managers/05-schema-manager.md) restrictions through ACLs.
 - Reading or writing objects outside the authorized app or domain.
-- Inferring permissions from peer identity, network origin, or transport context.
+- Inferring permissions from peer identity, network origin, or [transport context](08-network-transport-requirements.md).
 - Partial authorization of an operation. Authorization is atomic per operation.
 
 ## 8. Interaction with other components
@@ -156,7 +156,7 @@ The access control model interacts with other components as follows:
 - Inputs are received after [authentication](05-keys-and-identity.md), [signature verification](04-cryptography.md), and [schema validation](../02-architecture/managers/05-schema-manager.md).
 - Outputs are allow or reject decisions.
 - No direct access to [storage](../03-data/01-sqlite-layout.md) is permitted.
-- No graph mutations occur during authorization evaluation.
+- No [graph mutations](../02-architecture/managers/07-graph-manager.md) occur during authorization evaluation.
 
 Trust boundaries:
 
