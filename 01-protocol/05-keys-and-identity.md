@@ -16,6 +16,7 @@ This specification references:
 - [04-cryptography.md](04-cryptography.md)
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
+- [08-network-transport-requirements.md](08-network-transport-requirements.md)
 
 This document is normative for all 2WAY-compliant implementations.
 
@@ -36,7 +37,7 @@ This specification does not cover the following:
 - Key rotation, revocation, or recovery workflows (see [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md)).
 - Transport-level confidentiality (see [04-cryptography.md](04-cryptography.md)).
 - [Authorization rules](06-access-control-model.md) or permission evaluation.
-- Application-specific identity semantics.
+- [Application-specific identity semantics](02-object-model.md).
 
 ## 3. Identity model
 
@@ -51,7 +52,7 @@ An identity exists if and only if:
 - The Parent object exists in the graph.
 - The Parent has at least one bound public key [Attribute](02-object-model.md) that is valid under [schema rules](../02-architecture/managers/05-schema-manager.md).
 
-Identities are not inferred, implicit, or contextual. All identities are explicit graph objects.
+Identities are not inferred, implicit, or contextual. All identities are explicit [graph objects](02-object-model.md).
 
 ### 3.2 Identity scope
 
@@ -102,7 +103,7 @@ Authorship is asserted by:
 - Including the identity reference in the envelope.
 - Signing the envelope with a private key corresponding to a public key bound to that identity, as defined in [04-cryptography.md](04-cryptography.md).
 
-The backend never infers authorship from transport, session state, or network metadata.
+The backend never infers authorship from [transport](08-network-transport-requirements.md), session state, or network metadata.
 
 ### 5.2 Signature verification
 
@@ -112,7 +113,7 @@ An operation is considered authentic if and only if:
 - The identity has at least one bound public key.
 - The envelope signature verifies against one of the bound public keys.
 
-Signature verification is mandatory and precedes all other validation steps.
+Signature verification is mandatory and precedes all other validation steps, including [schema validation](../02-architecture/managers/05-schema-manager.md) and [ACL evaluation](06-access-control-model.md).
 
 ## 6. Invariants and guarantees
 
@@ -142,7 +143,7 @@ The following behaviors are explicitly allowed:
 - Binding multiple public keys to a single identity.
 - Using different keys for the same identity across devices.
 - Using identities for users, nodes, services, or delegated actors.
-- Rejecting identities that violate schema or validation rules.
+- Rejecting identities that violate [schema](../02-architecture/managers/05-schema-manager.md) or validation rules.
 
 ## 8. Forbidden behaviors
 
@@ -152,7 +153,7 @@ The following behaviors are explicitly forbidden:
 - Accepting an operation signed by a key not bound to the claimed identity.
 - Rebinding a public key to a different identity.
 - Mutating an identity Parent after creation.
-- Inferring identity from IP address, session, or transport channel.
+- Inferring identity from IP address, session, or [transport](08-network-transport-requirements.md) channel.
 - Treating unsigned or partially signed data as authoritative.
 
 ## 9. Interaction with other components
@@ -178,7 +179,7 @@ Identity and signature verification occurs before:
 
 - [Schema semantic validation](../02-architecture/managers/05-schema-manager.md).
 - [ACL evaluation](06-access-control-model.md).
-- Any persistent graph mutation.
+- Any persistent [graph mutation](../02-architecture/managers/07-graph-manager.md).
 
 No component may bypass identity verification.
 
@@ -194,7 +195,7 @@ An operation must be rejected if any of the following conditions occur:
 
 Rejected operations:
 
-- Must not be written to storage.
+- Must not be written to [storage](../03-data/01-sqlite-layout.md).
 - Must not advance [sequence state](07-sync-and-consistency.md).
 - Must not produce side effects or events.
 
