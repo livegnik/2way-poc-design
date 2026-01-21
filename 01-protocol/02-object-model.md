@@ -8,7 +8,16 @@
 
 This document defines the normative graph object model used by 2WAY. It specifies the canonical object categories, required fields, structural constraints, and invariants that must hold for any object to be accepted into the graph.
 
-This document does not define serialization formats, envelope structures, schema semantics, ACL evaluation logic, persistence layout, or synchronization behavior. Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
+This specification references:
+
+* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+* [04-cryptography.md](04-cryptography.md)
+* [05-keys-and-identity.md](05-keys-and-identity.md)
+* [06-access-control-model.md](06-access-control-model.md)
+* [07-sync-and-consistency.md](07-sync-and-consistency.md)
+
+This document does not define [serialization formats](03-serialization-and-envelopes.md), [envelope structures](03-serialization-and-envelopes.md), schema semantics, [ACL evaluation logic](06-access-control-model.md), [persistence layout](../03-data/01-sqlite-layout.md), or [synchronization behavior](07-sync-and-consistency.md). Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
 
 ## 2. Responsibilities and boundaries
 
@@ -22,11 +31,11 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-* Schema meaning, type validation, or value interpretation.
-* Authorization rules or ACL evaluation.
-* Envelope formats or wire serialization.
-* Persistence schemas, indexes, or query behavior.
-* Sync ordering, conflict resolution, or domain selection.
+* [Schema meaning](../02-architecture/managers/05-schema-manager.md), type validation, or value interpretation.
+* [Authorization rules](06-access-control-model.md) or ACL evaluation.
+* [Envelope formats](03-serialization-and-envelopes.md) or wire serialization.
+* [Persistence schemas](../03-data/01-sqlite-layout.md), indexes, or query behavior.
+* [Sync ordering](07-sync-and-consistency.md), conflict resolution, or domain selection.
 
 ## 3. Invariants and guarantees
 
@@ -35,9 +44,9 @@ This specification does not cover the following:
 The following invariants apply to all graph objects:
 
 * All persistent state is represented exclusively using the canonical object categories defined in this document.
-* Every object belongs to exactly one application domain identified by `app_id`.
-* Every object has a single immutable author identity.
-* Object identifiers, ownership, and provenance metadata are immutable once assigned.
+* Every object belongs to exactly one application domain identified by [`app_id`](01-identifiers-and-namespaces.md).
+* Every object has a single immutable author identity as defined in [05-keys-and-identity.md](05-keys-and-identity.md).
+* Object identifiers, ownership, and provenance metadata are immutable once assigned (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 * All references between objects are explicit and must resolve within the same `app_id` scope.
 
 ### 3.2 Guarantees
@@ -61,9 +70,9 @@ This document does not guarantee schema validity, authorization correctness, or 
 * Attribute
 * Edge
 * Rating
-* ACL
+* [ACL](06-access-control-model.md)
 
-Parent, Attribute, Edge, and Rating are stored as first class object records. ACL is a canonical category at the protocol level and is represented structurally using Parent and Attribute records.
+Parent, Attribute, Edge, and Rating are stored as first class object records. ACL is a canonical category at the protocol level and is represented structurally using Parent and Attribute records as defined in [06-access-control-model.md](06-access-control-model.md).
 
 No other persistent object categories are permitted.
 
@@ -78,14 +87,14 @@ No other persistent object categories are permitted.
 
 All stored object records include the following required metadata fields:
 
-* `app_id`. Integer identifier of the application domain.
-* `id`. Integer identifier of the object within its category and `app_id` scope.
-* `type_id`. Integer identifier of the object type within the `app_id` scope.
-* `owner_identity`. Integer identifier of the authoring identity.
-* `global_seq`. Integer sequence assigned by the local node at accept time.
-* `sync_flags`. Integer metadata used by the sync subsystem.
+* `app_id`. Integer identifier of the application domain ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
+* `id`. Integer identifier of the object within its category and `app_id` scope ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
+* `type_id`. Integer identifier of the object type within the `app_id` scope ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
+* `owner_identity`. Integer identifier of the authoring identity ([05-keys-and-identity.md](05-keys-and-identity.md)).
+* `global_seq`. Integer sequence assigned by the local node at accept time ([07-sync-and-consistency.md](07-sync-and-consistency.md)).
+* `sync_flags`. Integer metadata used by the sync subsystem ([07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
-The presence and immutability of these fields are defined here. Their assignment and interpretation are defined elsewhere.
+The presence and immutability of these fields are defined here. Their assignment and interpretation are defined elsewhere, including [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md).
 
 ### 5.2 Immutability rules
 
@@ -288,7 +297,7 @@ The object model evaluates proposed object mutations that include:
 * Required fields for that category.
 * Declared `owner_identity`.
 
-Authentication, signature verification, schema validation, and ACL evaluation are assumed to occur outside this specification.
+Authentication, [signature verification](04-cryptography.md), schema validation, and [ACL evaluation](06-access-control-model.md) are assumed to occur outside this specification.
 
 ### 12.2 Outputs
 

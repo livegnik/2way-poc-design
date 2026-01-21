@@ -36,7 +36,7 @@ This specification does not cover the following:
 * [Graph object schemas](02-object-model.md) or attribute semantics.
 * [Access control](06-access-control-model.md) evaluation rules.
 * [Sync ordering](07-sync-and-consistency.md), conflict resolution, or replication mechanics.
-* [Physical storage, indexing, or persistence strategies](../03-data/01-sqlite-layout.md).
+* [Physical storage](../03-data/01-sqlite-layout.md), indexing, or persistence strategies.
 * [Network addressing](08-network-transport-requirements.md) or peer discovery identifiers.
 
 ## 3. Identifier classes
