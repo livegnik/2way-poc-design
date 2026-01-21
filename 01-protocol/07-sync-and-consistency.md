@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the protocol-level synchronization and consistency rules for 2WAY. It specifies how graph state is exchanged between peers, how ordering and integrity are enforced, and which guarantees are provided. It is limited to protocol semantics. It does not define transport mechanisms, cryptographic primitives, access control rules, or storage internals beyond what is required for correctness of sync.
+This document defines the protocol-level synchronization and consistency rules for 2WAY. It specifies how [graph state](../02-architecture/managers/07-graph-manager.md) is exchanged between peers, how ordering and integrity are enforced, and which guarantees are provided. It is limited to protocol semantics. It does not define transport mechanisms, cryptographic primitives, [access control](06-access-control-model.md) rules, or [storage internals](../03-data/01-sqlite-layout.md) beyond what is required for correctness of sync.
 
 This specification references:
 
@@ -134,7 +134,7 @@ Each incoming envelope must pass, in order:
 - [Schema validation](../02-architecture/managers/05-schema-manager.md) of all objects.
 - [Ownership](02-object-model.md) and immutability validation.
 - [Access control](06-access-control-model.md) validation.
-- Sequence ordering validation.
+- [Sequence ordering validation](09-errors-and-failure-modes.md).
 
 Failure at any stage results in rejection.
 
@@ -146,7 +146,7 @@ An envelope is accepted if and only if:
 - The [signature](04-cryptography.md) is valid.
 - The domain is known and permitted for the peer (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 - All objects are [schema-valid](../02-architecture/managers/05-schema-manager.md).
-- The author is permitted to create the objects.
+- The author is permitted to create the objects (see [06-access-control-model.md](06-access-control-model.md)).
 - Ownership invariants are preserved (see [02-object-model.md](02-object-model.md)).
 - The global sequence advances sync state correctly.
 
@@ -167,7 +167,7 @@ The following behaviors are forbidden and must be rejected:
 
 The protocol guarantees:
 
-- Deterministic acceptance or rejection of envelopes.
+- Deterministic acceptance or rejection of [envelopes](03-serialization-and-envelopes.md).
 - Strict per-sender ordering.
 - Replay resistance.
 - No partial application of operations.
@@ -213,7 +213,7 @@ Rejection reasons may be logged for audit purposes (see [02-architecture/manager
 
 Repeated invalid envelopes from a peer may result in:
 
-- Temporary suspension of sync.
+- Temporary suspension of [sync](07-sync-and-consistency.md).
 - Increased validation strictness.
 - Rate limiting.
 
@@ -242,7 +242,7 @@ Outputs:
 Assumptions:
 
 - Peers are untrusted.
-- Transport is untrusted.
+- [Transport](08-network-transport-requirements.md) is untrusted.
 - Local validation and storage components are trusted.
 
 No peer-provided data is trusted without validation.
