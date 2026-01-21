@@ -31,7 +31,7 @@ This specification does not define:
 ### 3.1 Terminology invariants
 
 - Terms defined in this file have a single authoritative meaning across the repository.
-- The canonical object type names are defined in Section 7.
+- The canonical object type names are defined in [Section 7](#7-graph-model-terms).
 - Canonical names must not be aliased, abbreviated, or replaced with synonyms in normative text.
 - If a document introduces a new term, it must define it locally or reference a file that defines it.
 
@@ -56,13 +56,13 @@ This specification does not define:
 
 ### 4.3 Naming conventions
 
-snake_case is lowercase ASCII text with underscores used to separate words.
+`snake_case` is lowercase ASCII text with underscores used to separate words.
 
 ## 5. System and runtime terms
 
 ### 5.1 Backend
 
-The backend is the trusted local execution environment that hosts system logic and exposes interfaces to external clients.
+`backend` is the trusted local execution environment that hosts system logic and exposes interfaces to external clients.
 
 Trust boundary:
 
@@ -71,7 +71,7 @@ Trust boundary:
 
 ### 5.2 Manager
 
-A manager is a backend component that owns a narrow, explicit responsibility and exposes a stable interface for that responsibility.
+`manager` is a backend component that owns a narrow, explicit responsibility and exposes a stable interface for that responsibility.
 
 Constraints:
 
@@ -82,7 +82,7 @@ This file does not define manager APIs.
 
 ### 5.3 Service
 
-A service is backend resident logic that implements scoped or system behavior using managers.
+`service` is backend resident logic that implements scoped or system behavior using managers.
 
 Constraints:
 
@@ -91,7 +91,7 @@ Constraints:
 
 ### 5.4 Frontend
 
-The frontend is any external client surface that initiates requests into the backend, including user facing apps, automation clients, and integration tooling.
+`frontend` is any external client surface that initiates requests into the backend, including user facing apps, automation clients, and integration tooling.
 
 Constraints:
 
@@ -100,7 +100,7 @@ Constraints:
 
 ### 5.5 Frontend app
 
-A frontend app is a user facing application that interacts with the backend only through the backend's exposed interfaces.
+`frontend app` is a user facing application that interacts with the backend only through the backend's exposed interfaces.
 
 Constraints:
 
@@ -109,7 +109,7 @@ Constraints:
 
 ### 5.6 Node
 
-A node is a single running 2WAY backend instance with its own local persistent state.
+`node` is a single running 2WAY backend instance with its own local persistent state.
 
 Constraints:
 
@@ -117,11 +117,11 @@ Constraints:
 - A node enforces validation and authorization for all accepted mutations.
 - A node may exchange data with other nodes.
 
-A node is not defined as a cluster, shard, or externally managed service.
+`node` is not defined as a cluster, shard, or externally managed service.
 
 ### 5.7 Identity
 
-An identity is a first class actor represented in the system and used to attribute actions and authority.
+`identity` is a first class actor represented in the system and used to attribute actions and authority.
 
 Constraints:
 
@@ -131,17 +131,17 @@ Constraints:
 
 This file does not define identity storage tables or key storage layout.
 
-### 5.7 identity_id and owner_identity
+### 5.8 identity_id and owner_identity
 
-identity_id is the identifier for an identity.
+`identity_id` is the identifier for an identity.
 
-owner_identity is the identity_id recorded as the owner of a graph object.
+`owner_identity` is the identity_id recorded as the owner of a graph object.
 
 ## 6. App and type system terms
 
 ### 6.1 App
 
-An app is a logical domain that defines its own object semantics.
+`app` is a logical domain that defines its own object semantics.
 
 Properties:
 
@@ -150,7 +150,7 @@ Properties:
 
 ### 6.2 app_id and app_slug
 
-An app_id is the numeric identifier used to bind storage and object identifiers to an app. An app_slug is the stable string name used for human readable identification and routing.
+`app_id` is the numeric identifier used to bind storage and object identifiers to an app. `app_slug` is the stable string name used for human readable identification and routing.
 
 Constraints:
 
@@ -161,12 +161,12 @@ This file does not define allocation rules for app_id.
 
 ### 6.3 Type
 
-A type is an app scoped identifier for a specific object category within an app.
+`type` is an app scoped identifier for a specific object category within an app.
 
 Two representations are used:
 
-- type_key. A stable string key used in schema definitions and normative text.
-- type_id. A numeric identifier used in persisted storage.
+- `type_key` is a stable string key used in schema definitions and normative text.
+- `type_id` is a numeric identifier used in persisted storage.
 
 Constraint:
 
@@ -174,7 +174,7 @@ Constraint:
 
 ### 6.4 Schema
 
-A schema is an app scoped declaration of allowed types and allowed relationships among types.
+`schema` is an app scoped declaration of allowed types and allowed relationships among types.
 
 Constraint:
 
@@ -184,13 +184,13 @@ This file does not define schema formats, value representations, or validation a
 
 ### 6.5 app_0
 
-app_0 is the reserved system app identifier used for core system identities, keys, and system scoped schema.
+`app_0` is the reserved system app identifier used for core system identities, keys, and system scoped schema.
 
 ### 6.6 Value kind
 
-A value kind is the schema level classification used to validate the representation of a value.
+`value kind` is the schema level classification used to validate the representation of a value.
 
-In the PoC schema model, value_kind includes:
+In the PoC schema model, `value_kind` includes:
 
 - text.
 - number.
@@ -202,7 +202,7 @@ This file does not define encoding rules beyond these labels.
 
 ### 7.1 Graph
 
-The graph is the set of persisted objects stored by a node across all apps.
+`graph` is the set of persisted objects stored by a node across all apps.
 
 Constraints:
 
@@ -211,7 +211,7 @@ Constraints:
 
 ### 7.2 Graph object
 
-A graph object is a persisted record of one of the fundamental object types.
+`graph object` is a persisted record of one of the fundamental object types.
 
 The fundamental object types are:
 
@@ -223,7 +223,7 @@ The fundamental object types are:
 
 ### 7.3 Parent
 
-A Parent is a top level graph object that anchors ownership and is the root for related objects.
+`Parent` is a top level graph object that anchors ownership and is the root for related objects.
 
 Constraints:
 
@@ -234,7 +234,7 @@ This file does not define Parent fields.
 
 ### 7.4 Attribute
 
-An Attribute is a typed value associated with a Parent.
+`Attribute` is a typed value associated with a Parent.
 
 Constraints:
 
@@ -245,7 +245,7 @@ This file does not define Attribute fields.
 
 ### 7.5 Edge
 
-An Edge is a typed directed relationship between two Parents.
+`Edge` is a typed directed relationship between two Parents.
 
 Constraints:
 
@@ -256,7 +256,7 @@ This file does not define Edge fields.
 
 ### 7.6 Rating
 
-A Rating is a typed evaluative object with app scoped semantics.
+`Rating` is a typed evaluative object with app scoped semantics.
 
 Constraints:
 
@@ -267,7 +267,7 @@ This file does not define Rating fields.
 
 ### 7.7 ACL
 
-An ACL is a graph object that defines visibility and mutation permissions for target objects within a defined scope.
+`ACL` is a graph object that defines visibility and mutation permissions for target objects within a defined scope.
 
 Constraints:
 
@@ -278,39 +278,39 @@ This file does not define ACL fields or evaluation rules.
 
 ### 7.8 Graph object identifiers
 
-parent_id is the identifier of a Parent within an app scope.
+`parent_id` is the identifier of a Parent within an app scope.
 
-attr_id is the identifier of an Attribute within an app scope.
+`attr_id` is the identifier of an Attribute within an app scope.
 
-edge_id is the identifier of an Edge within an app scope.
+`edge_id` is the identifier of an Edge within an app scope.
 
-rating_id is the identifier of a Rating within an app scope.
+`rating_id` is the identifier of a Rating within an app scope.
 
-object_id is a generic identifier for a graph object when the specific object type is not material to the statement.
+`object_id` is a generic identifier for a graph object when the specific object type is not material to the statement.
 
-object_kind is the object type category label used to distinguish Parent, Attribute, Edge, Rating, and ACL.
+`object_kind` is the object type category label used to distinguish Parent, Attribute, Edge, Rating, and ACL.
 
-value_json is the JSON-encoded representation of an Attribute value when serialized or persisted.
+`value_json` is the JSON-encoded representation of an Attribute value when serialized or persisted.
 
 ### 7.9 Object linkage identifiers
 
-src_parent_id is the identifier of the source Parent in a directed Edge.
+`src_parent_id` is the identifier of the source Parent in a directed Edge.
 
-dst_parent_id is the identifier of the destination Parent in a directed Edge.
+`dst_parent_id` is the identifier of the destination Parent in a directed Edge.
 
-target_parent_id is the identifier of the Parent that an object refers to.
+`target_parent_id` is the identifier of the Parent that an object refers to.
 
-target_attr_id is the identifier of the Attribute that an object refers to.
+`target_attr_id` is the identifier of the Attribute that an object refers to.
 
-subject_parent_id is the identifier of the Parent that an action, message, or evaluation is about.
+`subject_parent_id` is the identifier of the Parent that an action, message, or evaluation is about.
 
-dst_attr_id is the identifier of the destination Attribute when an Attribute references another Attribute.
+`dst_attr_id` is the identifier of the destination Attribute when an Attribute references another Attribute.
 
 ## 8. Operation and validation terms
 
 ### 8.1 Operation
 
-An operation is a request to create, update, or relate graph objects.
+`operation` is a request to create, update, or relate graph objects.
 
 Constraints:
 
@@ -321,7 +321,7 @@ This file does not define the operation vocabulary.
 
 ### 8.2 Envelope
 
-An envelope is a signed container used to carry one or more operations for local processing or inter-node exchange.
+`envelope` is a signed container used to carry one or more operations for local processing or inter-node exchange.
 
 Constraints:
 
@@ -332,41 +332,41 @@ This file does not define envelope fields, signing formats, or encryption format
 
 ### 8.3 OperationContext identifiers
 
-requester_identity_id is the identifier of the identity resolved as the requester for an operation.
+`requester_identity_id` is the identifier of the identity resolved as the requester for an operation.
 
-device_id is the identifier of a device acting on behalf of an identity.
+`device_id` is the identifier of a device acting on behalf of an identity.
 
-delegated_key_id is the identifier of a delegated signing key used for scoped authority.
+`delegated_key_id` is the identifier of a delegated signing key used for scoped authority.
 
-actor_type is the declared caller category such as user, service, automation, or delegation.
+`actor_type` is the declared caller category such as user, service, automation, or delegation.
 
-capability is the explicit action label evaluated by authorization rules.
+`capability` is the explicit action label evaluated by authorization rules.
 
-is_remote is a flag indicating whether the context originated from inter-node exchange.
+`is_remote` is a flag indicating whether the context originated from inter-node exchange.
 
-sync_domain is the identifier used to scope inter-node exchange processing to a specific domain.
+`sync_domain` is the identifier used to scope inter-node exchange processing to a specific domain.
 
-remote_node_identity_id is the identifier of the remote node's identity for inter-node exchange processing.
+`remote_node_identity_id` is the identifier of the remote node's identity for inter-node exchange processing.
 
-trace_id is the identifier used to correlate related operations and requests across logs and telemetry.
+`trace_id` is the identifier used to correlate related operations and requests across logs and telemetry.
 
-correlation_id is an optional identifier used to correlate multiple related requests.
+`correlation_id` is an optional identifier used to correlate multiple related requests.
 
-app_version is an optional version identifier for a frontend app or service.
+`app_version` is an optional version identifier for a frontend app or service.
 
-app_variant is an optional variant identifier for a frontend app.
+`app_variant` is an optional variant identifier for a frontend app.
 
-schema_version is an optional identifier for a schema release.
+`schema_version` is an optional identifier for a schema release.
 
-user_id is an external user identifier supplied by a client and treated as non-authoritative metadata.
+`user_id` is an external user identifier supplied by a client and treated as non-authoritative metadata.
 
-locale is an optional client locale identifier.
+`locale` is an optional client locale identifier.
 
-timezone is an optional client timezone identifier.
+`timezone` is an optional client timezone identifier.
 
 ### 8.4 OperationContext
 
-An OperationContext is the backend derived context used to validate and authorize an operation.
+`OperationContext` is the backend derived context used to validate and authorize an operation.
 
 Constraints:
 
@@ -379,24 +379,24 @@ This file does not define OperationContext fields beyond the names listed here.
 
 ### 8.5 Operation kind labels
 
-parent_create, parent_update, attr_create, attr_update, edge_create, edge_update, rating_create, and rating_update are operation kind labels that describe creation or update of the corresponding object type.
+`parent_create`, `parent_update`, `attr_create`, `attr_update`, `edge_create`, `edge_update`, `rating_create`, and `rating_update` are operation kind labels that describe creation or update of the corresponding object type.
 
 ## 9. Ordering and sync terms
 
 ### 9.1 global_seq
 
-global_seq is a node local strictly monotonic sequence number assigned to accepted persisted writes.
+`global_seq` is a node local strictly monotonic sequence number assigned to accepted persisted writes.
 
 Constraints:
 
 - global_seq defines a total order of accepted writes on a node.
 - global_seq is used to support incremental exchange and provenance checks.
 
-This file does not define how global_seq is stored, indexed, or transmitted.
+This file does not define how `global_seq` is stored, indexed, or transmitted.
 
 ### 9.2 Sync
 
-Sync is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
+`Sync` is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
 
 Constraint:
 
@@ -406,7 +406,7 @@ This file does not define sync protocol flows.
 
 ### 9.3 Sync domain
 
-A sync domain is an explicit subset of data eligible for sync under defined authorization and scoping rules.
+`sync domain` is an explicit subset of data eligible for sync under defined authorization and scoping rules.
 
 Constraints:
 
@@ -417,7 +417,7 @@ This file does not define domain membership rules.
 
 ### 9.4 domain_seq
 
-domain_seq is a sequence number scoped to a specific sync domain.
+`domain_seq` is a sequence number scoped to a specific sync domain.
 
 Constraint:
 
@@ -427,7 +427,7 @@ This file does not define domain sequencing rules beyond this scope meaning.
 
 ### 9.5 Peer
 
-A peer is a remote node that participates in sync with a node.
+`peer` is a remote node that participates in sync with a node.
 
 Constraints:
 
@@ -438,7 +438,7 @@ This file does not define peer discovery or transport requirements.
 
 ### 9.6 sync_state
 
-sync_state is the node maintained local record of sync progress and constraints for a specific peer.
+`sync_state` is the node maintained local record of sync progress and constraints for a specific peer.
 
 Constraint:
 
@@ -448,29 +448,29 @@ This file does not define sync_state structure.
 
 ### 9.7 sync_flags
 
-sync_flags is a bitset or enumerated label set used to express sync related state or eligibility for a graph object.
+`sync_flags` is a bitset or enumerated label set used to express sync related state or eligibility for a graph object.
 
 This file does not define the flag values.
 
 ### 9.8 from_seq and to_seq
 
-from_seq is the lower bound sequence for a sync request or response window.
+`from_seq` is the lower bound sequence for a sync request or response window.
 
-to_seq is the upper bound sequence for a sync request or response window.
+`to_seq` is the upper bound sequence for a sync request or response window.
 
 This file does not define how sequence windows are negotiated or enforced.
 
 ### 9.9 peer_id and sender_identity
 
-peer_id is the identifier for a peer record maintained by a node to track sync state.
+`peer_id` is the identifier for a peer record maintained by a node to track sync state.
 
-sender_identity is the identity that authored or transmitted a sync message or envelope.
+`sender_identity` is the identity that authored or transmitted a sync message or envelope.
 
 ## 10. Security and trust terms
 
 ### 10.1 Cryptographic identity
 
-A cryptographic identity is the association between an identity and at least one public key used to verify signatures.
+`cryptographic identity` is the association between an identity and at least one public key used to verify signatures.
 
 Constraint:
 
@@ -480,7 +480,7 @@ This file does not define key storage layout or rotation rules.
 
 ### 10.2 Authorship
 
-Authorship is the binding between an operation or envelope and the identity that signed it.
+`Authorship` is the binding between an operation or envelope and the identity that signed it.
 
 Constraints:
 
@@ -489,7 +489,7 @@ Constraints:
 
 ### 10.3 Ownership
 
-Ownership is the association between a graph object and the identity that owns it under system rules.
+`Ownership` is the association between a graph object and the identity that owns it under system rules.
 
 Constraint:
 
@@ -499,7 +499,7 @@ This file does not define ownership enforcement logic.
 
 ### 10.4 Trust boundary
 
-A trust boundary is any interface where data crosses from a less trusted environment to a more trusted environment.
+`trust boundary` is any interface where data crosses from a less trusted environment to a more trusted environment.
 
 Core trust boundaries include:
 
@@ -511,7 +511,7 @@ This file does not define mitigations beyond vocabulary.
 
 ### 10.5 Revocation
 
-Revocation is a graph represented event that invalidates a previously valid key or scoped authority.
+`Revocation` is a graph represented event that invalidates a previously valid key or scoped authority.
 
 Constraints:
 
