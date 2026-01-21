@@ -213,7 +213,7 @@ Rejection reasons may be logged for audit purposes (see [02-architecture/manager
 
 Repeated invalid envelopes from a peer may result in:
 
-- Temporary suspension of [sync](07-sync-and-consistency.md).
+- Temporary suspension of sync.
 - Increased validation strictness.
 - Rate limiting.
 
