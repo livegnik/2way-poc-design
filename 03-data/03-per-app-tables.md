@@ -1,0 +1,286 @@
+
+
+
+# Per app tables
+
+## 1. Purpose and scope
+
+This document defines the per app table families stored in the 2WAY backend SQLite database. These tables store canonical graph objects for a single application domain and are created once per registered app under the `app_N_` prefix. It does not define global system tables or storage engine behavior outside app scoped graph data.
+
+This specification consumes and is constrained by the protocol contracts defined in:
+
+- [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
+- [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
+- [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
+- [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
+- [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
+- [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+- [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md)
+- [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
+
+## 2. Responsibilities and boundaries
+
+This specification is responsible for the following:
+
+* Defining the per app table family naming scheme and lifecycle
+* Defining all per app tables used to store graph objects and derived indices
+* Defining shared metadata columns and immutability constraints
+* Defining app scoped isolation rules and reference constraints
+* Defining failure posture for per app table corruption or inconsistency
+
+This specification does not cover the following:
+
+* Global system tables, which are defined in [03-data/02-system-tables.md](02-system-tables.md)
+* Schema compilation and type mapping semantics, which are owned by [Schema Manager](../02-architecture/managers/05-schema-manager.md)
+* ACL rule evaluation, which is owned by [ACL Manager](../02-architecture/managers/06-acl-manager.md) and defined in [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
+* Envelope validation and acceptance rules, which are owned by [Graph Manager](../02-architecture/managers/07-graph-manager.md)
+* Sync envelope construction or validation, which is owned by [State Manager](../02-architecture/managers/09-state-manager.md)
+* Network transport behavior, which is owned by [Network Manager](../02-architecture/managers/10-network-manager.md)
+
+All tables defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may access them directly.
+
+## 3. Invariants and guarantees
+
+Across all per app tables defined in this file, the following invariants and guarantees hold:
+
+* Each app owns exactly one table family with prefix `app_N_`, where `N` is the numeric `app_id`
+* app_0 is reserved for system owned graph data such as identities, schema, and ACL structures
+* Per app table families are created during app registration by [App Manager](../02-architecture/managers/08-app-manager.md) through [Storage Manager](../02-architecture/managers/02-storage-manager.md)
+* Per app table families are never dropped automatically
+* All graph object rows are append only
+* Immutable metadata fields never change after insertion per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
+* `global_seq` values are assigned at commit and never reused per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+* All references must resolve within the same `app_id` per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
+* Per app graph object tables store the canonical graph object history and are replicated per sync rules
+* app scoped operational tables (`app_N_log`, `app_N_type`) are local derived or operational state and are never synced
+
+These guarantees hold regardless of caller, execution context, input source, or peer behavior.
+
+## 4. Table ownership and access rules
+
+* [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all per app tables
+* [Graph Manager](../02-architecture/managers/07-graph-manager.md) is the only component permitted to write graph object tables
+* [Schema Manager](../02-architecture/managers/05-schema-manager.md) may request writes to `app_N_type` via Storage Manager
+* [State Manager](../02-architecture/managers/09-state-manager.md) may request read access for sync scans
+* [ACL Manager](../02-architecture/managers/06-acl-manager.md) may request read access for authorization evaluation
+* No service, app, or extension may access per app tables directly
+* Direct SQL access outside Storage Manager is forbidden
+
+Violation of these rules is a fatal implementation error.
+
+## 5. Per app table catalog
+
+Per app tables store the canonical graph objects for a single application domain. Each table family is scoped to one `app_id`, using a stable `app_N_` prefix derived from the registry defined in [03-data/02-system-tables.md](02-system-tables.md). The tables below are created for every app. All object rows include the shared metadata set defined by [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) and are subject to the same immutability rules.
+
+### 5.1 app_N_type
+
+#### Purpose
+
+Stores deterministic mappings between `type_key` and integer `type_id` for each object kind in the application. It lives outside the canonical graph object stream because it is a derived index generated by [Schema Manager](../02-architecture/managers/05-schema-manager.md) for efficient type resolution.
+
+The authoritative schema definitions remain in app_0 graph objects per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) and [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md).
+
+#### Expected contents
+
+Each row includes:
+
+* app_id
+* object kind
+* type_key
+* type_id
+* creation timestamp
+
+#### Rules and guarantees
+
+* type mappings are deterministic and immutable once assigned
+* type_id values are unique per app and per object kind
+* rows are append only
+* `app_N_type` is not part of sync and is never replicated
+* schema changes that invalidate the type registry cause fail closed behavior
+
+### 5.2 app_N_parent
+
+#### Purpose
+
+Stores Parent objects for the app. Each row represents a single immutable Parent instance with optional JSON payload defined by schema per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+
+#### Expected contents
+
+Each row includes:
+
+* app_id
+* parent id
+* type_id
+* owner_identity
+* global_seq
+* sync_flags
+* JSON payload
+
+#### Rules and guarantees
+
+* Parent rows are append only
+* immutable metadata fields never change after insertion
+* Parent rows must reference valid `type_id` mappings
+* `owner_identity` must resolve to a valid identity per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
+* Parent rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+
+### 5.3 app_N_attr
+
+#### Purpose
+
+Stores Attribute objects for the app. Each Attribute references exactly one source Parent and carries a schema defined value payload per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+
+#### Expected contents
+
+Each row includes:
+
+* app_id
+* attribute id
+* src_parent_id
+* type_id
+* owner_identity
+* global_seq
+* sync_flags
+* JSON payload
+
+#### Rules and guarantees
+
+* Attribute rows are append only
+* `src_parent_id` must reference an existing Parent in the same `app_id`
+* Cross app references are forbidden per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
+* immutable metadata fields never change after insertion
+* Attribute rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+
+### 5.4 app_N_edge
+
+#### Purpose
+
+Stores Edge objects for the app. Each Edge references exactly one source Parent and exactly one destination selector per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+
+#### Expected contents
+
+Each row includes:
+
+* app_id
+* edge id
+* src_parent_id
+* dst_parent_id or dst_attr_id
+* type_id
+* owner_identity
+* global_seq
+* sync_flags
+
+#### Rules and guarantees
+
+* Edge rows are append only
+* exactly one of `dst_parent_id` or `dst_attr_id` may be populated
+* all references resolve within the same `app_id`
+* immutable metadata fields never change after insertion
+* Edge rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+
+### 5.5 app_N_rating
+
+#### Purpose
+
+Stores Rating objects for the app. Each Rating references exactly one target selector and stores its value payload per [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+
+#### Expected contents
+
+Each row includes:
+
+* app_id
+* rating id
+* target_parent_id or target_attr_id
+* type_id
+* owner_identity
+* global_seq
+* sync_flags
+* JSON payload
+
+#### Rules and guarantees
+
+* Rating rows are append only
+* exactly one of `target_parent_id` or `target_attr_id` may be populated
+* all references resolve within the same `app_id`
+* immutable metadata fields never change after insertion
+* Rating rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
+
+### 5.6 app_N_log
+
+#### Purpose
+
+Stores Storage Manager owned operational records for the app. These rows are not graph objects, are never part of sync, and are not visible to apps or peers.
+
+#### Expected contents
+
+Each row may include:
+
+* app_id
+* log category
+* severity
+* timestamp
+* serialized payload
+
+#### Rules and guarantees
+
+* log rows are append only
+* log rows are never synced or replicated
+* log rows must not affect graph object evaluation, ACLs, or schema logic
+* deletion or truncation is permitted only by explicit operator action
+
+## 6. Common column requirements
+
+All graph object tables (`app_N_parent`, `app_N_attr`, `app_N_edge`, `app_N_rating`) include the shared metadata columns defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md). These fields are immutable and assigned exclusively by [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [Storage Manager](../02-architecture/managers/02-storage-manager.md). Callers must never supply or override them.
+
+The minimum required metadata set includes:
+
+* `app_id`
+* `id`
+* `type_id`
+* `owner_identity`
+* `global_seq`
+* `sync_flags`
+
+Any mutation of these fields is a fatal error.
+
+## 7. ACL and schema representation
+
+ACL structures are persisted as Parents and Attributes within the app scoped tables. There is no dedicated ACL table. ACL evaluation semantics are defined by [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md) and enforced by [ACL Manager](../02-architecture/managers/06-acl-manager.md).
+
+Schema definitions live in app_0 graph objects. Per app tables store only derived type mappings in `app_N_type`. This prevents schema definition drift and ensures deterministic type resolution across nodes per [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md).
+
+## 8. Startup behavior
+
+During app registration:
+
+1. [App Manager](../02-architecture/managers/08-app-manager.md) allocates a new `app_id`
+2. [Storage Manager](../02-architecture/managers/02-storage-manager.md) creates the `app_N_` table family
+3. Schema Manager loads schemas from app_0 and derives type mappings in `app_N_type` during its startup lifecycle
+
+Startup fails closed if per app table creation fails or results in partial state.
+
+## 9. Failure posture
+
+The system fails closed under the following conditions:
+
+* missing per app table
+* malformed per app table schema
+* `app_N_type` inconsistency with schema registry
+* cross app reference detected during validation
+* immutable metadata mutation attempt
+
+Automatic repair is forbidden per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+
+## 10. Explicitly forbidden behavior
+
+The following behavior is forbidden:
+
+* direct SQL access outside Storage Manager
+* reusing `app_id` values or `app_N_` prefixes
+* cross app references in any graph object table
+* mutation of immutable metadata columns
+* deletion of graph objects from per app tables
+* syncing `app_N_type` or `app_N_log`
+* creating per app tables outside App Manager registration flow
+
+Any implementation performing these actions is incorrect.
