@@ -8,7 +8,17 @@
 
 This document defines the identifier classes and namespace rules used by the 2WAY protocol as specified by the PoC design. It establishes how identities, applications, objects, domains, and schemas are named, scoped, and referenced at the protocol level. It specifies invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling required for correctness and security.
 
-This document is authoritative only for identifier semantics and namespace isolation. It does not define cryptographic primitives, schema content, ACL logic, sync mechanics, storage layout, or network transport, except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
+This specification references:
+
+* [02-object-model.md](02-object-model.md)
+* [04-cryptography.md](04-cryptography.md)
+* [05-keys-and-identity.md](05-keys-and-identity.md)
+* [06-access-control-model.md](06-access-control-model.md)
+* [07-sync-and-consistency.md](07-sync-and-consistency.md)
+* [08-network-transport-requirements.md](08-network-transport-requirements.md)
+* [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+
+This document is authoritative only for identifier semantics and namespace isolation. It does not define [cryptographic primitives](04-cryptography.md), [schema content](02-object-model.md), [ACL logic](06-access-control-model.md), [sync mechanics](07-sync-and-consistency.md), storage layout, or [network transport](08-network-transport-requirements.md), except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
 
 ## 2. Responsibilities and boundaries
 
@@ -22,12 +32,12 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-* Key generation, signing algorithms, or encryption algorithms.
-* Graph object schemas or attribute semantics.
-* Access control evaluation rules.
-* Sync ordering, conflict resolution, or replication mechanics.
-* Physical storage, indexing, or persistence strategies.
-* Network addressing or peer discovery identifiers.
+* [Key generation](04-cryptography.md), signing algorithms, or encryption algorithms.
+* [Graph object schemas](02-object-model.md) or attribute semantics.
+* [Access control](06-access-control-model.md) evaluation rules.
+* [Sync ordering](07-sync-and-consistency.md), conflict resolution, or replication mechanics.
+* [Physical storage, indexing, or persistence strategies](../03-data/01-sqlite-layout.md).
+* [Network addressing](08-network-transport-requirements.md) or peer discovery identifiers.
 
 ## 3. Identifier classes
 
@@ -43,8 +53,8 @@ Principals include:
 
 Properties:
 
-* Each identity identifier corresponds to exactly one Parent object in app_0.
-* Each identity identifier is anchored to one or more public keys via Attributes.
+* Each identity identifier corresponds to exactly one [Parent](02-object-model.md) object in [app_0](05-keys-and-identity.md).
+* Each identity identifier is anchored to one or more public keys via [Attributes](02-object-model.md).
 * Identity identifiers are immutable for the lifetime of the Parent.
 * Identity identifiers are globally unique within the node and across sync.
 
@@ -65,8 +75,8 @@ A device identifier represents a device acting on behalf of an identity.
 
 Properties:
 
-* Device identifiers are represented as Parents linked to an identity Parent.
-* Device identifiers may carry scoped authority defined by typed edges.
+* Device identifiers are represented as [Parents](02-object-model.md) linked to an identity Parent.
+* Device identifiers may carry scoped authority defined by typed [Edges](02-object-model.md).
 * Device identifiers may be independently revoked.
 
 Invariants:
@@ -86,7 +96,7 @@ An application identifier represents an application domain.
 
 Properties:
 
-* Application identifiers define namespace boundaries for schemas, object types, ratings, and domains.
+* Application identifiers define namespace boundaries for [schemas](02-object-model.md), [object types](02-object-model.md), [ratings](02-object-model.md), and [domains](07-sync-and-consistency.md).
 * Application identifiers are declared explicitly before use.
 * Application identifiers are stable across sync.
 
@@ -105,7 +115,7 @@ Guarantees:
 
 An object identifier uniquely identifies a graph object.
 
-Object classes include Parents, Attributes, Edges, Ratings, ACL objects, revocation objects, and recovery objects.
+Object classes include [Parents](02-object-model.md), [Attributes](02-object-model.md), [Edges](02-object-model.md), [Ratings](02-object-model.md), [ACL objects](06-access-control-model.md), [revocation objects](05-keys-and-identity.md), and [recovery objects](05-keys-and-identity.md).
 
 Properties:
 
@@ -130,7 +140,7 @@ A domain identifier represents a replication and visibility scope.
 
 Properties:
 
-* Domain identifiers constrain sync participation.
+* Domain identifiers constrain [sync participation](07-sync-and-consistency.md).
 * Domain identifiers constrain visibility and disclosure.
 
 Invariants:
@@ -155,7 +165,7 @@ Includes:
 * Identity identifiers.
 * Application identifiers.
 * Domain identifiers.
-* Global sequence identifiers.
+* [Global sequence identifiers](07-sync-and-consistency.md).
 
 Rules:
 
@@ -169,14 +179,14 @@ Each application defines an internal namespace.
 Includes:
 
 * Object identifiers.
-* Attribute types.
-* Rating types.
-* App-specific domains.
+* [Attribute types](02-object-model.md).
+* [Rating types](02-object-model.md).
+* [App-specific domains](07-sync-and-consistency.md).
 
 Rules:
 
 * Identifiers are unique only within the application scope.
-* Interpretation outside the owning application is forbidden unless explicitly defined by schema linkage.
+* Interpretation outside the owning application is forbidden unless explicitly defined by [schema linkage](02-object-model.md).
 
 ### 4.3 Domain namespaces
 
@@ -193,13 +203,13 @@ Rules:
 Resolution rules:
 
 * Identifier resolution is local and deterministic.
-* Identifiers resolve to graph objects through the Graph Manager.
+* Identifiers resolve to graph objects through the [Graph Manager](../02-architecture/managers/07-graph-manager.md).
 * No external resolution mechanism is permitted.
 
 Trust boundaries:
 
 * Identifiers received from remote peers are untrusted input.
-* Resolution occurs only after signature verification and schema validation.
+* Resolution occurs only after [signature verification](04-cryptography.md) and [schema validation](02-object-model.md).
 
 Failure handling:
 
@@ -226,7 +236,7 @@ The following behaviors are explicitly forbidden:
 * Cross-application interpretation without explicit schema linkage.
 * Overloading a single identifier with multiple semantic meanings.
 
-Violations MUST result in immediate rejection.
+Violations MUST result in immediate [rejection](09-errors-and-failure-modes.md).
 
 ## 8. Failure and rejection semantics
 
