@@ -8,34 +8,37 @@
 
 This document defines the scope and goals of the 2WAY system design repository. It specifies what the system is intended to do, what properties it must guarantee, and which behaviors are explicitly allowed or forbidden at the design level.
 
-This document is normative. All other design documents in this repository must conform to the constraints, invariants, and boundaries defined here.
+This document is normative. All other design documents in this repository must conform to the constraints, invariants, and boundaries defined here. Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
 
-This document defines scope and intent only. It does not define wire formats, schemas, APIs, or concrete implementations except where required to constrain correctness or security.
+This document defines scope and intent only. It does not define wire formats, schemas, APIs, or concrete implementations except where required to constrain correctness or security. Those details live in protocol and architecture specifications under [01-protocol](../01-protocol/) and [02-architecture](../02-architecture/), with storage details under [03-data](../03-data/).
 
 ## 2. System scope
 
-2WAY is a local first, graph based system for identity anchored data ownership, access control, incentive mediated interaction, and peer to peer synchronization over untrusted networks.
+2WAY is a local-first, graph-based system for identity-anchored data ownership, access control, incentive-mediated interaction, and peer-to-peer synchronization over untrusted networks.
 
-This repository defines the complete design required to build and evaluate a single 2WAY proof of concept node and its interactions with peers.
+This repository defines the complete design required to build and evaluate a single 2WAY proof-of-concept node and its interactions with peers.
 
 Within scope:
 
-- A graph based object model with explicit identity, ownership, and ordering.
+- A graph-based object model with explicit identity, ownership, and ordering.
 - Cryptographically anchored identity and authorship.
 - A deterministic validation and enforcement pipeline for all state mutations.
 - A modular backend composed of Managers and Services with strict trust boundaries.
 - A local API surface for frontend applications.
-- A peer to peer synchronization model with explicit scoping, sequencing, and rejection rules.
-- App defined domains with isolated semantics enforced by schema and access control.
+- A peer-to-peer synchronization model with explicit scoping, sequencing, and rejection rules.
+- App-defined domains with isolated semantics enforced by schema and access control.
 - Economic and incentive mechanisms expressed as graph structures and enforced locally.
+- Protocol-level envelope and sync semantics as defined in [01-protocol](../01-protocol/).
+- Storage layout and indexing strategies for the PoC node as defined in [03-data](../03-data/).
 
 Out of scope:
 
 - Centralized coordination, global consensus, or shared ledgers.
 - Externally enforced monetary policy or global settlement.
 - User interface or experience design beyond API boundary requirements.
-- Operational deployment strategies beyond a single node.
+- Operational deployment strategies beyond a single-node PoC.
 - Any behavior that requires implicit trust in peers, transports, or infrastructure.
+- Production-scale multi-node consensus or cluster management.
 
 ## 3. Design goals
 
@@ -66,7 +69,7 @@ The goals in this section are mandatory constraints on the design.
 ### 3.4 Isolation and containment
 
 - App domains are isolated by schema and access control rules.
-- App specific logic cannot mutate foreign domains without explicit authorization.
+- App-specific logic cannot mutate foreign domains without explicit authorization.
 - Backend core logic is isolated from app logic.
 - Frontend code cannot directly access backend Managers.
 
@@ -91,7 +94,7 @@ This specification is not responsible for defining:
 
 - Detailed protocol encoding.
 - Concrete database schemas.
-- Application specific semantics.
+- Application-specific semantics.
 - Deployment or operational policy.
 
 ## 5. Invariants and guarantees
@@ -101,12 +104,15 @@ The following invariants apply globally:
 - All backend code consists of Managers and Services.
 - Frontend applications run outside the backend.
 - Apps may include backend extension Services, but never bypass Managers.
-- All graph writes occur through Graph Manager.
-- All authorization decisions occur through ACL Manager.
-- All schemas are sourced from the graph and validated by Schema Manager.
-- All synchronization state transitions occur through State Manager.
-- All network traffic is mediated by Network Manager.
-- All event emission is mediated by Event Manager.
+- All graph writes occur through [Graph Manager](../02-architecture/managers/07-graph-manager.md).
+- All authorization decisions occur through [ACL Manager](../02-architecture/managers/06-acl-manager.md).
+- All schemas are sourced from the graph and validated by [Schema Manager](../02-architecture/managers/05-schema-manager.md).
+- All synchronization state transitions occur through [State Manager](../02-architecture/managers/09-state-manager.md).
+- All network traffic is mediated by [Network Manager](../02-architecture/managers/10-network-manager.md).
+- All event emission is mediated by [Event Manager](../02-architecture/managers/11-event-manager.md).
+- All authentication and requester resolution is mediated by [Auth Manager](../02-architecture/managers/04-auth-manager.md).
+- All audit logging is mediated by [Log Manager](../02-architecture/managers/12-log-manager.md).
+- All request-scoped work is bound to a complete [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
 
 The system guarantees that:
 
@@ -123,7 +129,7 @@ The following behaviors are explicitly allowed:
 - Multiple independent nodes operating without coordination.
 - Selective synchronization with peers based on explicit rules.
 - Multiple apps with isolated schemas and semantics.
-- App defined economic and incentive models within enforced boundaries.
+- App-defined economic and incentive models within enforced boundaries.
 - Delegation of limited authority encoded in graph structure.
 
 ## 7. Forbidden behaviors
@@ -133,7 +139,7 @@ The following behaviors are explicitly forbidden:
 - Direct database access outside Graph Manager.
 - Authorization outside ACL Manager.
 - Implicit trust based on network or transport metadata.
-- Cross domain mutation without explicit authorization.
+- Cross-domain mutation without explicit authorization.
 - Silent mutation or deletion of historical state.
 - Bypassing validation for performance or convenience.
 
@@ -145,7 +151,7 @@ Untrusted inputs:
 
 - All network input.
 - All frontend input prior to authentication.
-- All app provided input.
+- All app-provided input.
 
 Trusted outputs only after validation:
 
@@ -154,7 +160,7 @@ Trusted outputs only after validation:
 
 Trust boundaries:
 
-- Frontend to backend is mediated by authentication and operation context resolution.
+- Frontend to backend is mediated by authentication and OperationContext resolution.
 - Network to persistence is mediated by network handling, sync logic, and graph validation.
 - App logic to core state is mediated exclusively by Managers.
 
@@ -168,9 +174,9 @@ On failure or invalid input:
 - Components fail closed at trust boundaries.
 - Partial failures do not create ambiguous or intermediate state.
 
-Silent acceptance, partial mutation, or best effort processing are not permitted.
+Silent acceptance, partial mutation, or best-effort processing are not permitted.
 
-## 10. Non goals
+## 10. Non-goals
 
 The following are explicitly not goals:
 
@@ -178,4 +184,4 @@ The following are explicitly not goals:
 - Global identity uniqueness.
 - Anonymous mutation without identity.
 - Automatic trust inference.
-- Enforcement of policy outside graph encoded rules.
+- Enforcement of policy outside graph-encoded rules.
