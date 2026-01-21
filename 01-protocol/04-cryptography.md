@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This file specifies the cryptographic algorithms and protocol level rules for signing, verification, encryption, and decryption of 2WAY node to node messages and graph envelopes. It defines what must be signed, what may be encrypted, what inputs are required, what outputs are produced, and what must be rejected on failure.
+This file specifies the cryptographic algorithms and protocol level rules for signing, verification, encryption, and decryption of 2WAY node to node messages and [graph envelopes](03-serialization-and-envelopes.md). It defines what must be signed, what may be encrypted, what inputs are required, what outputs are produced, and what must be rejected on failure.
 
 This specification references:
 
@@ -14,9 +14,10 @@ This specification references:
 - [05-keys-and-identity.md](05-keys-and-identity.md)
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
+- [08-network-transport-requirements.md](08-network-transport-requirements.md)
 - [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
 
-Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in [05-keys-and-identity.md](05-keys-and-identity.md), [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md), and the data layout documents, and are out of scope here.
+Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in [05-keys-and-identity.md](05-keys-and-identity.md), [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md), and the [data layout documents](../03-data/01-sqlite-layout.md), and are out of scope here.
 
 ## 2. Responsibilities and boundaries
 
@@ -60,7 +61,7 @@ This specification does not cover the following:
 
 Node to node packages are cryptographically protected at the package level.
 
-A node to node package that crosses the node trust boundary must include:
+A node to node package that crosses the node trust boundary defined by [08-network-transport-requirements.md](08-network-transport-requirements.md) must include:
 
 - A signature over the package content.
 - Sender identification sufficient for the receiver to select the correct public key from local state.
@@ -69,7 +70,7 @@ If confidentiality is required for the package payload, the payload must be encr
 
 ## 4.2 Graph envelopes transmitted over remote sync
 
-Remote sync uses the same graph envelope abstraction used for local writes, with additional metadata required for [sync](07-sync-and-consistency.md).
+Remote sync uses the same [graph envelope](03-serialization-and-envelopes.md) abstraction used for local writes, with additional metadata required for [sync](07-sync-and-consistency.md).
 
 For cryptographic purposes, a remote sync envelope must include the following metadata fields, because they participate in validation and replay protection:
 
@@ -122,14 +123,14 @@ Outputs:
 Trust boundary:
 
 - [Key Manager](../02-architecture/managers/03-key-manager.md) is the only component that may access private keys for signing and decryption.
-- Callers must treat Key Manager outputs as cryptographic results only. Authorization semantics are out of scope for Key Manager.
+- Callers must treat [Key Manager](../02-architecture/managers/03-key-manager.md) outputs as cryptographic results only. Authorization semantics are out of scope for Key Manager.
 
 ## 6.2 Network Manager
 
 Inputs:
 
-- Raw inbound remote packages from transport.
-- Outbound packages produced by State Manager.
+- Raw inbound remote packages from [transport](08-network-transport-requirements.md).
+- Outbound packages produced by [State Manager](../02-architecture/managers/09-state-manager.md).
 
 Outputs:
 
@@ -192,15 +193,15 @@ When verification succeeds and the message is accepted by higher layers:
 
 The cryptographic layer provides no guarantee of:
 
-- Authorization correctness.
-- Schema correctness.
+- [Authorization](06-access-control-model.md) correctness.
+- [Schema](../02-architecture/managers/05-schema-manager.md) correctness.
 - Delivery, ordering, liveness, or availability.
 
 ## 8. Allowed behavior
 
 The specification explicitly allows:
 
-- Operating without relying on transport security properties.
+- Operating without relying on [transport](08-network-transport-requirements.md) security properties.
 - Signing and verifying node to node packages and graph envelopes at the [Network Manager](../02-architecture/managers/10-network-manager.md) boundary.
 - Encrypting payload bytes when confidentiality is required by the protocol step.
 - Rejecting messages solely on cryptographic failure, without additional processing.
@@ -223,7 +224,7 @@ If signature verification fails, the receiver must:
 
 - Reject the package or envelope.
 - Perform no further processing of the contained operations.
-- Perform no state changes, including sync state updates.
+- Perform no state changes, including [sync state updates](07-sync-and-consistency.md).
 
 ## 10.2 Decryption failure
 
@@ -231,7 +232,7 @@ If decryption is required for a payload and decryption fails, the receiver must:
 
 - Reject the package or envelope.
 - Perform no further processing of the contained operations.
-- Perform no state changes, including sync state updates.
+- Perform no state changes, including [sync state updates](07-sync-and-consistency.md).
 
 ## 10.3 Unsupported algorithm or malformed cryptographic fields
 
