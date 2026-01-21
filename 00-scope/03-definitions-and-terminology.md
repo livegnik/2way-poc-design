@@ -215,11 +215,11 @@ Constraints:
 
 The fundamental object types are:
 
-- Parent.
-- Attribute.
-- Edge.
-- Rating.
-- ACL.
+- `Parent` is the root object that anchors ownership and related objects. See [Section 7.3](#73-parent).
+- `Attribute` is a typed value associated with a Parent. See [Section 7.4](#74-attribute).
+- `Edge` is a typed directed relationship between two Parents. See [Section 7.5](#75-edge).
+- `Rating` is a typed evaluative object with app scoped semantics. See [Section 7.6](#76-rating).
+- `ACL` is a permissions object that governs visibility and mutation within a scope. See [Section 7.7](#77-acl).
 
 ### 7.3 Parent
 
