@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines protocol versioning and compatibility rules for 2WAY. It specifies how protocol versions are represented, how peers determine compatibility, and how version mismatches are handled. This file applies strictly to the protocol layer. It does not define application versioning, schema evolution, storage migrations, API versioning, or deployment concerns.
+This document defines protocol versioning and compatibility rules for 2WAY. It specifies how protocol versions are represented, how peers determine compatibility, and how version mismatches are handled. This file applies strictly to the protocol layer. It does not define application versioning, [schema evolution](../02-architecture/managers/05-schema-manager.md), [storage migrations](../03-data/01-sqlite-layout.md), API versioning, or deployment concerns.
 
 This specification references:
 
@@ -94,9 +94,9 @@ Version declarations are treated as untrusted input.
 
 Protocol version compatibility must be evaluated before any of the following occur:
 
-- Graph mutation.
+- [Graph mutation](../02-architecture/managers/07-graph-manager.md).
 - State allocation.
-- Sync processing.
+- [Sync processing](07-sync-and-consistency.md).
 - Resource reservation.
 
 If compatibility cannot be established, the interaction must not proceed.
@@ -116,9 +116,9 @@ The following behaviors are allowed:
 The following behaviors are forbidden:
 
 - Accepting any interaction from a peer with a different major version.
-- Processing envelopes that depend on protocol behavior not defined by the local version.
+- Processing [envelopes](03-serialization-and-envelopes.md) that depend on protocol behavior not defined by the local version.
 - Guessing, inferring, or emulating behavior outside the negotiated protocol version.
-- Weakening validation, ACL enforcement, or sync guarantees due to version mismatch.
+- Weakening [validation](09-errors-and-failure-modes.md), [ACL enforcement](06-access-control-model.md), or [sync guarantees](07-sync-and-consistency.md) due to version mismatch.
 
 Forbidden behavior must result in rejection.
 
@@ -140,7 +140,7 @@ This specification produces the following outputs:
 
 ### 7.3 Trust boundary
 
-This specification operates at the boundary between local protocol logic and remote peers. No assumptions are made about correctness, honesty, or completeness of remote declarations.
+This specification operates at the boundary between local protocol logic and remote peers (see [08-network-transport-requirements.md](08-network-transport-requirements.md)). No assumptions are made about correctness, honesty, or completeness of remote declarations.
 
 ## 8. Failure and rejection behavior
 
@@ -162,7 +162,7 @@ If a version declaration is missing, malformed, or semantically invalid, it must
 If incompatibility is detected after partial interaction, the system must:
 
 - Abort the interaction immediately.
-- Discard all uncommitted data.
+- Discard all uncommitted data (see [02-architecture/managers/02-storage-manager.md](../02-architecture/managers/02-storage-manager.md)).
 - Preserve all local invariants.
 
 No retry or downgrade behavior is defined at the protocol level.
