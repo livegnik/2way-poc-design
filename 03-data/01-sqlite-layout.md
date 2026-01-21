@@ -93,7 +93,7 @@ The initial `global_seq` row is seeded during bootstrap. Migrations are applied 
 
 Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. app_0 is reserved for system owned graph data, including identities, schemas, ACL structures, and protocol level metadata.
 
-Per app table families are created on demand by Storage Manager at app registration time and must be created within the same bootstrap transaction that inserts the app record. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope. Each app owns an independent `type_id` namespace and cannot observe or reference another app's object tables.
+Per app table families are created on demand by Storage Manager at app registration time and must be created within the same registration transaction that inserts the app record. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope. Each app owns an independent `type_id` namespace and cannot observe or reference another app's object tables.
 
 The per app table family includes:
 
@@ -153,11 +153,11 @@ The authoritative schema source remains graph objects stored in app_0.
 
 `global_seq` stores the local monotonic sequence cursor. It advances only after a successful commit of a full envelope. Values are never reused or rolled back.
 
-Storage Manager assigns the next `global_seq` value at commit time and writes it to every row persisted for the envelope. Sequence gaps may exist if a transaction fails before commit, but committed values remain strictly increasing.
+Graph Manager allocates the next `global_seq` value and Storage Manager persists it at commit time, writing it to every row persisted for the envelope. Sequence gaps may exist if a transaction fails before commit, but committed values remain strictly increasing.
 
 ### 5.2 Domain and peer sequencing
 
-`domain_seq` stores per domain high water marks. `sync_state` stores per peer and per domain cursors required to resume incremental synchronization as defined by [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+`domain_seq` stores per peer and per sync domain high water marks. `sync_state` stores per peer and per domain cursors required to resume incremental synchronization as defined by [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 Sequence state advances only after full acceptance and persistence. Rejected envelopes do not advance any cursor.
 
