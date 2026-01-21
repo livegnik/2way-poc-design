@@ -18,7 +18,7 @@ This specification references:
 * [08-network-transport-requirements.md](08-network-transport-requirements.md)
 * [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
 
-This document is authoritative only for identifier semantics and namespace isolation. It does not define [cryptographic primitives](04-cryptography.md), [schema content](02-object-model.md), [ACL logic](06-access-control-model.md), [sync mechanics](07-sync-and-consistency.md), storage layout, or [network transport](08-network-transport-requirements.md), except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
+This document is authoritative only for identifier semantics and namespace isolation. It does not define [cryptographic primitives](04-cryptography.md), [schema content](02-object-model.md), [ACL logic](06-access-control-model.md), [sync mechanics](07-sync-and-consistency.md), [storage layout](../03-data/01-sqlite-layout.md), or [network transport](08-network-transport-requirements.md), except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
 
 ## 2. Responsibilities and boundaries
 
@@ -243,7 +243,7 @@ Violations MUST result in immediate [rejection](09-errors-and-failure-modes.md).
 On invalid identifier usage, the system MUST:
 
 * Reject the operation before persistent storage.
-* Record the rejection in the local log.
+* Record the rejection in the [local log](../02-architecture/managers/12-log-manager.md).
 * Apply no partial state changes.
 
 Invalid conditions include:
