@@ -14,9 +14,9 @@ This file does not define APIs, wire formats, database schemas, or protocol flow
 
 This specification defines:
 
-- Canonical meanings for repository level terms.
-- Fixing canonical names for the fundamental object types and related concepts.
-- Naming and scoping terms used for apps, types, and domains.
+- Canonical meanings for repository-level terms.
+- Canonical names for the fundamental object types and related concepts.
+- Names and scopes for terms used for apps, types, and domains.
 - Security vocabulary needed to interpret authorization, signing, rotation, and revocation rules.
 
 This specification does not define:
@@ -24,7 +24,7 @@ This specification does not define:
 - How managers execute validation, enforcement, or persistence.
 - Database schema, table layouts, or indexes.
 - Envelope fields, request formats, or network message layouts.
-- App specific schemas or app specific type catalogs.
+- App-specific schemas or app-specific type catalogs.
 
 ## 3. Invariants and guarantees
 
@@ -82,32 +82,50 @@ This file does not define manager APIs.
 
 ### 5.3 Service
 
-`service` is backend resident logic that implements scoped or system behavior using managers.
+`service` is backend-resident logic that implements scoped or system behavior using managers.
 
 Constraints:
 
 - A service does not bypass manager enforced rules.
 - A service is constrained by validation and authorization rules for the objects it attempts to create or mutate.
 
-### 5.4 Frontend
+### 5.4 System service
 
-`frontend` is any external client surface that initiates requests into the backend, including user facing apps, automation clients, and integration tooling.
+`system service` is a backend-resident service that implements system-scoped behavior across apps under core policy.
+
+Constraints:
+
+- A system service operates under system-scoped schema and authorization rules.
+- A system service does not assert app-specific semantics beyond those explicitly delegated.
+
+### 5.5 Application service
+
+`application service` is a backend-resident service that implements app-scoped behavior for a specific app.
+
+Constraints:
+
+- An application service is bound to a single app context.
+- An application service does not bypass app-scoped schema or ACL enforcement.
+
+### 5.6 Frontend
+
+`frontend` is any external client surface that initiates requests into the backend, including user-facing apps, automation clients, and integration tooling.
 
 Constraints:
 
 - Frontend inputs are untrusted until validated by the backend.
 - Frontend behavior does not define or override backend rules.
 
-### 5.5 Frontend app
+### 5.7 Frontend app
 
-`frontend app` is a user facing application that interacts with the backend only through the backend's exposed interfaces.
+`frontend app` is a user-facing application that interacts with the backend only through the backend's exposed interfaces.
 
 Constraints:
 
 - A frontend app does not directly invoke managers.
 - A frontend app does not bypass backend validation or authorization.
 
-### 5.6 Node
+### 5.8 Node
 
 `node` is a single running 2WAY backend instance with its own local persistent state.
 
@@ -117,11 +135,11 @@ Constraints:
 - A node enforces validation and authorization for all accepted mutations.
 - A node may exchange data with other nodes.
 
-`node` is not defined as a cluster, shard, or externally managed service.
+`node` is not a cluster, shard, or externally managed service.
 
-### 5.7 Identity
+### 5.9 Identity
 
-`identity` is a first class actor represented in the system and used to attribute actions and authority.
+`identity` is a first-class actor represented in the system and used to attribute actions and authority.
 
 Constraints:
 
@@ -131,7 +149,7 @@ Constraints:
 
 This file does not define identity storage tables or key storage layout.
 
-### 5.8 identity_id and owner_identity
+### 5.10 identity_id and owner_identity
 
 `identity_id` is the identifier for an identity.
 
@@ -145,23 +163,23 @@ This file does not define identity storage tables or key storage layout.
 
 Properties:
 
-- App semantics are isolated. Objects and their meanings are app scoped.
+- App semantics are isolated. Objects and their meanings are app-scoped.
 - App boundaries are enforced by validation and authorization rules.
 
 ### 6.2 app_id and app_slug
 
-`app_id` is the numeric identifier used to bind storage and object identifiers to an app. `app_slug` is the stable string name used for human readable identification and routing.
+`app_id` is the numeric identifier used to bind storage and object identifiers to an app. `app_slug` is the stable string name used for human-readable identification and routing.
 
 Constraints:
 
-- app_id determines the per app table set in storage.
+- app_id determines the per-app table set in storage.
 - app_slug identifies the app in configuration and higher level interfaces.
 
 This file does not define allocation rules for app_id.
 
 ### 6.3 Type
 
-`type` is an app scoped identifier for a specific object category within an app.
+`type` is an app-scoped identifier for a specific object category within an app.
 
 Two representations are used:
 
@@ -170,11 +188,11 @@ Two representations are used:
 
 Constraint:
 
-- type_key to type_id mapping is app scoped.
+- type_key to type_id mapping is app-scoped.
 
 ### 6.4 Schema
 
-`schema` is an app scoped declaration of allowed types and allowed relationships among types.
+`schema` is an app-scoped declaration of allowed types and relationships among types.
 
 Constraint:
 
@@ -184,7 +202,7 @@ This file does not define schema formats, value representations, or validation a
 
 ### 6.5 app_0
 
-`app_0` is the reserved system app identifier used for core system identities, keys, and system scoped schema.
+`app_0` is the reserved system app identifier used for core system identities, keys, and system-scoped schema.
 
 ### 6.6 Value kind
 
@@ -218,12 +236,12 @@ The fundamental object types are:
 - `Parent` is the root object that anchors ownership and related objects. See [Section 7.3](#73-parent).
 - `Attribute` is a typed value associated with a Parent. See [Section 7.4](#74-attribute).
 - `Edge` is a typed directed relationship between two Parents. See [Section 7.5](#75-edge).
-- `Rating` is a typed evaluative object with app scoped semantics. See [Section 7.6](#76-rating).
+- `Rating` is a typed evaluative object with app-scoped semantics. See [Section 7.6](#76-rating).
 - `ACL` is a permissions object that governs visibility and mutation within a scope. See [Section 7.7](#77-acl).
 
 ### 7.3 Parent
 
-`Parent` is a top level graph object that anchors ownership and is the root for related objects.
+`Parent` is a top-level graph object that anchors ownership and is the root for related objects.
 
 Constraints:
 
@@ -256,7 +274,7 @@ This file does not define Edge fields.
 
 ### 7.6 Rating
 
-`Rating` is a typed evaluative object with app scoped semantics.
+`Rating` is a typed evaluative object with app-scoped semantics.
 
 Constraints:
 
@@ -278,13 +296,13 @@ This file does not define ACL fields or evaluation rules.
 
 ### 7.8 Graph object identifiers
 
-`parent_id` is the identifier of a Parent within an app scope.
+`parent_id` is the app-scoped identifier of a Parent.
 
-`attr_id` is the identifier of an Attribute within an app scope.
+`attr_id` is the app-scoped identifier of an Attribute.
 
-`edge_id` is the identifier of an Edge within an app scope.
+`edge_id` is the app-scoped identifier of an Edge.
 
-`rating_id` is the identifier of a Rating within an app scope.
+`rating_id` is the app-scoped identifier of a Rating.
 
 `object_id` is a generic identifier for a graph object when the specific object type is not material to the statement.
 
@@ -370,10 +388,10 @@ This file does not define envelope fields, signing formats, or encryption format
 
 Constraints:
 
-- OperationContext binds the requester_identity_id and any scoped authority relevant to the operation.
-- OperationContext is explicitly derived, it is not inferred from transport metadata or client supplied claims.
-- For inter-node exchange processing, OperationContext may include sync_domain and remote_node_identity_id.
-- OperationContext includes trace_id for request correlation.
+- OperationContext binds the `requester_identity_id` and any scoped authority relevant to the operation.
+- OperationContext is explicitly derived; it is not inferred from transport metadata or client supplied claims.
+- For inter-node exchange processing, OperationContext may include `sync_domain` and `remote_node_identity_id`.
+- OperationContext includes `trace_id` for request correlation.
 
 This file does not define OperationContext fields beyond the names listed here.
 
@@ -385,7 +403,7 @@ This file does not define OperationContext fields beyond the names listed here.
 
 ### 9.1 global_seq
 
-`global_seq` is a node local strictly monotonic sequence number assigned to accepted persisted writes.
+`global_seq` is a node-local strictly monotonic sequence number assigned to accepted persisted writes.
 
 Constraints:
 
@@ -396,11 +414,11 @@ This file does not define how `global_seq` is stored, indexed, or transmitted.
 
 ### 9.2 Sync
 
-`Sync` is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
+`sync` is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
 
 Constraint:
 
-- Sync does not imply that a node accepts all received content.
+- `sync` does not imply that a node accepts all received content.
 
 This file does not define sync protocol flows.
 
@@ -480,20 +498,20 @@ This file does not define key storage layout or rotation rules.
 
 ### 10.2 Authorship
 
-`Authorship` is the binding between an operation or envelope and the identity that signed it.
+`authorship` is the binding between an operation or envelope and the identity that signed it.
 
 Constraints:
 
-- Authorship is explicit in the envelope.
-- Authorship is verified, not inferred.
+- `authorship` is explicit in the envelope.
+- `authorship` is verified, not inferred.
 
 ### 10.3 Ownership
 
-`Ownership` is the association between a graph object and the identity that owns it under system rules.
+`ownership` is the association between a graph object and the identity that owns it under system rules.
 
 Constraint:
 
-- Ownership is used to enforce mutation rules and reject unauthorized writes.
+- `ownership` is used to enforce mutation rules and reject unauthorized writes.
 
 This file does not define ownership enforcement logic.
 
@@ -505,13 +523,13 @@ Core trust boundaries include:
 
 - Frontend app to backend interface boundary.
 - Network input to node boundary.
-- App scoped logic to system scoped logic boundary.
+- App-scoped logic to system-scoped logic boundary.
 
 This file does not define mitigations beyond vocabulary.
 
 ### 10.5 Revocation
 
-`Revocation` is a graph represented event that invalidates a previously valid key or scoped authority.
+`revocation` is a graph represented event that invalidates a previously valid key or scoped authority.
 
 Constraints:
 
