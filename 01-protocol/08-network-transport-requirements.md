@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the normative requirements for the network transport layer of the 2WAY protocol. It specifies the responsibilities, invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling of the transport abstraction as required by the PoC build guide. It does not define concrete network implementations, routing mechanisms, cryptographic formats, or sync logic beyond transport level constraints. All higher level protocol semantics are defined elsewhere.
+This document defines the normative requirements for the network transport layer of the 2WAY protocol. It specifies the responsibilities, invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling of the transport abstraction as required by the PoC build guide. It does not define concrete network implementations, routing mechanisms, [cryptographic formats](04-cryptography.md), or [sync logic](07-sync-and-consistency.md) beyond transport level constraints. All higher level protocol semantics are defined elsewhere.
 
 This specification references:
 
@@ -44,13 +44,13 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-- Authenticating peer identity.
-- Authorizing operations.
+- Authenticating peer identity (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+- Authorizing operations (see [06-access-control-model.md](06-access-control-model.md)).
 - [Verifying cryptographic signatures](04-cryptography.md).
 - [Encrypting](04-cryptography.md) or decrypting payloads.
 - Enforcing replay protection (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 - Enforcing ordering or deduplication (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
-- Inspecting or interpreting envelope contents.
+- Inspecting or interpreting [envelope contents](03-serialization-and-envelopes.md).
 - Applying [schema](../02-architecture/managers/05-schema-manager.md), [ACL](06-access-control-model.md), or [domain rules](07-sync-and-consistency.md).
 - Persisting envelopes beyond transient buffering required for delivery.
 - Performing [sync](07-sync-and-consistency.md) reconciliation or state repair.
@@ -75,7 +75,7 @@ The transport layer provides only the following guarantees:
 The transport layer provides no guarantees of:
 
 - Reliable delivery.
-- Global or per-peer ordering.
+- Global or per-peer ordering (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 - Uniqueness of delivery.
 - Latency bounds.
 - Availability.
@@ -90,7 +90,7 @@ Any transport implementation used by the PoC must expose the following abstract 
 - Notify higher layers of connection lifecycle events.
 - Notify higher layers of delivery failure or timeout.
 
-Peer references provided by the transport are advisory only and must not be treated as identity assertions.
+Peer references provided by the transport are advisory only and must not be treated as [identity assertions](05-keys-and-identity.md).
 
 ## 6. Allowed behaviors
 
@@ -100,7 +100,7 @@ The transport layer is permitted to:
 - Delay delivery arbitrarily.
 - Duplicate envelope delivery.
 - Disconnect peers without explanation.
-- Apply coarse connection level rate limiting.
+- Apply coarse connection level rate limiting (see [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)).
 - Operate over routed, proxied, or anonymized networks.
 
 All higher layers must remain correct under these behaviors.
@@ -112,8 +112,8 @@ The transport layer must not:
 - Modify envelope payloads or metadata.
 - Inspect envelope contents beyond size and framing (see [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)).
 - Filter envelopes based on semantic meaning.
-- Enforce access control decisions.
-- Perform cryptographic verification.
+- Enforce [access control](06-access-control-model.md) decisions.
+- Perform [cryptographic verification](04-cryptography.md).
 - Infer trust, reputation, or intent.
 - Persist envelope contents for analysis or replay.
 
