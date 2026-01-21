@@ -8,6 +8,13 @@
 
 This document defines protocol versioning and compatibility rules for 2WAY. It specifies how protocol versions are represented, how peers determine compatibility, and how version mismatches are handled. This file applies strictly to the protocol layer. It does not define application versioning, schema evolution, storage migrations, API versioning, or deployment concerns.
 
+This specification references:
+
+- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+- [06-access-control-model.md](06-access-control-model.md)
+- [07-sync-and-consistency.md](07-sync-and-consistency.md)
+- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+
 ## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
@@ -20,11 +27,11 @@ This specification is responsible for the following:
 
 This specification does not cover the following:
 
-- Schema compatibility or schema migration rules.
+- Schema compatibility or schema migration rules (see [02-architecture/managers/05-schema-manager.md](../02-architecture/managers/05-schema-manager.md)).
 - Application or service feature negotiation.
 - Backend or frontend API versioning.
-- Database layout evolution.
-- Transport negotiation or transport versioning.
+- Database layout evolution (see [03-data/01-sqlite-layout.md](../03-data/01-sqlite-layout.md)).
+- Transport negotiation or transport versioning (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 - Upgrade orchestration or rollout strategy.
 
 ## 3. Protocol version identifier
@@ -66,7 +73,7 @@ Compatibility is asymmetric. A peer implementing a higher minor version may acce
 When compatibility conditions are satisfied, the following guarantees apply:
 
 - All protocol invariants remain enforceable.
-- Envelope validation, ACL enforcement, and sync ordering are deterministic.
+- [Envelope validation](03-serialization-and-envelopes.md), [ACL enforcement](06-access-control-model.md), and [sync ordering](07-sync-and-consistency.md) are deterministic.
 - Security properties defined by the protocol are not weakened.
 - Unsupported features are not implicitly enabled.
 
@@ -141,9 +148,9 @@ This specification operates at the boundary between local protocol logic and rem
 
 If protocol versions are incompatible, the system must:
 
-- Reject the interaction deterministically.
-- Perform no graph mutation.
-- Perform no sync processing.
+- Reject the interaction deterministically (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
+- Perform no graph mutation (see [02-architecture/managers/07-graph-manager.md](../02-architecture/managers/07-graph-manager.md)).
+- Perform no [sync](07-sync-and-consistency.md) processing.
 - Release or avoid allocating protocol resources.
 
 ### 8.2 Invalid version declarations
@@ -166,7 +173,7 @@ No retry or downgrade behavior is defined at the protocol level.
 
 The following invariants must always hold:
 
-- Protocol compatibility is evaluated before trust or state exchange.
+- Protocol compatibility is evaluated before trust or state exchange (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 - Version mismatch cannot weaken security or validation guarantees.
 - Protocol behavior is deterministic within a negotiated version.
 
