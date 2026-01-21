@@ -5,10 +5,13 @@
 
 ## 1. Purpose and scope
 
-This document defines the normative requirements for the DoS Guard Manager and the client puzzle mechanism within the 2WAY protocol. It specifies how admission control operates at the network boundary, which inputs are consumed, which directives are emitted, and how puzzles are issued, validated, and expired. It also defines the trust and failure posture of the DoS Guard Manager. This specification does not redefine transport behavior, cryptographic verification, or sync semantics already covered in other protocol files.
+This document defines the normative requirements for the DoS Guard Manager and the client puzzle mechanism within the 2WAY protocol. It specifies how admission control operates at the network boundary, which inputs are consumed, which directives are emitted, and how puzzles are issued, validated, and expired. It also defines the trust and failure posture of the DoS Guard Manager. This specification does not redefine [transport behavior](08-network-transport-requirements.md), [cryptographic verification](04-cryptography.md), or [sync semantics](07-sync-and-consistency.md) already covered in other protocol files.
 
 This specification references:
 
+- [04-cryptography.md](04-cryptography.md)
+- [06-access-control-model.md](06-access-control-model.md)
+- [07-sync-and-consistency.md](07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](08-network-transport-requirements.md)
 - [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
 
@@ -31,21 +34,21 @@ The DoS Guard Manager is responsible for:
 
 The DoS Guard Manager explicitly does **not**:
 
-- Perform cryptographic verification or decryption of packages.
+- Perform [cryptographic verification](04-cryptography.md) or decryption of packages.
 - Interpret [graph envelopes](03-serialization-and-envelopes.md), [schema semantics](../02-architecture/managers/05-schema-manager.md), [ACL rules](06-access-control-model.md), or application data.
-- Assign identity to peers solely from transport metadata or puzzle responses.
+- Assign identity to peers solely from [transport metadata](08-network-transport-requirements.md) or puzzle responses.
 - Persist envelopes or mutate state outside of its own counters and policy state.
-- Make [authorization](06-access-control-model.md), [sync ordering](07-sync-and-consistency.md), or storage decisions.
+- Make [authorization](06-access-control-model.md), [sync ordering](07-sync-and-consistency.md), or [storage decisions](../03-data/01-sqlite-layout.md).
 
 ## 4. Invariants and guarantees
 
 - Every admission request receives exactly one directive: allow, deny, or require challenge.
-- Client puzzles are opaque to Network Manager; only DoS Guard Manager interprets their structure.
+- Client puzzles are opaque to [Network Manager](../02-architecture/managers/10-network-manager.md); only DoS Guard Manager interprets their structure.
 - A puzzle response is valid only for the challenge that produced it, for its declared validity window, and for the peer that originally received it.
 - Puzzle difficulty is monotonically non-decreasing while the triggering condition persists. It may decrease only after policy signals relief.
 - Admission decisions are deterministic for a given telemetry snapshot, policy configuration, and puzzle response.
 - Rejected or expired puzzles do not mutate protocol state beyond their own counters and do not leak internal heuristics.
-- Failure of DoS Guard Manager results in fail-closed behavior: no new admissions, existing admitted connections remain active if safe, and Network Manager marks readiness degraded.
+- Failure of DoS Guard Manager results in fail-closed behavior: no new admissions, existing admitted connections remain active if safe, and [Network Manager](../02-architecture/managers/10-network-manager.md) marks readiness degraded.
 
 ## 5. Inputs
 
@@ -59,7 +62,7 @@ DoS Guard Manager consumes the following telemetry from [Network Manager](../02-
 - Connection timing information (handshake duration, idle time, lifetime).
 - Local resource pressure indicators (CPU saturation flags, memory pressure, socket pool usage).
 
-Telemetry is advisory and unauthenticated; it may be used only for admission policy, not for identity binding or authorization.
+Telemetry is advisory and unauthenticated; it may be used only for admission policy, not for identity binding or [authorization](06-access-control-model.md).
 
 ### 5.2 Configuration and policy inputs
 
@@ -98,7 +101,7 @@ Every challenge issued by DoS Guard Manager MUST include:
 - `payload`: opaque bytes that the requester must include unchanged when responding (for example, random nonce).
 - `algorithm`: identifier of the proof-of-work or puzzle algorithm in use (for PoC, a SHA-256 preimage proof is sufficient).
 
-Challenges must be serializable without leaking internal statistics. Network Manager treats the payload as opaque and merely transports it to the peer.
+Challenges must be serializable without leaking internal statistics. [Network Manager](../02-architecture/managers/10-network-manager.md) treats the payload as opaque and merely transports it to the peer.
 
 ### 7.2 Response verification
 
@@ -116,7 +119,7 @@ On success, the admission decision upgrades to `allow`; on failure, DoS Guard Ma
 - Difficulty MUST increase when aggregate resource usage crosses high-water marks or when peer behavior indicates abuse.
 - Difficulty MAY decrease when usage falls below configured low-water marks.
 - Difficulty adjustments must be bounded to avoid integer overflow or trivialization of puzzles.
-- Config Manager provides minimum and maximum difficulty caps.
+- [Config Manager](../02-architecture/managers/01-config-manager.md) provides minimum and maximum difficulty caps.
 
 ### 7.4 Expiration and cleanup
 
