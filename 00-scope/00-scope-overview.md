@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the scope boundary, document authority, and cross-document invariants for the 2WAY system design repository. It establishes what this repository specifies, what it explicitly excludes, and how the contained documents are to be interpreted and reviewed. This document does not define protocol wire formats, storage schemas, or component level behavior beyond global constraints and invariants.
+This document defines the scope boundary, document authority, and cross-document invariants for the 2WAY system design repository. It establishes what this repository specifies, what it explicitly excludes, and how the contained documents are to be interpreted and reviewed. This document does not define protocol wire formats, storage schemas, or component-level behavior beyond global constraints and invariants; those details live in [01-protocol](../01-protocol/), [02-architecture](../02-architecture/), and [03-data](../03-data/). Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
 
 This document is normative for determining whether a concern, requirement, or design decision belongs in this repository.
 
@@ -17,7 +17,7 @@ This specification is responsible for:
 * Defining the scope and authority of the 2WAY design repository.
 * Defining global invariants that apply across protocol, architecture, data, and security specifications.
 * Defining mandatory enforcement boundaries between components, including write paths and trust boundaries.
-* Defining repository wide guarantees related to sequencing, validation, authorization, and persistence effects.
+* Defining repository-wide guarantees related to sequencing, validation, authorization, and persistence effects.
 * Defining deterministic rejection and failure handling requirements at the scope level.
 * Defining how conflicts between documents in this repository are identified and resolved.
 
@@ -52,8 +52,12 @@ Across all interaction surfaces, including local HTTP, WebSocket, backend extens
 * All payloads are validated by Schema Manager prior to persistence.
 * All authorization decisions are enforced by ACL Manager.
 * All persistent writes receive a strictly monotonic `global_seq`.
+* All sync state transitions are applied by State Manager.
 * All state change notifications flow through Event Manager.
+* All authentication and requester resolution are mediated by Auth Manager.
 * All private keys are owned and accessed exclusively by Key Manager.
+* All audit logging is mediated by Log Manager.
+* All request-scoped work is bound to a complete [`OperationContext`](../02-architecture/services-and-apps/05-operation-context.md).
 * Client-side signing does not bypass backend validation or authorization.
 
 ### 4.2 Process and persistence guarantees required by the PoC
