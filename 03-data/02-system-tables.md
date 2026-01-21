@@ -59,9 +59,9 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all system tables
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) may request sequence values but may not update tables directly
-* [State Manager](../02-architecture/managers/09-state-manager.md) may request read access to sync tracking state
+* [State Manager](../02-architecture/managers/09-state-manager.md) may request read and write access to sync tracking state
 * [Config Manager](../02-architecture/managers/01-config-manager.md) may request read and write access to settings
-* [Network Manager](../02-architecture/managers/10-network-manager.md) may request read and write access to peers and sync state
+* [Network Manager](../02-architecture/managers/10-network-manager.md) may request read access to peers
 * No service, app, or extension may access system tables directly
 * Direct SQL access outside Storage Manager is forbidden
 
@@ -221,20 +221,21 @@ This table is authoritative for sync replay protection.
 
 #### Purpose
 
-Tracks per domain high water marks for sequencing and domain scoped sync behavior. It lives outside the graph because it is local sequencing state tied to peer sync and must advance only on local acceptance.
+Tracks per peer and per sync domain high water marks used for ordered replication. It lives outside the graph because it is local sequencing state tied to peer sync and must advance only on local acceptance.
 
-This table supports domain isolation and ordered replication per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
+This table supports ordered replication per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 #### Expected contents
 
 Each row includes:
 
-* domain name
-* last sequence value
+* peer_id
+* sync domain
+* last accepted global sequence
 
 #### Rules and guarantees
 
-* values are strictly monotonic per domain
+* values are strictly monotonic per peer and domain
 * values advance only on successful commit
 * values never regress
 * rows are updated during normal operation
