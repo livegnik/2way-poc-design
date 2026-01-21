@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This file defines the normative terminology used across the 2WAY PoC design repository. It standardizes names for core entities, graph object types, schema concepts, sync concepts, and security concepts so that other documents can be read and reviewed without ambiguity.
+This file defines the normative terminology used across the 2WAY PoC design repository. It standardizes names for core entities and concepts so that other documents can be read and reviewed without ambiguity.
 
 This file does not define APIs, wire formats, database schemas, or protocol flows. Where a term depends on a formal structure, this file constrains meaning only and defers structure to the owning specification.
 
@@ -15,7 +15,7 @@ This file does not define APIs, wire formats, database schemas, or protocol flow
 This specification defines:
 
 - Canonical meanings for repository level terms.
-- Fixing canonical names for the fundamental graph object types and related concepts.
+- Fixing canonical names for the fundamental object types and related concepts.
 - Naming and scoping terms used for apps, types, and domains.
 - Security vocabulary needed to interpret authorization, signing, rotation, and revocation rules.
 
@@ -31,7 +31,7 @@ This specification does not define:
 ### 3.1 Terminology invariants
 
 - Terms defined in this file have a single authoritative meaning across the repository.
-- The canonical graph object type names are Parent, Attribute, Edge, Rating, ACL.
+- The canonical object type names are defined in Section 7.
 - Canonical names must not be aliased, abbreviated, or replaced with synonyms in normative text.
 - If a document introduces a new term, it must define it locally or reference a file that defines it.
 
@@ -54,30 +54,51 @@ This specification does not define:
 - Using synonyms in place of canonical object type names in normative requirements.
 - Using the same word to refer to two different concepts, even if context appears clear.
 
+### 4.3 Naming conventions
+
+snake_case is lowercase ASCII text with underscores used to separate words.
+
 ## 5. System and runtime terms
 
-### 5.1 Node
+### 5.1 Backend
 
-A node is a single running 2WAY backend instance with its own local persistent state.
-
-Properties:
-
-- A node assigns and maintains its own monotonic ordering for local accepted writes.
-- A node enforces validation and authorization for all accepted mutations.
-- A node may participate in sync with peers.
-
-A node is not defined as a cluster, shard, or externally managed service.
-
-### 5.2 Backend
-
-The backend is the trusted local execution environment that hosts managers and services and exposes interfaces to frontend apps.
+The backend is the trusted local execution environment that hosts system logic and exposes interfaces to external clients.
 
 Trust boundary:
 
 - The backend is trusted to enforce all validation and access control rules defined by this repository.
-- Frontend apps are not trusted by default.
+- External clients are not trusted by default.
 
-### 5.3 Frontend app
+### 5.2 Manager
+
+A manager is a backend component that owns a narrow, explicit responsibility and exposes a stable interface for that responsibility.
+
+Constraints:
+
+- Managers are the only backend components permitted to perform their responsibility directly.
+- Write paths that mutate persisted state are mediated by the backend write pipeline as defined by the architecture specifications.
+
+This file does not define manager APIs.
+
+### 5.3 Service
+
+A service is backend resident logic that implements scoped or system behavior using managers.
+
+Constraints:
+
+- A service does not bypass manager enforced rules.
+- A service is constrained by validation and authorization rules for the objects it attempts to create or mutate.
+
+### 5.4 Frontend
+
+The frontend is any external client surface that initiates requests into the backend, including user facing apps, automation clients, and integration tooling.
+
+Constraints:
+
+- Frontend inputs are untrusted until validated by the backend.
+- Frontend behavior does not define or override backend rules.
+
+### 5.5 Frontend app
 
 A frontend app is a user facing application that interacts with the backend only through the backend's exposed interfaces.
 
@@ -86,52 +107,50 @@ Constraints:
 - A frontend app does not directly invoke managers.
 - A frontend app does not bypass backend validation or authorization.
 
-### 5.4 Manager
+### 5.6 Node
 
-A manager is a backend component that owns a narrow, explicit responsibility and exposes a stable interface for that responsibility.
-
-Constraints:
-
-- Managers are the only backend components permitted to perform their responsibility directly.
-- Write paths that mutate persisted graph state are mediated by the backend write pipeline as defined by the architecture specifications.
-
-This file does not define manager APIs.
-
-### 5.5 Service
-
-A service is backend resident logic that implements app scoped or system scoped behavior using managers.
+A node is a single running 2WAY backend instance with its own local persistent state.
 
 Constraints:
 
-- A service does not bypass manager enforced rules.
-- A service is constrained by schema and ACL enforcement for the objects it attempts to create or mutate.
+- A node assigns and maintains its own monotonic ordering for local accepted writes.
+- A node enforces validation and authorization for all accepted mutations.
+- A node may exchange data with other nodes.
 
-### 5.6 Identity
+A node is not defined as a cluster, shard, or externally managed service.
 
-An identity is a first class actor represented in the system and used to attribute authorship, ownership, and authority.
+### 5.7 Identity
+
+An identity is a first class actor represented in the system and used to attribute actions and authority.
 
 Constraints:
 
 - Every identity is bound to at least one public key used to verify signatures.
-- The public key material used for verification is stored in the graph as a pubkey Attribute under an identity Parent in app_0.
+- The public key material used for verification is stored in persisted storage under the identity's root record.
 - Identity resolution for an operation is explicit and performed by the backend, not inferred from transport metadata.
 
 This file does not define identity storage tables or key storage layout.
+
+### 5.7 identity_id and owner_identity
+
+identity_id is the identifier for an identity.
+
+owner_identity is the identity_id recorded as the owner of a graph object.
 
 ## 6. App and type system terms
 
 ### 6.1 App
 
-An app is a logical domain that defines its own schema scoped object types and semantics.
+An app is a logical domain that defines its own object semantics.
 
 Properties:
 
-- App semantics are isolated. Objects and type meanings are app scoped.
-- App boundaries are enforced by schema validation and authorization rules.
+- App semantics are isolated. Objects and their meanings are app scoped.
+- App boundaries are enforced by validation and authorization rules.
 
 ### 6.2 app_id and app_slug
 
-An app_id is the numeric identifier used to bind storage and types to an app. An app_slug is the stable string name used for human readable identification and routing.
+An app_id is the numeric identifier used to bind storage and object identifiers to an app. An app_slug is the stable string name used for human readable identification and routing.
 
 Constraints:
 
@@ -142,7 +161,7 @@ This file does not define allocation rules for app_id.
 
 ### 6.3 Type
 
-A type is an app scoped identifier for a specific Parent type, Attribute type, Edge type, Rating type, or ACL type.
+A type is an app scoped identifier for a specific object category within an app.
 
 Two representations are used:
 
@@ -163,9 +182,13 @@ Constraint:
 
 This file does not define schema formats, value representations, or validation algorithms.
 
-### 6.5 Value kind
+### 6.5 app_0
 
-A value kind is the schema level classification used to validate the representation of an Attribute value.
+app_0 is the reserved system app identifier used for core system identities, keys, and system scoped schema.
+
+### 6.6 Value kind
+
+A value kind is the schema level classification used to validate the representation of a value.
 
 In the PoC schema model, value_kind includes:
 
@@ -204,7 +227,7 @@ A Parent is a top level graph object that anchors ownership and is the root for 
 
 Constraints:
 
-- A Parent has an owning identity.
+- A Parent has a designated identity used for authorization decisions.
 - A Parent is the anchor for Attributes and an endpoint for Edges.
 
 This file does not define Parent fields.
@@ -253,6 +276,36 @@ Constraints:
 
 This file does not define ACL fields or evaluation rules.
 
+### 7.8 Graph object identifiers
+
+parent_id is the identifier of a Parent within an app scope.
+
+attr_id is the identifier of an Attribute within an app scope.
+
+edge_id is the identifier of an Edge within an app scope.
+
+rating_id is the identifier of a Rating within an app scope.
+
+object_id is a generic identifier for a graph object when the specific object type is not material to the statement.
+
+object_kind is the object type category label used to distinguish Parent, Attribute, Edge, Rating, and ACL.
+
+value_json is the JSON-encoded representation of an Attribute value when serialized or persisted.
+
+### 7.9 Object linkage identifiers
+
+src_parent_id is the identifier of the source Parent in a directed Edge.
+
+dst_parent_id is the identifier of the destination Parent in a directed Edge.
+
+target_parent_id is the identifier of the Parent that an object refers to.
+
+target_attr_id is the identifier of the Attribute that an object refers to.
+
+subject_parent_id is the identifier of the Parent that an action, message, or evaluation is about.
+
+dst_attr_id is the identifier of the destination Attribute when an Attribute references another Attribute.
+
 ## 8. Operation and validation terms
 
 ### 8.1 Operation
@@ -268,7 +321,7 @@ This file does not define the operation vocabulary.
 
 ### 8.2 Envelope
 
-An envelope is a signed container used to carry one or more operations for local processing or network sync.
+An envelope is a signed container used to carry one or more operations for local processing or inter-node exchange.
 
 Constraints:
 
@@ -277,7 +330,41 @@ Constraints:
 
 This file does not define envelope fields, signing formats, or encryption formats.
 
-### 8.3 OperationContext
+### 8.3 OperationContext identifiers
+
+requester_identity_id is the identifier of the identity resolved as the requester for an operation.
+
+device_id is the identifier of a device acting on behalf of an identity.
+
+delegated_key_id is the identifier of a delegated signing key used for scoped authority.
+
+actor_type is the declared caller category such as user, service, automation, or delegation.
+
+capability is the explicit action label evaluated by authorization rules.
+
+is_remote is a flag indicating whether the context originated from inter-node exchange.
+
+sync_domain is the identifier used to scope inter-node exchange processing to a specific domain.
+
+remote_node_identity_id is the identifier of the remote node's identity for inter-node exchange processing.
+
+trace_id is the identifier used to correlate related operations and requests across logs and telemetry.
+
+correlation_id is an optional identifier used to correlate multiple related requests.
+
+app_version is an optional version identifier for a frontend app or service.
+
+app_variant is an optional variant identifier for a frontend app.
+
+schema_version is an optional identifier for a schema release.
+
+user_id is an external user identifier supplied by a client and treated as non-authoritative metadata.
+
+locale is an optional client locale identifier.
+
+timezone is an optional client timezone identifier.
+
+### 8.4 OperationContext
 
 An OperationContext is the backend derived context used to validate and authorize an operation.
 
@@ -285,10 +372,14 @@ Constraints:
 
 - OperationContext binds the requester_identity_id and any scoped authority relevant to the operation.
 - OperationContext is explicitly derived, it is not inferred from transport metadata or client supplied claims.
-- For sync related processing, OperationContext may include sync_domain and remote_node_identity_id.
+- For inter-node exchange processing, OperationContext may include sync_domain and remote_node_identity_id.
 - OperationContext includes trace_id for request correlation.
 
 This file does not define OperationContext fields beyond the names listed here.
+
+### 8.5 Operation kind labels
+
+parent_create, parent_update, attr_create, attr_update, edge_create, edge_update, rating_create, and rating_update are operation kind labels that describe creation or update of the corresponding object type.
 
 ## 9. Ordering and sync terms
 
@@ -299,21 +390,11 @@ global_seq is a node local strictly monotonic sequence number assigned to accept
 Constraints:
 
 - global_seq defines a total order of accepted writes on a node.
-- global_seq is used to support incremental sync and provenance checks.
+- global_seq is used to support incremental exchange and provenance checks.
 
 This file does not define how global_seq is stored, indexed, or transmitted.
 
-### 9.2 domain_seq
-
-domain_seq is a sequence number scoped to a specific sync domain.
-
-Constraint:
-
-- domain_seq ordering is meaningful only within its domain scope.
-
-This file does not define domain sequencing rules beyond this scope meaning.
-
-### 9.3 Sync
+### 9.2 Sync
 
 Sync is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
 
@@ -323,7 +404,7 @@ Constraint:
 
 This file does not define sync protocol flows.
 
-### 9.4 Sync domain
+### 9.3 Sync domain
 
 A sync domain is an explicit subset of data eligible for sync under defined authorization and scoping rules.
 
@@ -333,6 +414,16 @@ Constraints:
 - Domain scoping limits disclosure and replication.
 
 This file does not define domain membership rules.
+
+### 9.4 domain_seq
+
+domain_seq is a sequence number scoped to a specific sync domain.
+
+Constraint:
+
+- domain_seq ordering is meaningful only within its domain scope.
+
+This file does not define domain sequencing rules beyond this scope meaning.
 
 ### 9.5 Peer
 
@@ -355,6 +446,26 @@ Constraint:
 
 This file does not define sync_state structure.
 
+### 9.7 sync_flags
+
+sync_flags is a bitset or enumerated label set used to express sync related state or eligibility for a graph object.
+
+This file does not define the flag values.
+
+### 9.8 from_seq and to_seq
+
+from_seq is the lower bound sequence for a sync request or response window.
+
+to_seq is the upper bound sequence for a sync request or response window.
+
+This file does not define how sequence windows are negotiated or enforced.
+
+### 9.9 peer_id and sender_identity
+
+peer_id is the identifier for a peer record maintained by a node to track sync state.
+
+sender_identity is the identity that authored or transmitted a sync message or envelope.
+
 ## 10. Security and trust terms
 
 ### 10.1 Cryptographic identity
@@ -363,7 +474,7 @@ A cryptographic identity is the association between an identity and at least one
 
 Constraint:
 
-- Authorship claims are verified against stored public keys.
+- Signature claims are verified against stored public keys.
 
 This file does not define key storage layout or rotation rules.
 
