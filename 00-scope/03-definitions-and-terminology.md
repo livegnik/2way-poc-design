@@ -173,7 +173,7 @@ Properties:
 Constraints:
 
 - app_id determines the per-app table set in storage.
-- app_slug identifies the app in configuration and higher level interfaces.
+- app_slug identifies the app in configuration and higher-level interfaces.
 
 This file does not define allocation rules for app_id.
 
