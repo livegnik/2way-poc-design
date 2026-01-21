@@ -6,9 +6,9 @@
 
 ## 1. Purpose and scope
 
-This document defines what 2WAY explicitly does not specify, implement, or guarantee. It constrains the PoC design to prevent implicit dependencies on absent features, and to bound security and correctness assumptions.
+This document defines what 2WAY explicitly does not specify, implement, or guarantee. It constrains the PoC design to prevent implicit dependencies on absent features and to bound security and correctness assumptions.
 
-This document is normative for the repository. Implementations and reviews must treat excluded items as unsupported, even if they appear feasible.
+This document is normative for the repository. Implementations and reviews must treat excluded items as unsupported, even if they appear feasible. Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
 
 ## 2. Responsibilities, invariants, and guarantees
 
@@ -68,9 +68,9 @@ The backend does not support arbitrary extension of core behavior.
 
 The design does not permit direct access to persistent storage or private keys outside the defined manager interfaces.
 
-- Apps and app extension services must not write to storage except through Graph Manager mediated flows.
+- Apps and app extension services must not write to storage except through [Graph Manager](../02-architecture/managers/07-graph-manager.md) mediated flows.
 - Apps and app extension services must never access raw database connections.
-- Apps and app extension services must never access private keys through any interface that bypasses the Key Manager and authorization checks.
+- Apps and app extension services must never access private keys through any interface that bypasses the [Key Manager](../02-architecture/managers/03-key-manager.md) and authorization checks.
 
 ### 3.6 Transport-layer security as a dependency
 
@@ -86,19 +86,19 @@ The protocol does not rely on transport security guarantees.
 
 The following are explicitly allowed within the scope of the PoC design.
 
-- Apps define UI and workflows on the frontend, and use backend HTTP and WebSocket APIs.
+- Apps define UI and workflows on the frontend and use backend HTTP and WebSocket APIs.
 - Apps may ship backend extension services to perform limited backend tasks.
-- Backend extension services may read and write graph state only through manager interfaces, and must pass through schema validation and ACL enforcement.
+- Backend extension services may read and write graph state only through manager interfaces and must pass through schema validation and ACL enforcement.
 
 ### 4.2 Forbidden behaviors
 
 The following are explicitly forbidden.
 
-- Any component bypassing Graph Manager for graph writes.
-- Any component bypassing ACL Manager for authorization decisions on reads or writes.
-- Any app or app extension service redefining schema semantics outside Schema Manager handling.
+- Any component bypassing [Graph Manager](../02-architecture/managers/07-graph-manager.md) for graph writes.
+- Any component bypassing [ACL Manager](../02-architecture/managers/06-acl-manager.md) for authorization decisions on reads or writes.
+- Any app or app extension service redefining schema semantics outside [Schema Manager](../02-architecture/managers/05-schema-manager.md) handling.
 - Any app or app extension service accessing raw database handles.
-- Any app or app extension service accessing or exporting private keys, or performing signing outside approved key usage paths.
+- Any app or app extension service accessing or exporting private keys, or performing signing outside approved key usage paths defined by [Key Manager](../02-architecture/managers/03-key-manager.md).
 - Any implementation depending on implicit identity, implicit trust, or network-origin trust.
 
 ## 5. Trust boundaries and dependencies
@@ -106,8 +106,8 @@ The following are explicitly forbidden.
 - This document defines design-time boundaries only.
 - Inputs are repository design assumptions and constraints.
 - Outputs are review constraints that apply to all components.
-- Trust boundaries are enforced through the managers and their interfaces, and through the validation pipeline described elsewhere.
-- This document does not define protocol formats or manager interfaces, and must not be used as a substitute for those specifications.
+- Trust boundaries are enforced through the managers and their interfaces, and through the validation pipeline described in [01-protocol](../01-protocol/) and [02-architecture](../02-architecture/).
+- This document does not define protocol formats or manager interfaces and must not be used as a substitute for those specifications.
 
 ## 6. Failure, rejection, and invalid assumptions
 
