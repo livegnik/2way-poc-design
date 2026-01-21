@@ -107,7 +107,7 @@ Two envelope types are defined:
 
 ### 7.1 Purpose
 
-A graph message envelope represents one or more graph operations to be applied atomically by Graph Manager.
+A graph message envelope represents one or more graph operations to be applied atomically by [Graph Manager](../02-architecture/managers/07-graph-manager.md).
 
 ### 7.2 Structure
 
@@ -123,7 +123,7 @@ No other fields are permitted in a graph message envelope.
 
 ### 7.3 Processing boundary
 
-* Graph Manager processes the envelope as a single transaction boundary.
+* [Graph Manager](../02-architecture/managers/07-graph-manager.md) processes the envelope as a single transaction boundary.
 * If any operation is rejected by structural validation, [schema validation](../02-architecture/managers/05-schema-manager.md), [ACL enforcement](06-access-control-model.md), or [graph invariants](02-object-model.md), the entire envelope is rejected.
 
 ## 8. Operation records
