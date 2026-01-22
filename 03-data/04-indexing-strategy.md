@@ -1,11 +1,11 @@
 
 
 
-# Indexing strategy
+# 04. Indexing strategy
 
 ## 1. Purpose and scope
 
-This document defines the indexing strategy for the 2WAY backend SQLite database. It specifies which indexes Storage Manager must provide to support protocol and manager guarantees, and which query patterns those indexes exist to accelerate. It does not define SQL schemas, query plans, or application-specific optimizations.
+This document defines the indexing strategy for the 2WAY backend SQLite database. It specifies which indexes Storage Manager must provide to support protocol and manager guarantees, and which query patterns those indexes exist to accelerate. It does not define SQL schemas, query plans, or application-specific optimizations. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
 
 This specification consumes and is constrained by the protocol contracts defined in:
 
@@ -22,7 +22,7 @@ This specification consumes and is constrained by the protocol contracts defined
 This specification is responsible for the following:
 
 * Defining the mandatory index families required for manager SLAs
-* Defining index scope across global tables and per app table families
+* Defining index scope across global tables and per-app table families
 * Defining index stability requirements during upgrades and maintenance
 * Defining failure posture for index corruption or mismatch
 
@@ -188,7 +188,7 @@ These indexes are operational only and must not be relied on for protocol correc
 Indexes exist solely to accelerate read and sync scan workloads. All correctness constraints remain enforced by the protocol and manager layers, not by index presence or SQL constraints.
 
 * Referential integrity is enforced by protocol validation, not indexes or foreign keys.
-* Cross app references are rejected by [Graph Manager](../02-architecture/managers/07-graph-manager.md) per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md).
+* Cross-app references are rejected by [Graph Manager](../02-architecture/managers/07-graph-manager.md) per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md).
 * Sync ordering and replay protection are enforced by [State Manager](../02-architecture/managers/09-state-manager.md) per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
 ## 7. Creation, rebuild, and migration
@@ -205,8 +205,6 @@ The system fails closed under the following conditions:
 * index corruption that produces inconsistent query behavior
 * index definitions that do not match the expected column contracts
 * missing required index that prevents mandatory read paths from meeting resource constraints and cannot be rebuilt
-* index corruption that produces inconsistent query behavior
-* index definitions that do not match the expected column contracts
 
 Automatic repair is permitted only for index rebuilds. Any detected corruption in base tables remains a fatal error per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
 
