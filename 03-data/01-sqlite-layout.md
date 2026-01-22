@@ -2,11 +2,11 @@
 
 
 
-# SQLite layout
+# 01. SQLite layout
 
 ## 1. Purpose and scope
 
-This document defines the complete SQLite storage layout for the 2WAY backend. It specifies database topology, table families, column contracts, sequencing state, and persistence guarantees required to store canonical graph objects and synchronization metadata. It is normative for [Storage Manager](../02-architecture/managers/02-storage-manager.md) behavior and is binding for [Graph Manager](../02-architecture/managers/07-graph-manager.md) persistence semantics.
+This document defines the complete SQLite storage layout for the 2WAY backend. It specifies database topology, table families, column contracts, sequencing state, and persistence guarantees required to store canonical graph objects and synchronization metadata. It is normative for [Storage Manager](../02-architecture/managers/02-storage-manager.md) behavior and is binding for [Graph Manager](../02-architecture/managers/07-graph-manager.md) persistence semantics. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
 
 Storage Manager owns the database lifecycle and is the only component permitted to issue SQL statements. Graph Manager remains the only write path for graph objects. Every accepted envelope results in exactly one committed SQLite transaction, with no partial acceptance, in accordance with the envelope rules defined by the protocol.
 
@@ -31,7 +31,7 @@ This specification is responsible for the following:
 * Defining sequencing and sync state persistence structures.
 * Defining startup, migration, shutdown, and crash recovery expectations for persistence.
 * Defining indexing posture requirements without embedding index definitions.
-* Defining failure and fail closed behavior for persistence operations.
+* Defining failure and fail-closed behavior for persistence operations.
 
 This specification does not cover the following:
 
@@ -46,7 +46,7 @@ This specification does not cover the following:
 
 Across all components and execution contexts defined in this file, the following invariants and guarantees hold:
 
-* All graph object persistence is append only.
+* All graph object persistence is append-only.
 * Immutable metadata fields are never mutated after insertion.
 * Deletions of graph objects are forbidden at the storage layer.
 * All graph writes are serialized and atomic.
@@ -55,7 +55,7 @@ Across all components and execution contexts defined in this file, the following
 * Domain and peer sync cursors never advance on failure.
 * Storage Manager never accepts caller supplied sequence values.
 * Referential integrity is enforced by protocol validation, not SQLite foreign keys.
-* Database corruption or invariant violation causes immediate fail closed behavior.
+* Database corruption or invariant violation causes immediate fail-closed behavior.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
@@ -74,11 +74,11 @@ Failure to apply required pragmas aborts startup. Savepoints may be used interna
 
 ### 4.2 Global tables
 
-Global tables exist once per database and store system wide state, sequencing metadata, and peer coordination data. These tables are created during bootstrap inside a single transaction. Startup fails closed if any required global table is missing, malformed, or inconsistent.
+Global tables exist once per database and store system-wide state, sequencing metadata, and peer coordination data. These tables are created during bootstrap inside a single transaction. Startup fails closed if any required global table is missing, malformed, or inconsistent.
 
 The required global tables are:
 
-* `identities` stores system wide identity records used for ownership, authorization, and peer association.
+* `identities` stores system-wide identity records used for ownership, authorization, and peer association.
 * `apps` stores application registrations and their assigned numeric `app_id` values.
 * `peers` stores known peer records and metadata required for sync coordination.
 * `settings` stores persisted configuration and runtime operating flags.
@@ -91,7 +91,7 @@ The initial `global_seq` row is seeded during bootstrap. Migrations are applied 
 
 ### 4.3 Per app table families
 
-Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. app_0 is reserved for system owned graph data, including identities, schemas, ACL structures, and protocol level metadata.
+Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. `app_0` is reserved for system-owned graph data, including identities, schemas, ACL structures, and protocol-level metadata.
 
 Per app table families are created on demand by Storage Manager at app registration time and must be created within the same registration transaction that inserts the app record. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope. Each app owns an independent `type_id` namespace and cannot observe or reference another app's object tables.
 
@@ -125,7 +125,7 @@ These values are assigned exclusively by [Graph Manager](../02-architecture/mana
 
 #### Attribute table
 
-`app_N_attr` stores Attribute objects. Each Attribute references exactly one source Parent via `src_parent_id` and carries a value payload. Value representation is schema defined and stored in JSON.
+`app_N_attr` stores Attribute objects. Each Attribute references exactly one source Parent via `src_parent_id` and carries a value payload. Value representation is schema-defined and stored in JSON.
 
 #### Edge table
 
@@ -141,7 +141,7 @@ ACL structures are persisted using Parents and Attributes within these tables. T
 
 `app_N_type` stores deterministic mappings between `type_key` and integer `type_id` for each object kind. These rows are derived indices generated by [Schema Manager](../02-architecture/managers/05-schema-manager.md). Once assigned, a type mapping is immutable.
 
-The authoritative schema source remains graph objects stored in app_0.
+The authoritative schema source remains graph objects stored in `app_0`.
 
 ### 4.7 Log tables
 
@@ -192,7 +192,7 @@ No other manager may access the database before Storage Manager signals readines
 On shutdown, Storage Manager must:
 
 * Reject new write requests.
-* Allow in flight transactions to complete.
+* Allow in-flight transactions to complete.
 * Flush WAL state.
 * Close the database cleanly.
 
@@ -200,7 +200,7 @@ Abrupt termination relies on SQLite WAL durability guarantees.
 
 ## 9. Failure handling and crash recovery
 
-Any of the following conditions cause immediate fail closed behavior:
+Any of the following conditions cause immediate fail-closed behavior:
 
 * Missing or malformed tables.
 * Sequence corruption.
@@ -223,7 +223,7 @@ The following behaviors are explicitly forbidden:
 
 ## 11. Manager interaction contracts
 
-Storage Manager exposes persistence primitives only to [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [State Manager](../02-architecture/managers/09-state-manager.md). It does not interpret schema, ACLs, or sync policy. All inputs are assumed pre validated. Storage Manager enforces atomicity, ordering, and durability only.
+Storage Manager exposes persistence primitives only to [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [State Manager](../02-architecture/managers/09-state-manager.md). It does not interpret schema, ACLs, or sync policy. All inputs are assumed pre-validated. Storage Manager enforces atomicity, ordering, and durability only.
 
 ## 12. Readiness and liveness signals
 
