@@ -2,7 +2,7 @@
 
 
 
-# 01. SQLite layout
+# 01 SQLite layout
 
 ## 1. Purpose and scope
 
