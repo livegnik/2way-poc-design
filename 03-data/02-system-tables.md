@@ -2,7 +2,7 @@
 
 
 
-# 02. System tables
+# 02 System tables
 
 ## 1. Purpose and scope
 
