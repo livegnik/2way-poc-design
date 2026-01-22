@@ -1,7 +1,7 @@
 
 
 
-# 03. Per-app tables
+# 03 Per-app tables
 
 ## 1. Purpose and scope
 
