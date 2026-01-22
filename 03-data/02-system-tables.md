@@ -2,11 +2,11 @@
 
 
 
-# System tables
+# 02. System tables
 
 ## 1. Purpose and scope
 
-This document defines the global system tables stored in the 2WAY backend SQLite database. These tables exist exactly once per node and are created during bootstrap before any application data is written. It does not define per app graph tables or schema semantics.
+This document defines the global system tables stored in the 2WAY backend SQLite database. These tables exist exactly once per node and are created during bootstrap before any application data is written. It does not define per-app graph tables or schema semantics. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
 
 This specification consumes and is constrained by the protocol contracts defined in:
 
@@ -23,10 +23,10 @@ This specification consumes and is constrained by the protocol contracts defined
 
 This specification is responsible for the following:
 
-* Defining all global system tables that exist outside app scoped graph storage
+* Defining all global system tables that exist outside app-scoped graph storage
 * Defining invariants for identity, sequencing, sync tracking, configuration, and peer state
 * Defining when tables may be written, updated, or read
-* Defining fail closed behavior for corruption or inconsistency
+* Defining fail-closed behavior for corruption or inconsistency
 * Defining startup and shutdown expectations related to system tables
 
 This specification does not cover the following:
@@ -51,7 +51,7 @@ Across all system tables defined in this file, the following invariants and guar
 * Sequence values never regress
 * Identifiers are never reused, matching [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
 * System tables are not synced to peers per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-* System tables are local node state and never part of the graph defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
+* System tables are node-local state and never part of the graph defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
@@ -69,7 +69,7 @@ Violation of these rules is a fatal implementation error.
 
 ## 5. System table catalog
 
-System tables are not graph objects. They exist outside the graph to store node local state that must be available before graph access is possible, or state that must never be replicated to peers. Graph objects are the source of truth for application data and identities, while system tables are operational registries, counters, and local policy state owned by Storage Manager. Each table below exists only because its data is required for startup, sequencing, sync tracking, or configuration, and because storing it in the graph would either violate the protocol boundaries or create circular dependencies during bootstrap.
+System tables are not graph objects. They exist outside the graph to store node-local state that must be available before graph access is possible, or state that must never be replicated to peers. Graph objects are the source of truth for application data and identities, while system tables are operational registries, counters, and local policy state owned by Storage Manager. Each table below exists only because its data is required for startup, sequencing, sync tracking, or configuration, and because storing it in the graph would either violate the protocol boundaries or create circular dependencies during bootstrap.
 
 ### 5.1 identities
 
@@ -84,7 +84,7 @@ This table exists to support:
 * sync trust decisions
 * identity resolution
 
-The canonical identity representation remains in the graph under app_0 per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md). This table is a registry, not the source of truth for identity attributes.
+The canonical identity representation remains in the graph under `app_0` per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md). This table is a registry, not the source of truth for identity attributes.
 
 #### Expected contents
 
@@ -167,7 +167,7 @@ Each row may include:
 
 #### Purpose
 
-Stores durable runtime configuration managed by [Config Manager](../02-architecture/managers/01-config-manager.md). It lives outside the graph because configuration is node local state and must be available before graph services are initialized.
+Stores durable runtime configuration managed by [Config Manager](../02-architecture/managers/01-config-manager.md). It lives outside the graph because configuration is node-local state and must be available before graph services are initialized.
 
 This table persists operational configuration across restarts.
 
@@ -291,7 +291,7 @@ Each row records:
 * migrations are never removed
 * downgrades are unsupported per [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
 * partial migration execution causes startup failure
-* migration failure results in fail closed behavior
+* migration failure results in fail-closed behavior
 
 ## 6. Startup behavior
 
