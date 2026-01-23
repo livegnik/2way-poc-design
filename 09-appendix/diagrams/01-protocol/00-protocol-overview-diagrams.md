@@ -75,7 +75,7 @@ Diagram: Protocol responsibilities vs non-responsibilities
 | In scope (protocol overview)           | Out of scope (backend/client layers)   |
 +----------------------------------------+----------------------------------------+
 | Envelope submission path               | Backend storage layout                 |
-| Identity binding + auth ordering       | Transport encoding + routing           |
+| Identity binding + auth ordering       | Concrete encodings + routing           |
 | Validation ordering + rejection        | Discovery + deployment topology        |
 | Sync sequencing posture                | Client/UI workflows + app logic        |
 | Mandatory invariants                   | Domain semantics in apps               |
@@ -98,7 +98,8 @@ Local write + remote sync ingress
 +--------------------------+        +--------------------------+
 | Auth Manager             |        | OperationContext         |
 | resolves identity_id     |        | identity + app_id        |
-|                          |        | trace_id                |
+|                          |        | trace_id                 |
+|                          |        | is_remote                |
 +--------------------------+        +--------------------------+
             \                              /
              \                            /
@@ -157,13 +158,13 @@ Diagram: Envelope-first write path
           |                      |
           |                      v
           |              +------------------+
-          |              | Graph envelope   |
+          |              | Crypto verify    |
+          |              | (remote only)    |
           |              +------------------+
           |                      |
           |                      v
           |              +------------------+
-          |              | Crypto verify    |
-          |              | (remote only)    |
+          |              | Graph envelope   |
           |              +------------------+
           +---------+------------+
                     v
@@ -251,56 +252,67 @@ Diagram: Layered protocol ownership
 ```text
 +-------------------------------+
 | Identifiers + namespaces      |
+| ID classes + isolation        |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Object model                  |
+| Parents, attributes, ACL      |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Serialization + envelopes     |
+| Envelope + op IDs             |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Cryptography                  |
+| Sign/verify + ECIES           |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Keys + identity               |
+| app_0 identities              |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Access control                |
+| ACL inputs + ownership         |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Sync + consistency            |
+| Seq tracking + packages       |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Network transport             |
+| Adversarial transport         |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Errors + failure modes        |
+| Errors + precedence           |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | Versioning                    |
+| Version tuples                |
 +-------------------------------+
                |
                v
 +-------------------------------+
 | DoS guard + puzzles           |
+| Admission + puzzles           |
 +-------------------------------+
 ```
 
