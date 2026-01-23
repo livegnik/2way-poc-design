@@ -93,26 +93,43 @@ Local write + remote sync ingress
 | HTTP layer               |        | Local services           |
 | (local entrypoint)       |        | (system or app)          |
 +--------------------------+        +--------------------------+
-            \                            /
-             \                          /
-              v                        v
+            |                                   |
+            v                                   v
++--------------------------+        +--------------------------+
+| Auth Manager             |        | OperationContext         |
+| resolves identity_id     |        | identity + app_id        |
+|                          |        | trace_id                |
++--------------------------+        +--------------------------+
+            \                              /
+             \                            /
+              v                          v
         +--------------------------------------+
         | Graph Manager                        |
         | only write path                      |
+        | envelope-only writes                 |
+        | authorize before persist             |
         +--------------------------------------+
         | ..> Schema Manager                   |
         | ..> ACL Manager                      |
         | ..> Storage Manager                  |
+        | no direct DB writes                  |
         +--------------------------------------+
 
 +------------------+     +------------------+     +------------------+
 | Remote peer      | --> | DoS Guard Manager| --> | Network Manager  |
 +------------------+     +------------------+     +------------------+
+                         | admission +      |     | crypto verify +  |
+                         | client puzzles   |     | encrypt          |
+                         |                  |     | signed packages  |
+                         +------------------+     +------------------+
                                                           |
                                                           v
                                                   +------------------+
                                                   | State Manager    |
                                                   | only sync pkg IO |
+                                                  | sequence gate    |
+                                                  | reject replay    |
+                                                  | out-of-order     |
                                                   +------------------+
                                                           |
                                                           v
