@@ -323,9 +323,9 @@ Diagram: App namespace boundaries
 +---------------------+     +---------------------+
 | app_id = 10         |     | app_id = 22         |
 +---------------------+     +---------------------+
-| type_key: 10:post   |     | type_key: 22:post   |
-| type_key: 10:vote   |     | type_key: 22:edge   |
-| ratings:  10:star   |     | ratings:  22:star   |
+| parent: 10:post     |     | parent: 22:post     |
+| edge:   10:author   |     | edge:   22:member   |
+| rating: 10:helpful  |     | rating: 22:trust    |
 +---------------------+     +---------------------+
           |                           |
           v                           v
