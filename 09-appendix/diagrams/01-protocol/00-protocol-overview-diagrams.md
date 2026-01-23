@@ -352,10 +352,10 @@ Diagram: Local authoring path (OperationContext)
 +---------------------+
           |
           v
-+--------------------+
-| Auth Manager       |
-| requester_identity |
-+--------------------+
++---------------------+
+| Auth Manager        |
+| requester_identity  |
++---------------------+
           |
           v
 +---------------------+
@@ -367,21 +367,21 @@ Diagram: Local authoring path (OperationContext)
 +---------------------+
           |
           v
-+--------------------+
-| Graph envelope     |
-+--------------------+
++---------------------+
+| Graph envelope      |
++---------------------+
 ```
 
 ### 5.2 Author identity binding
 
 Diagram: Explicit identity binding
 ```text
-+--------------------+     +--------------------+
-| Auth context       |     | Envelope author    |
-+--------------------+     +--------------------+
-| identity_id        | --> | author_identity_id |
-| app_id             |     | app_id             |
-+--------------------+     +--------------------+
++---------------------+     +--------------------+     +------------------+
+| Auth context        |     | Envelope author    | --> | Reject: mismatch |
++---------------------+     +--------------------+     +------------------+
+| requester_identity  | --> | explicit author_id |
+| app_id              |     | app_id             |
++---------------------+     +--------------------+
           |
           v
 +------------------------------+
