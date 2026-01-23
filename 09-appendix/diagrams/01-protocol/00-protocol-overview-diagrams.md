@@ -72,13 +72,13 @@ This overview references:
 Diagram: Protocol responsibilities vs non-responsibilities
 ```text
 +----------------------------------------+----------------------------------------+
-| In scope (protocol overview)           | Out of scope (owned elsewhere)         |
+| In scope (protocol overview)           | Out of scope (backend/client layers)   |
 +----------------------------------------+----------------------------------------+
-| Envelope submission path               | DB layout, tables, indexes             |
-| Identity binding + auth ordering       | Transport encoding details             |
-| Validation ordering + rejection        | Routing, discovery, deployment         |
-| Sync sequencing posture                | UI workflows + app-specific logic      |
-| Mandatory invariants                   | Domain semantics beyond protocol       |
+| Envelope submission path               | Backend storage layout                 |
+| Identity binding + auth ordering       | Transport encoding + routing           |
+| Validation ordering + rejection        | Discovery + deployment topology        |
+| Sync sequencing posture                | Client/UI workflows + app logic        |
+| Mandatory invariants                   | Domain semantics in apps               |
 +----------------------------------------+----------------------------------------+
 ```
 
