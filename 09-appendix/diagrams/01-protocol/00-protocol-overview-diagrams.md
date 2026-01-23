@@ -453,21 +453,25 @@ Diagram: Structural validation before expensive work
             v
 +------------------------+
 | Structural validation  |
+| naming + shape         |
 +------------------------+
             |
             v
 +------------------------+
 | Schema validation      |
+| type + value rules     |
 +------------------------+
             |
             v
 +------------------------+
 | ACL evaluation         |
+| context + ownership    |
 +------------------------+
             |
             v
 +------------------------+
 | Transactional apply    |
+| all ops or none        |
 +------------------------+
 ```
 
