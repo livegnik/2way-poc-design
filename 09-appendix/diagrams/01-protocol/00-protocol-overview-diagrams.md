@@ -7,70 +7,67 @@ Referenced from: `01-protocol/00-protocol-overview.md`
 ## Table of contents
 
 - [1. Purpose and scope](#1-purpose-and-scope)
-- [2. Key references](#2-key-references)
-- [3. Responsibilities and boundaries](#3-responsibilities-and-boundaries)
-  - [3.1 Responsibility split](#31-responsibility-split)
-  - [3.2 Authority boundaries](#32-authority-boundaries)
-- [4. Protocol posture and guiding principles](#4-protocol-posture-and-guiding-principles)
-  - [4.1 Shared write path (local and remote)](#41-shared-write-path-local-and-remote)
-  - [4.2 Trust and authorization posture](#42-trust-and-authorization-posture)
-- [5. Protocol layers and companion specs](#5-protocol-layers-and-companion-specs)
-  - [5.1 Layer map](#51-layer-map)
-  - [5.2 Namespace isolation](#52-namespace-isolation)
-- [6. Operation lifecycle](#6-operation-lifecycle)
-  - [6.1 Authoring and local submission](#61-authoring-and-local-submission)
-  - [6.2 Author identity binding](#62-author-identity-binding)
-  - [6.3 Local write lifecycle](#63-local-write-lifecycle)
-  - [6.4 Envelope construction and validation gates](#64-envelope-construction-and-validation-gates)
-  - [6.5 Sequencing and persistence](#65-sequencing-and-persistence)
-  - [6.6 Remote synchronization ingress](#66-remote-synchronization-ingress)
-  - [6.7 Sync package metadata](#67-sync-package-metadata)
-  - [6.8 Sync state advancement](#68-sync-state-advancement)
-- [7. Envelope shapes](#7-envelope-shapes)
-  - [7.1 Envelope structure diagram](#71-envelope-structure-diagram)
-- [8. Validation order](#8-validation-order)
-  - [8.1 Precedence ladder](#81-precedence-ladder)
-  - [8.2 Validation and rejection order](#82-validation-and-rejection-order)
-- [9. Guarantees and invariants](#9-guarantees-and-invariants)
-  - [9.1 Invariant summary](#91-invariant-summary)
-  - [9.2 Sync monotonicity](#92-sync-monotonicity)
-- [10. Allowed and forbidden behaviors](#10-allowed-and-forbidden-behaviors)
-  - [10.1 Allowed](#101-allowed)
-  - [10.2 Forbidden](#102-forbidden)
-- [11. Failure posture](#11-failure-posture)
-  - [11.1 Rejection atomicity](#111-rejection-atomicity)
-  - [11.2 Remote rejection posture](#112-remote-rejection-posture)
-  - [11.3 Ordering vs revocation](#113-ordering-vs-revocation)
-- [12. Compatibility and evolution](#12-compatibility-and-evolution)
-  - [12.1 Version negotiation](#121-version-negotiation)
-  - [12.2 Naming conventions](#122-naming-conventions)
+- [2. Responsibilities and boundaries](#2-responsibilities-and-boundaries)
+  - [2.1 Responsibility split](#21-responsibility-split)
+  - [2.2 Authority boundaries](#22-authority-boundaries)
+- [3. Protocol posture and guiding principles](#3-protocol-posture-and-guiding-principles)
+  - [3.1 Shared write path (local and remote)](#31-shared-write-path-local-and-remote)
+  - [3.2 Trust and authorization posture](#32-trust-and-authorization-posture)
+- [4. Protocol layers and companion specs](#4-protocol-layers-and-companion-specs)
+  - [4.1 Layer map](#41-layer-map)
+  - [4.2 Namespace isolation](#42-namespace-isolation)
+- [5. Operation lifecycle](#5-operation-lifecycle)
+  - [5.1 Authoring and local submission](#51-authoring-and-local-submission)
+  - [5.2 Author identity binding](#52-author-identity-binding)
+  - [5.3 Local write lifecycle](#53-local-write-lifecycle)
+  - [5.4 Envelope construction and validation gates](#54-envelope-construction-and-validation-gates)
+  - [5.5 Sequencing and persistence](#55-sequencing-and-persistence)
+  - [5.6 Remote synchronization ingress](#56-remote-synchronization-ingress)
+  - [5.7 Sync package metadata](#57-sync-package-metadata)
+  - [5.8 Sync state advancement](#58-sync-state-advancement)
+- [6. Envelope shapes](#6-envelope-shapes)
+  - [6.1 Envelope structure diagram](#61-envelope-structure-diagram)
+- [7. Validation order](#7-validation-order)
+  - [7.1 Precedence ladder](#71-precedence-ladder)
+  - [7.2 Validation and rejection order](#72-validation-and-rejection-order)
+- [8. Guarantees and invariants](#8-guarantees-and-invariants)
+  - [8.1 Invariant summary](#81-invariant-summary)
+  - [8.2 Sync monotonicity](#82-sync-monotonicity)
+- [9. Allowed and forbidden behaviors](#9-allowed-and-forbidden-behaviors)
+  - [9.1 Allowed](#91-allowed)
+  - [9.2 Forbidden](#92-forbidden)
+- [10. Failure posture](#10-failure-posture)
+  - [10.1 Rejection atomicity](#101-rejection-atomicity)
+  - [10.2 Remote rejection posture](#102-remote-rejection-posture)
+  - [10.3 Ordering vs revocation](#103-ordering-vs-revocation)
+- [11. Compatibility and evolution](#11-compatibility-and-evolution)
+  - [11.1 Version negotiation](#111-version-negotiation)
+  - [11.2 Naming conventions](#112-naming-conventions)
 
 ## 1. Purpose and scope
 
 This appendix expresses the protocol overview as ASCII UML diagrams. It is a map, not a restatement of rules. Use it alongside `01-protocol/00-protocol-overview.md` for the narrative and `02-architecture/00-architecture-overview.md` for component placement.
 
-## 2. Key references
+This overview references:
 
-The diagrams are aligned with:
+- `01-protocol/01-identifiers-and-namespaces.md`
+- `01-protocol/02-object-model.md`
+- `01-protocol/03-serialization-and-envelopes.md`
+- `01-protocol/04-cryptography.md`
+- `01-protocol/05-keys-and-identity.md`
+- `01-protocol/06-access-control-model.md`
+- `01-protocol/07-sync-and-consistency.md`
+- `01-protocol/08-network-transport-requirements.md`
+- `01-protocol/09-errors-and-failure-modes.md`
+- `01-protocol/10-versioning-and-compatibility.md`
+- `01-protocol/11-dos-guard-and-client-puzzles.md`
+- `02-architecture/01-component-model.md`
+- `02-architecture/04-data-flow-overview.md`
+- `02-architecture/services-and-apps/05-operation-context.md`
 
-`01-protocol/01-identifiers-and-namespaces.md`
-`01-protocol/02-object-model.md`
-`01-protocol/03-serialization-and-envelopes.md`
-`01-protocol/04-cryptography.md`
-`01-protocol/05-keys-and-identity.md`
-`01-protocol/06-access-control-model.md`
-`01-protocol/07-sync-and-consistency.md`
-`01-protocol/08-network-transport-requirements.md`
-`01-protocol/09-errors-and-failure-modes.md`
-`01-protocol/10-versioning-and-compatibility.md`
-`01-protocol/11-dos-guard-and-client-puzzles.md`
-`02-architecture/01-component-model.md`
-`02-architecture/04-data-flow-overview.md`
-`02-architecture/services-and-apps/05-operation-context.md`
+## 2. Responsibilities and boundaries
 
-## 3. Responsibilities and boundaries
-
-### 3.1 Responsibility split
+### 2.1 Responsibility split
 
 Diagram: Protocol responsibilities vs non-responsibilities
 ```text
@@ -85,7 +82,7 @@ Diagram: Protocol responsibilities vs non-responsibilities
 +----------------------------------------+----------------------------------------+
 ```
 
-### 3.2 Authority boundaries
+### 2.2 Authority boundaries
 
 Diagram: Protocol authority boundaries
 ```text
@@ -126,9 +123,9 @@ Local write ingress                          Remote sync ingress
 
 This view is the same authority split described in `02-architecture/01-component-model.md`. It shows Graph Manager as the single write path and State Manager as the only sync package boundary.
 
-## 4. Protocol posture and guiding principles
+## 3. Protocol posture and guiding principles
 
-### 4.1 Shared write path (local and remote)
+### 3.1 Shared write path (local and remote)
 
 Diagram: Envelope-first write path
 ```text
@@ -172,7 +169,7 @@ Diagram: Envelope-first write path
              +------------------+
 ```
 
-### 4.2 Trust and authorization posture
+### 3.2 Trust and authorization posture
 
 Diagram: Trust boundary and enforcement order
 ```text
@@ -207,9 +204,9 @@ Diagram: Trust boundary and enforcement order
 +------------------------+
 ```
 
-## 5. Protocol layers and companion specs
+## 4. Protocol layers and companion specs
 
-### 5.1 Layer map
+### 4.1 Layer map
 
 Diagram: Layered protocol ownership
 ```text
@@ -268,7 +265,7 @@ Diagram: Layered protocol ownership
 +-------------------------------+
 ```
 
-### 5.2 Namespace isolation
+### 4.2 Namespace isolation
 
 Diagram: App namespace boundaries
 ```text
@@ -285,9 +282,9 @@ Diagram: App namespace boundaries
 +-------------------------------------------------+
 ```
 
-## 6. Operation lifecycle
+## 5. Operation lifecycle
 
-### 6.1 Authoring and local submission
+### 5.1 Authoring and local submission
 
 Diagram: Local authoring path (OperationContext)
 ```text
@@ -314,7 +311,7 @@ Diagram: Local authoring path (OperationContext)
 +--------------------+
 ```
 
-### 6.2 Author identity binding
+### 5.2 Author identity binding
 
 Diagram: Explicit identity binding
 ```text
@@ -331,7 +328,7 @@ Diagram: Explicit identity binding
 +------------------------------+
 ```
 
-### 6.3 Local write lifecycle
+### 5.3 Local write lifecycle
 
 Diagram: Local write lifecycle
 ```text
@@ -373,7 +370,7 @@ Diagram: Local write lifecycle
 +------------------+
 ```
 
-### 6.4 Envelope construction and validation gates
+### 5.4 Envelope construction and validation gates
 
 Diagram: Structural validation before expensive work
 ```text
@@ -402,7 +399,7 @@ Diagram: Structural validation before expensive work
 +------------------------+
 ```
 
-### 6.5 Sequencing and persistence
+### 5.5 Sequencing and persistence
 
 Diagram: Transactional application
 ```text
@@ -426,7 +423,7 @@ Diagram: Transactional application
 +------------------------+
 ```
 
-### 6.6 Remote synchronization ingress
+### 5.6 Remote synchronization ingress
 
 Diagram: Remote sync ingress ordering
 ```text
@@ -478,7 +475,7 @@ Diagram: Remote sync ingress ordering
 +------------------+
 ```
 
-### 6.7 Sync package metadata
+### 5.7 Sync package metadata
 
 Diagram: Sync package envelope fields
 ```text
@@ -494,7 +491,7 @@ Diagram: Sync package envelope fields
 +-----------------------------------+
 ```
 
-### 6.8 Sync state advancement
+### 5.8 Sync state advancement
 
 Diagram: Apply then advance
 ```text
@@ -514,9 +511,9 @@ Diagram: Apply then advance
 +------------------+
 ```
 
-## 7. Envelope shapes
+## 6. Envelope shapes
 
-### 7.1 Envelope structure diagram
+### 6.1 Envelope structure diagram
 
 Diagram: Envelope structures
 ```text
@@ -541,9 +538,9 @@ Diagram: Envelope structures
 
 These shapes match `01-protocol/03-serialization-and-envelopes.md`. Identity binding follows `01-protocol/05-keys-and-identity.md`.
 
-## 8. Validation order
+## 7. Validation order
 
-### 8.1 Precedence ladder
+### 7.1 Precedence ladder
 
 Diagram: Failure precedence
 ```text
@@ -582,7 +579,7 @@ Diagram: Failure precedence
 +------------------------+
 ```
 
-### 8.2 Validation and rejection order
+### 7.2 Validation and rejection order
 
 Diagram: Validation and rejection order
 ```text
@@ -611,9 +608,9 @@ Diagram: Validation and rejection order
 +---------------------+      +------------------+
 ```
 
-## 9. Guarantees and invariants
+## 8. Guarantees and invariants
 
-### 9.1 Invariant summary
+### 8.1 Invariant summary
 
 Diagram: Mandatory invariants
 ```text
@@ -629,7 +626,7 @@ Diagram: Mandatory invariants
 +--------------------------------------------+
 ```
 
-### 9.2 Sync monotonicity
+### 8.2 Sync monotonicity
 
 Diagram: Per-peer, per-domain monotonicity
 ```text
@@ -654,9 +651,9 @@ Peer A, domain Y:
 +------+   +------+
 ```
 
-## 10. Allowed and forbidden behaviors
+## 9. Allowed and forbidden behaviors
 
-### 10.1 Allowed
+### 9.1 Allowed
 
 Diagram: Allowed paths
 ```text
@@ -684,7 +681,7 @@ Diagram: Allowed paths
                                                   +------------------+
 ```
 
-### 10.2 Forbidden
+### 9.2 Forbidden
 
 Diagram: Forbidden paths
 ```text
@@ -709,9 +706,9 @@ X +------------------+     +------------------+
   +------------------+     +------------------+
 ```
 
-## 11. Failure posture
+## 10. Failure posture
 
-### 11.1 Rejection atomicity
+### 10.1 Rejection atomicity
 
 Diagram: Reject without side effects
 ```text
@@ -725,7 +722,7 @@ Diagram: Reject without side effects
 +------------------+
 ```
 
-### 11.2 Remote rejection posture
+### 10.2 Remote rejection posture
 
 Diagram: Reject and continue peers
 ```text
@@ -739,7 +736,7 @@ Diagram: Reject and continue peers
 +------------------+     +------------------+
 ```
 
-### 11.3 Ordering vs revocation
+### 10.3 Ordering vs revocation
 
 Diagram: Revocation overrides freshness
 ```text
@@ -753,9 +750,9 @@ Diagram: Revocation overrides freshness
 +------------------+     +------------------+
 ```
 
-## 12. Compatibility and evolution
+## 11. Compatibility and evolution
 
-### 12.1 Version negotiation
+### 11.1 Version negotiation
 
 Diagram: Compatibility gates
 ```text
@@ -775,7 +772,7 @@ Diagram: Compatibility gates
     +---------------+  +----------------------+
 ```
 
-### 12.2 Naming conventions
+### 11.2 Naming conventions
 
 Diagram: Normative naming stability
 ```text
