@@ -576,11 +576,13 @@ Diagram: Sync package envelope fields
 | SyncPackageEnvelope               |
 +-----------------------------------+
 | sender_identity: int              |
+| version: (major, minor, patch)    |
 | sync_domain: string               |
 | from_seq: int                     |
 | to_seq: int                       |
 | envelope: GraphMessageEnvelope    |
 | signature: string                 |
+| signature over envelope+meta      |
 +-----------------------------------+
 ```
 
