@@ -282,7 +282,7 @@ Diagram: Layered protocol ownership
                v
 +-------------------------------+
 | Access control                |
-| ACL inputs + ownership         |
+| ACL inputs + ownership        |
 +-------------------------------+
                |
                v
@@ -325,11 +325,13 @@ Diagram: App namespace boundaries
 +---------------------+     +---------------------+
 | type_key: 10:post   |     | type_key: 22:post   |
 | type_key: 10:vote   |     | type_key: 22:edge   |
+| ratings:  10:star   |     | ratings:  22:star   |
 +---------------------+     +---------------------+
           |                           |
           v                           v
 +-------------------------------------------------+
 | Schema Manager: rejects cross-namespace types   |
+| No implicit cross-app semantics or types        |
 +-------------------------------------------------+
 ```
 
