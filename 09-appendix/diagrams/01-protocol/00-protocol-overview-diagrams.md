@@ -507,18 +507,26 @@ Diagram: Transactional application
 
 Diagram: Remote sync ingress ordering
 ```text
-+------------------+        +------------------+
-| Remote peer      | -----> | DoS Guard Manager|
-+------------------+        +------------------+
++------------------+        +-------------------+
+| Remote peer      | -----> | DoS Guard Manager |
++------------------+        +-------------------+
+                            | admission +       |
+                            | client puzzles    |
+                            +-------------------+
           |                          |
           |                          v
           |                  +------------------+
           |                  | Network Manager  |
           |                  +------------------+
+          |                  | verify signature |
+          |                  | decrypt (ECIES)  |
+          |                  +------------------+
           |                          |
           |                          v
           |                  +------------------+
           |                  | Key Manager      |
+          |                  +------------------+
+          |                  | key lookup       |
           |                  +------------------+
           |                          |
           | <------------------------+
@@ -527,6 +535,11 @@ Diagram: Remote sync ingress ordering
 +------------------+        +------------------+
 | State Manager    | -----> | Graph Manager    |
 +------------------+        +------------------+
+| sync domain      |
+| from_seq/to_seq  |
+| reject replay    |
+| out-of-order     |
++------------------+
           |                          |
           |                          v
           |                  +------------------+
