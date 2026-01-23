@@ -98,7 +98,8 @@ Local write + remote sync ingress
 +--------------------------+        +--------------------------+
 | Auth Manager             |        | OperationContext         |
 +--------------------------+        +--------------------------+
-| resolves identity_id     |        | identity + app_id        |
+| resolves identity_id     |        | built by HTTP/local      |
+|                          |        | identity + app_id        |
 |                          |        | trace_id                 |
 |                          |        | is_remote                |
 +--------------------------+        +--------------------------+
@@ -322,18 +323,20 @@ Diagram: Layered protocol ownership
 
 Diagram: App namespace boundaries
 ```text
-+---------------------+     +---------------------+
-| app_id = 10         |     | app_id = 22         |
-+---------------------+     +---------------------+
-| parent: 10:post     |     | parent: 22:post     |
-| edge:   10:author   |     | edge:   22:member   |
-| rating: 10:helpful  |     | rating: 22:trust    |
-+---------------------+     +---------------------+
++-----------------------+     +-----------------------+
+| app_id = 10           |     | app_id = 22           |
++-----------------------+     +-----------------------+
+| parent:    10:post    |     | parent:    22:post    |
+| attribute: 10:title   |     | attribute: 22:role    |
+| edge:      10:author  |     | edge:      22:member  |
+| rating:    10:helpful |     | rating:    22:trust   |
++-----------------------+     +-----------------------+
           |                           |
           v                           v
 +-------------------------------------------------+
 | Schema Manager: rejects cross-namespace types   |
 | No implicit cross-app semantics or types        |
+| Explicit cross-app interpretation required      |
 +-------------------------------------------------+
 ```
 
