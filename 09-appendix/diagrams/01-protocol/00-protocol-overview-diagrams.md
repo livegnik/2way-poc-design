@@ -629,8 +629,9 @@ Diagram: Envelope structures
 +---------------------------+
 | op: string                |
 | app_id: int               |
-| type_key: string?         |
-| type_id: int?             |
+| type_key: string          |
+| type_id: int              |
+| exactly one present       |
 | owner_identity: int       |
 | payload: object           |
 +---------------------------+
