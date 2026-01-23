@@ -167,7 +167,7 @@ Rules:
 * `is_remote=true`
 * `remote_node_identity_id` bound from verified peer identity.
 * `sync_domain` bound from sync metadata.
-* `trace_id` copied from envelope if present, otherwise generated.
+* `trace_id` copied from envelope; missing trace IDs are rejected.
 
 Remote contexts never include local requester identity fields.
 
@@ -209,7 +209,7 @@ OperationContext is immutable after construction.
 ### 5.3 Trace and correlation identifiers
 
 * `trace_id` is mandatory for all contexts.
-* If present in an envelope, it must be copied verbatim per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+* It must be copied verbatim from the envelope per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * `correlation_id` is optional and never authoritative.
 
 ### 5.4 Local and remote field separation

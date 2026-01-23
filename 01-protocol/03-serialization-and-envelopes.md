@@ -114,10 +114,7 @@ A graph message envelope represents one or more graph operations to be applied a
 A graph message envelope is a JSON object with these required fields:
 
 * `ops`. An array of one or more operation objects, each conforming to Section 8.
-
-A graph message envelope may include these optional fields:
-
-* `trace_id`. An opaque identifier used for logging and correlation. If present, it must be a string.
+* `trace_id`. An opaque identifier used for logging and correlation. It must be a string.
 
 No other fields are permitted in a graph message envelope.
 

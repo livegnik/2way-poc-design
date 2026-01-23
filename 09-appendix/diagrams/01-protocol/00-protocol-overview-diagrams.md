@@ -535,11 +535,14 @@ Diagram: Remote sync ingress ordering
 +------------------+        +------------------+
 | State Manager    | -----> | Graph Manager    |
 +------------------+        +------------------+
+| build OpContext  |
+| is_remote=true   |
+| remote_node_id   |
 | sync domain      |
 | from_seq/to_seq  |
 | reject replay    |
-| out-of-order     |
-+------------------+
+| out-of-order     |-----------------+
++------------------+                 |
           |                          |
           |                          v
           |                  +------------------+
@@ -618,7 +621,7 @@ Diagram: Envelope structures
 | GraphMessageEnvelope      |
 +---------------------------+
 | ops: Operation[]          |
-| trace_id: string?         |
+| trace_id: string          |
 +---------------------------+
 
 +---------------------------+
