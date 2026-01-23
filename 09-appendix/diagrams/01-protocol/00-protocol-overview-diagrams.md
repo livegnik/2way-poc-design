@@ -604,6 +604,8 @@ Diagram: Apply then advance
 | Advance sync     |
 | from_seq/to_seq  |
 +------------------+
+| monotonic update |
++------------------+
 ```
 
 ## 6. Envelope shapes
