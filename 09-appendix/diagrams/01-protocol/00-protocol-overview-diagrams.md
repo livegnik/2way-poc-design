@@ -405,6 +405,17 @@ Diagram: Local write lifecycle
           | <------------------------+
           | requester_identity_id
           v
++------------------+
+| OperationContext |
+| built by HTTP    |
++------------------+
+          |
+          v
++------------------+
+| Graph envelope   |
++------------------+
+          |
+          v
 +------------------+        +------------------+
 | Graph Manager    | -----> | Schema Manager   |
 +------------------+        +------------------+
