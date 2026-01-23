@@ -86,8 +86,8 @@ Diagram: Protocol responsibilities vs non-responsibilities
 
 Diagram: Protocol authority boundaries
 ```text
-Local write ingress                          Remote sync ingress
-------------------                           --------------------
+Local write + remote sync ingress
+----------------------------------------------------------------------
 
 +--------------------------+        +--------------------------+
 | HTTP layer               |        | Local services           |
