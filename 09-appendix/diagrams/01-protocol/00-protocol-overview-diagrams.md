@@ -97,6 +97,7 @@ Local write + remote sync ingress
             v                                   v
 +--------------------------+        +--------------------------+
 | Auth Manager             |        | OperationContext         |
++--------------------------+        +--------------------------+
 | resolves identity_id     |        | identity + app_id        |
 |                          |        | trace_id                 |
 |                          |        | is_remote                |
@@ -127,6 +128,7 @@ Local write + remote sync ingress
                                                           v
                                                   +------------------+
                                                   | State Manager    |
+                                                  +------------------+
                                                   | only sync pkg IO |
                                                   | sequence gate    |
                                                   | reject replay    |
