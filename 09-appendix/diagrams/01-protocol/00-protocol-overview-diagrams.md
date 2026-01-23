@@ -346,22 +346,25 @@ Diagram: App namespace boundaries
 
 Diagram: Local authoring path (OperationContext)
 ```text
-+--------------------+
-| Frontend/service   |
-+--------------------+
+----------------------+
+| Frontend/service    |
+| session token       |
++---------------------+
           |
           v
 +--------------------+
 | Auth Manager       |
+| requester_identity |
 +--------------------+
           |
           v
-+--------------------+
-| OperationContext   |
-| identity, app_id,  |
-| is_remote=false,   |
-| trace_id           |
-+--------------------+
++---------------------+
+| OperationContext    |
+| requester_identity  |
+| app_id              |
+| is_remote = false   |
+| trace_id            |
++---------------------+
           |
           v
 +--------------------+
