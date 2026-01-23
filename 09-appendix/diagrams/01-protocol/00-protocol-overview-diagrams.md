@@ -481,21 +481,25 @@ Diagram: Transactional application
 ```text
 +------------------------+
 | Envelope accepted      |
+| after validation       |
 +------------------------+
             |
             v
 +------------------------+
 | Assign global_seq      |
+| monotonic              |
 +------------------------+
             |
             v
 +------------------------+
 | Storage commit         |
+| via Storage Manager    |
 +------------------------+
             |
             v
 +------------------------+
 | All ops applied or none|
+| atomic transaction     |
 +------------------------+
 ```
 
