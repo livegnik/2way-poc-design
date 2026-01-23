@@ -510,9 +510,9 @@ Diagram: Remote sync ingress ordering
 +------------------+        +-------------------+
 | Remote peer      | -----> | DoS Guard Manager |
 +------------------+        +-------------------+
-                            | admission +       |
-                            | client puzzles    |
-                            +-------------------+
+          |                 | admission +       |
+          |                 | client puzzles    |
+          |                 +-------------------+
           |                          |
           |                          v
           |                  +------------------+
@@ -532,9 +532,9 @@ Diagram: Remote sync ingress ordering
           | <------------------------+
           | verified package bytes
           v
-+------------------+        +------------------+
-| State Manager    | -----> | Graph Manager    |
-+------------------+        +------------------+
++------------------+
+| State Manager    |
++------------------+
 | build OpContext  |
 | is_remote=true   |
 | remote_node_id   |
@@ -567,7 +567,8 @@ Diagram: Remote sync ingress ordering
           | commit + global_seq
           v
 +------------------+
-| State Manager    |
+| Sync state       |
+| advanced         |
 +------------------+
 ```
 
@@ -620,20 +621,20 @@ Diagram: Envelope structures
 +---------------------------+
 | GraphMessageEnvelope      |
 +---------------------------+
-| ops: Operation[]          |
+| ops: Operation[] (>=1)    |
 | trace_id: string          |
 +---------------------------+
 
 +---------------------------+
 | Operation                 |
 +---------------------------+
-| op: string                |
+| op: enum (supervised)     |
 | app_id: int               |
 | type_key: string          |
 | type_id: int              |
 | exactly one present       |
 | owner_identity: int       |
-| payload: object           |
+| payload: object (per op)  |
 +---------------------------+
 ```
 
