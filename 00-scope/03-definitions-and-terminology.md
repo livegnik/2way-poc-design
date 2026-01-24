@@ -2,7 +2,7 @@
 
 
 
-# 03. Definitions and terminology
+# 03 Definitions and terminology
 
 ## 1. Purpose and scope
 
