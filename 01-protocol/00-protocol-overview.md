@@ -20,7 +20,7 @@ This overview references:
 * [07-sync-and-consistency.md](07-sync-and-consistency.md)
 * [08-network-transport-requirements.md](08-network-transport-requirements.md)
 * [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
-* [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md)
+* [11-versioning-and-compatibility.md](11-versioning-and-compatibility.md)
 * [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 ## 2. Responsibilities and boundaries
@@ -59,7 +59,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 * [07-sync-and-consistency.md](07-sync-and-consistency.md) defines sync domains, sequence tracking, package construction, package application, and monotonicity requirements.
 * [08-network-transport-requirements.md](08-network-transport-requirements.md) defines the adversarial transport abstraction and mandatory signaling and delivery properties.
 * [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md) defines canonical error classes, precedence rules, and mandatory rejection behavior.
-* [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md) defines version tuples and compatibility checks.
+* [11-versioning-and-compatibility.md](11-versioning-and-compatibility.md) defines version tuples and compatibility checks.
 * [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md) defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
 
 ## 5. Operation lifecycle

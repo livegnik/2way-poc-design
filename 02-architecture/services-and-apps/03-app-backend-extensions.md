@@ -171,12 +171,12 @@ Manifests declare:
 
 | Field | Description |
 | --- | --- |
-| `requires.platform.min_version` | Minimum backend platform version required. Loader refuses activation below this value, matching [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md). |
+| `requires.platform.min_version` | Minimum backend platform version required. Loader refuses activation below this value, matching [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md). |
 | `requires.managers` | Managers and minimum capability sets the extension expects. |
 | `requires.permissions` | Capability names that must exist before activation. |
 | `supports.frontend.min_version` | Informational hint for frontend coordination, not enforced by the backend. |
 
-Compatibility validation mirrors the negotiation rules in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+Compatibility validation mirrors the negotiation rules in [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 
 ## 5. Configuration, schema, and storage obligations
 

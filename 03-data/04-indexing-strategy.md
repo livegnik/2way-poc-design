@@ -15,7 +15,7 @@ This specification consumes and is constrained by the protocol contracts defined
 - [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
 - [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 - [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
-- [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
+- [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -43,7 +43,7 @@ Across all indexes defined in this file, the following invariants and guarantees
 * Indexes are advisory for performance only and must never be relied on for correctness
 * Missing or degraded indexes must never change query results or acceptance decisions
 * Index creation and rebuild operations are idempotent and safe to rerun
-* Index definitions are stable across compatible versions per [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
+* Index definitions are stable across compatible versions per [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
 * Indexes never change the authoritative data model defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
 * Index maintenance must never advance `global_seq` or any sync cursor per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 

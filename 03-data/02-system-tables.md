@@ -17,7 +17,7 @@ This specification consumes and is constrained by the protocol contracts defined
 - [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
 - [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 - [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
-- [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
+- [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -289,7 +289,7 @@ Each row records:
 
 * rows are append only
 * migrations are never removed
-* downgrades are unsupported per [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
+* downgrades are unsupported per [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
 * partial migration execution causes startup failure
 * migration failure results in fail-closed behavior
 

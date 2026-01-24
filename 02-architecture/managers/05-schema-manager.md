@@ -19,7 +19,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
-* [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
+* [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -39,17 +39,17 @@ This specification is responsible for the following:
 * Compiling and exposing sync domain configuration metadata to [State Manager](09-state-manager.md) so the domain-scoped sync described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) can be enforced.
 * Detecting and failing closed on schema integrity violations, surfacing the schema-specific failures enumerated in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Participating in startup readiness determination as part of the manager lifecycle described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Participating in controlled schema reload operations without violating the compatibility posture of [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+* Participating in controlled schema reload operations without violating the compatibility posture of [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 
 This specification does not cover the following:
 
 * Creating, updating, or deleting schema graph objects, which belong to general graph mutation flows enforced by [Graph Manager](07-graph-manager.md).
-* Defining schema lifecycle policy beyond validation and reload semantics; those policies are governed by [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+* Defining schema lifecycle policy beyond validation and reload semantics; those policies are governed by [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 * Evaluating ACLs, ownership, or visibility rules, which are defined solely in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Performing graph writes except permitted creation of type_id mappings, and even those must honor the immutability rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Executing sync, reconciliation, or conflict resolution, which stay within [State Manager](09-state-manager.md) per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Network transport, cryptographic verification, or peer negotiation ([01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)).
-* Schema migration, backward compatibility handling, or data transformation ([01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)).
+* Schema migration, backward compatibility handling, or data transformation ([01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)).
 * Application-level interpretation of schema semantics.
 
 ## 3. Invariants and guarantees
@@ -323,7 +323,7 @@ The [Schema Manager](05-schema-manager.md) explicitly allows:
 * Deterministic type resolution so operations defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) can choose either identifier form.
 * Schema-declared sync domains, enabling the state machine described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Read-only schema access by other managers, preserving the manager responsibilities in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Controlled administrative reload that does not bypass the compatibility guarantees documented in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+* Controlled administrative reload that does not bypass the compatibility guarantees documented in [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 
 ## 13. Forbidden behaviors
 

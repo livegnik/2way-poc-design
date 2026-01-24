@@ -28,7 +28,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
 * [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
-* [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
+* [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
@@ -110,7 +110,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 ### 4.4 Configuration reload pipeline
 
 1. Admin (via CLI/HTTP) calls [Config Manager](01-config-manager.md) `updateSettings` or `reload`.
-2. [Config Manager](01-config-manager.md) merges sources, validates via the settings schema registry, and diffs namespace snapshots, preserving compatibility expectations in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+2. [Config Manager](01-config-manager.md) merges sources, validates via the settings schema registry, and diffs namespace snapshots, preserving compatibility expectations in [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 3. Affected managers enter prepare/commit handshake, and each can veto. Managers apply new snapshots (for example, [Network Manager](10-network-manager.md) updates limits, [DoS Guard Manager](14-dos-guard-manager.md) updates difficulty, [Event Manager](11-event-manager.md) updates queue sizes). [Health Manager](13-health-manager.md) goes `not_ready` if any veto or failure occurs.
 4. Successful commit increments `cfg_seq`; [Config Manager](01-config-manager.md) publishes audit logs/events; dependent managers report readiness once applied.
 

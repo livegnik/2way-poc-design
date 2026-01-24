@@ -280,12 +280,12 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 10.1 Packaging
 
-* Builds embed manifest data: slug, `app_id`, semantic version, supported platforms, minimum backend version, capability catalog checksum, and commit hash so compatibility checks align with [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
+* Builds embed manifest data: slug, `app_id`, semantic version, supported platforms, minimum backend version, capability catalog checksum, and commit hash so compatibility checks align with [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 * Packages are signed. Native apps use platform-specific signing (CodeSign, APK Signature Scheme, etc.). Web apps publish subresource integrity hashes for critical bundles.
 
 ### 10.2 Update strategy
 
-* Clients check for updates via [App Manager](../managers/08-app-manager.md)-provided endpoints, applying the negotiation rules in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md). Autoupdate policies respect user settings and enterprise controls.
+* Clients check for updates via [App Manager](../managers/08-app-manager.md)-provided endpoints, applying the negotiation rules in [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md). Autoupdate policies respect user settings and enterprise controls.
 * When backend minimum versions increase, clients detect incompatibility pre-login and display blocking screens with upgrade instructions.
 * Rollbacks follow signed package verification, clients maintain at least one known-good build for offline recovery.
 
