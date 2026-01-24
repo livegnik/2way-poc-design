@@ -2,7 +2,7 @@
 
 
 
-# 01. Scope and goals
+# 01 Scope and goals
 
 ## 1. Purpose and scope of this document
 
