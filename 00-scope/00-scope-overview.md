@@ -2,7 +2,7 @@
 
 
 
-# 00. Scope Overview
+# 00 Scope Overview
 
 ## 1. Purpose and scope
 
