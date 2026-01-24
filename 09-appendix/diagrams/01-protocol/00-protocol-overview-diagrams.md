@@ -84,9 +84,9 @@ Diagram: Protocol responsibilities vs non-responsibilities
 
 ### 2.2 Authority boundaries
 
-Diagram: Protocol authority boundaries
+Diagram: Protocol authority boundaries - Local write
 ```text
-Local write + remote sync ingress
+Local write
 ----------------------------------------------------------------------
 
 +--------------------------+        +--------------------------+
@@ -99,24 +99,32 @@ Local write + remote sync ingress
 | Auth Manager             |        | OperationContext         |
 +--------------------------+        +--------------------------+
 | resolves identity_id     |        | built by HTTP/local      |
-|                          |        | identity + app_id        |
+|                          |------->| identity + app_id        |
 |                          |        | trace_id                 |
-|                          |        | is_remote                |
+|                          |        | is_remote=false          |
 +--------------------------+        +--------------------------+
-            \                              /
-             \                            /
-              v                          v
-        +--------------------------------------+
-        | Graph Manager                        |
-        | only write path                      |
-        | envelope-only writes                 |
-        | authorize before persist             |
-        +--------------------------------------+
-        | ..> Schema Manager                   |
-        | ..> ACL Manager                      |
-        | ..> Storage Manager                  |
-        | no direct DB writes                  |
-        +--------------------------------------+
+                                                |
+                                                |
+                                                v
+                              +--------------------------------------+
+                              | Graph Manager                        |
+                              +--------------------------------------+
+                              | only write path                      |
+                              | no direct DB writes                  |
+                              | envelope-only writes                 |
+                              | authorize before persist             |
+                              +--------------------------------------+
+                              | Calls:                               |
+                              | ..> Schema Manager                   |
+                              | ..> ACL Manager                      |
+                              | ..> Storage Manager                  |
+                              +--------------------------------------+
+```
+
+Diagram: Protocol authority boundaries - Remote sync ingress
+```text
+Remote sync ingress
+----------------------------------------------------------------------
 
 +------------------+     +------------------+     +------------------+
 | Remote peer      | --> | DoS Guard Manager| --> | Network Manager  |
@@ -518,19 +526,17 @@ Diagram: Remote sync ingress ordering
           |                  +------------------+
           |                  | Network Manager  |
           |                  +------------------+
-          |                  | verify signature |
-          |                  | decrypt (ECIES)  |
-          |                  +------------------+
+          | <----------------| verify signature |
+          | verified package | decrypt package  |
+          | bytes            +------------------+
           |                          |
           |                          v
           |                  +------------------+
           |                  | Key Manager      |
           |                  +------------------+
           |                  | key lookup       |
+          |                  | decrypt (ECIES)  |
           |                  +------------------+
-          |                          |
-          | <------------------------+
-          | verified package bytes
           v
 +------------------+
 | State Manager    |
@@ -566,6 +572,8 @@ Diagram: Remote sync ingress ordering
           | <------------------------+
           | commit + global_seq
           v
++------------------+
+| State Manager    |
 +------------------+
 | Sync state       |
 | advanced         |
