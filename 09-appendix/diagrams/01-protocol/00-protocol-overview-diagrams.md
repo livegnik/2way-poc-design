@@ -310,6 +310,12 @@ Diagram: Layered protocol ownership
                |
                v
 +-------------------------------+
+| DoS guard + puzzles           |
+| Admission + puzzles           |
++-------------------------------+
+               |
+               v
++-------------------------------+
 | Errors + failure modes        |
 | Errors + precedence           |
 +-------------------------------+
@@ -318,12 +324,6 @@ Diagram: Layered protocol ownership
 +-------------------------------+
 | Versioning                    |
 | Version tuples                |
-+-------------------------------+
-               |
-               v
-+-------------------------------+
-| DoS guard + puzzles           |
-| Admission + puzzles           |
 +-------------------------------+
 ```
 
