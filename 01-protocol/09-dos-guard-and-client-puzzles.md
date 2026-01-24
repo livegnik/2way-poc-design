@@ -13,7 +13,7 @@ This specification references:
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](08-network-transport-requirements.md)
-- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+- [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
 
 ## 2. Position in the system
 
@@ -125,7 +125,7 @@ On success, the admission decision upgrades to `allow`; on failure, DoS Guard Ma
 
 - Challenges expire automatically after `expires_at` or when the underlying connection closes, whichever occurs first.
 - Expired challenges are purged without side effects other than emitting a telemetry event.
-- Puzzle responses received after expiration are rejected with `ERR_RESOURCE_PUZZLE_FAILED` (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
+- Puzzle responses received after expiration are rejected with `ERR_RESOURCE_PUZZLE_FAILED` (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)).
 
 ## 8. Admission decision matrix
 
@@ -147,7 +147,7 @@ Admission decisions must be logged with sufficient metadata (challenge id, peer 
 
 - **Policy load failure**: Fail closed, emit a critical event, and require administrative remediation before resuming admissions.
 - **Telemetry backlog**: Drop telemetry samples rather than delay admission decisions. Lack of telemetry must bias toward stricter decisions (challenge or deny).
-- **Puzzle generation failure**: Emit `ERR_RESOURCE_PUZZLE_FAILED` (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)), deny the request, and mark readiness degraded.
+- **Puzzle generation failure**: Emit `ERR_RESOURCE_PUZZLE_FAILED` (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)), deny the request, and mark readiness degraded.
 - **Storage exhaustion of tracking tables**: Evict least-recently used challenges only after expiration; otherwise deny new admissions.
 - **Internal errors**: Halt new admissions, preserve existing admitted connections if safe, and escalate via [Event Manager](../02-architecture/managers/11-event-manager.md).
 

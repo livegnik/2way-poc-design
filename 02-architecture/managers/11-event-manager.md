@@ -19,7 +19,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
@@ -34,8 +34,8 @@ This specification is responsible for the following:
 * Binding event metadata to [OperationContext](../services-and-apps/05-operation-context.md) derived visibility rules so subscribers can only observe events they are authorized to observe under the access control model described in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and enforced using the identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md). 
 * Maintaining the single WebSocket delivery surface, including admission, subscription filtering, flow control, resume tokens, and delivery telemetry, consistent with the transport and readiness constraints in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). 
 * Providing deterministic classification and routing for domain events, lifecycle events, transport events, and abuse and audit events, while preserving naming, envelope, and compatibility guarantees from [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md). 
-* Emitting audit signals to [Log Manager](12-log-manager.md) when subscriptions change state, buffers overflow, delivery is suppressed, or component health transitions, matching the failure taxonomy defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
-* Enforcing per connection and global resource limits sourced from `event.*` configuration so hostile subscribers cannot exhaust backend memory, and failing closed when limits from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) cannot be honored. 
+* Emitting audit signals to [Log Manager](12-log-manager.md) when subscriptions change state, buffers overflow, delivery is suppressed, or component health transitions, matching the failure taxonomy defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
+* Enforcing per connection and global resource limits sourced from `event.*` configuration so hostile subscribers cannot exhaust backend memory, and failing closed when limits from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) cannot be honored. 
 * Reporting readiness, liveness, and queue depth to [Health Manager](13-health-manager.md), and forwarding repeated abuse signals to [DoS Guard Manager](14-dos-guard-manager.md), so event surfaces participate in fail closed behavior alongside [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md) directives. 
 * Providing an internal in process pub sub bus for managers to observe lifecycle transitions and operational signals without introducing additional delivery surfaces, preserving the trust boundaries mandated in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
@@ -57,7 +57,7 @@ Across all relevant contexts defined in this specification, the following invari
 * System, network, and security events use an internal `event_seq` that is monotonic per source and does not influence `global_seq`, ensuring separation of ordering contexts per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). 
 * [Event Manager](11-event-manager.md) never trusts subscriber provided filters without verifying them against the subscriber's immutable [OperationContext](../services-and-apps/05-operation-context.md) and the cached authorization capsule derived under [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). 
 * Subscription identity is bound to the authenticated frontend session, and [OperationContext](../services-and-apps/05-operation-context.md) remains immutable for the lifetime of the connection per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md). 
-* [Event Manager](11-event-manager.md) does not buffer unbounded state. When limits are exceeded, connections are closed and callers must fall back to read APIs for recovery, consistent with the fail closed rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* [Event Manager](11-event-manager.md) does not buffer unbounded state. When limits are exceeded, connections are closed and callers must fall back to read APIs for recovery, consistent with the fail closed rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * Event naming is stable, lower snake case per segment, and versioned explicitly when schemas evolve, following the compatibility guarantees in [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md). 
 * [Event Manager](11-event-manager.md) is the only component allowed to deliver backend events to the local realtime surface. No other manager may open alternate realtime channels, preserving the trust boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
@@ -168,7 +168,7 @@ Every emitted event is normalized into an immutable `EventEnvelope`. The envelop
 3. The upgraded socket is handed to [Event Manager](11-event-manager.md) together with [OperationContext](../services-and-apps/05-operation-context.md) and requested subscription filters.
 4. [Event Manager](11-event-manager.md) validates requested filters against [OperationContext](../services-and-apps/05-operation-context.md) and subscription gating rules.
 5. On success, [Event Manager](11-event-manager.md) assigns a `connection_id`, registers the subscription, initializes per connection buffers, and begins heartbeats.
-6. On failure, [Event Manager](11-event-manager.md) rejects with typed errors mapped to the system failure taxonomy defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). No partially authorized subscription state may persist.
+6. On failure, [Event Manager](11-event-manager.md) rejects with typed errors mapped to the system failure taxonomy defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partially authorized subscription state may persist.
 
 ### 6.2 Subscription filters
 
@@ -198,17 +198,17 @@ Filter rules:
 
 ### 6.4 Per connection buffer and ACK semantics
 
-* Each connection maintains a sliding buffer sized by `event.queue.per_connection`, enforcing the bounded memory requirements of [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Each connection maintains a sliding buffer sized by `event.queue.per_connection`, enforcing the bounded memory requirements of [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * Each delivered envelope carries a `resume_token` constructed per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Clients must ACK delivered envelopes by sending an ACK frame containing the `resume_token`. ACK frames are untrusted and must be validated against the authorization posture from [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * ACK advances the connection window and allows the [Event Manager](11-event-manager.md) to evict acknowledged envelopes from the per connection buffer when they age out of the global retention window.
-* If the buffer overflows due to missing ACKs, slow consumption, or client misbehavior, [Event Manager](11-event-manager.md) closes the connection with a `buffer_overflow` error and emits a `security.subscription_dropped` event, failing closed per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* If the buffer overflows due to missing ACKs, slow consumption, or client misbehavior, [Event Manager](11-event-manager.md) closes the connection with a `buffer_overflow` error and emits a `security.subscription_dropped` event, failing closed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * [Event Manager](11-event-manager.md) must never respond to buffer overflow by allocating more memory beyond configured caps.
 
 ### 6.5 Heartbeats and resume
 
 * Heartbeats are sent every `event.delivery.heartbeat_interval_ms` to satisfy the readiness and liveness reporting obligations in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). 
-* If no heartbeat response is received within two intervals, the connection is closed and a drop event is emitted for audit, following the fail closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If no heartbeat response is received within two intervals, the connection is closed and a drop event is emitted for audit, following the fail closed posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Clients may reconnect and present a `resume_token` constructed according to [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * [Event Manager](11-event-manager.md) validates the token cryptographically and structurally, and verifies the referenced event is still within the retention window `event.delivery.resume_window`, ensuring replay never exceeds the bounds defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * If valid and available, [Event Manager](11-event-manager.md) replays pending events in order, subject to current authorization rules.
@@ -218,8 +218,8 @@ Filter rules:
 
 Admission limits:
 
-* Global concurrent connection count limited by `event.websocket.max_connections`, ensuring realtime surfaces stay within the fail closed bounds in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Per identity connection count limited by `event.websocket.max_connections_per_identity` so a single identity cannot exhaust resources contrary to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Global concurrent connection count limited by `event.websocket.max_connections`, ensuring realtime surfaces stay within the fail closed bounds in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Per identity connection count limited by `event.websocket.max_connections_per_identity` so a single identity cannot exhaust resources contrary to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Per app totals may be enforced as a derived limit if declared in configuration and applied consistently.
 
 Send throttling:
@@ -229,9 +229,9 @@ Send throttling:
 
 Global backpressure:
 
-* [Event Manager](11-event-manager.md) enforces a global queued event ceiling `event.queue.total_ceiling` as a hard limit derived from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* [Event Manager](11-event-manager.md) enforces a global queued event ceiling `event.queue.total_ceiling` as a hard limit derived from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * When global ceilings are approached, [Event Manager](11-event-manager.md) signals Source Intake to pause lower priority classes before affecting `graph.*`, maintaining the ordered delivery contract in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* When ceilings are exceeded, [Event Manager](11-event-manager.md) applies deterministic shedding only where permitted by this spec, and emits explicit telemetry and audit records to satisfy [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* When ceilings are exceeded, [Event Manager](11-event-manager.md) applies deterministic shedding only where permitted by this spec, and emits explicit telemetry and audit records to satisfy [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 DoS integration:
 
@@ -242,14 +242,14 @@ DoS integration:
 
 Startup requirements:
 
-* [Event Manager](11-event-manager.md) must not accept WebSocket upgrades until [Config Manager](01-config-manager.md) has supplied a valid `event.*` snapshot and [Event Manager](11-event-manager.md) has validated all required keys and constraints, satisfying the readiness prerequisites outlined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* [Event Manager](11-event-manager.md) must not accept WebSocket upgrades until [Config Manager](01-config-manager.md) has supplied a valid `event.*` snapshot and [Event Manager](11-event-manager.md) has validated all required keys and constraints, satisfying the readiness prerequisites outlined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * [Event Manager](11-event-manager.md) must register intake channels for all authorized manager sources before declaring readiness true to ensure sequencing matches [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * [Event Manager](11-event-manager.md) must register its readiness and liveness probes with [Health Manager](13-health-manager.md) during startup and must default readiness to false until all internal engines are running, matching the node lifecycle expectations in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). 
-* If [Event Manager](11-event-manager.md) cannot bind the WebSocket listener surface, readiness must remain false and the node must treat realtime delivery as unavailable, failing closed per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If [Event Manager](11-event-manager.md) cannot bind the WebSocket listener surface, readiness must remain false and the node must treat realtime delivery as unavailable, failing closed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Shutdown requirements:
 
-* On shutdown, [Event Manager](11-event-manager.md) must stop accepting new upgrades, then close existing connections with a typed shutdown reason that maps to the taxonomy defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* On shutdown, [Event Manager](11-event-manager.md) must stop accepting new upgrades, then close existing connections with a typed shutdown reason that maps to the taxonomy defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Shutdown must flush audit logs for subscription closures to [Log Manager](12-log-manager.md) best effort, without blocking shutdown indefinitely.
 * Shutdown must drop all in memory buffers and resume indexes. After restart, clients must reconnect and recover via reads, consistent with non durable semantics. 
 
@@ -270,7 +270,7 @@ Responsibilities:
 * Reject descriptors that reference multiple apps or multiple domains to uphold the isolation rules from [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Enforce that descriptors are submitted only after the emitting manager's commit point, maintaining the ordered write path in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Assign a per source `local_order` counter to preserve FIFO semantics downstream.
-* Apply per source and global backpressure based on `event.queue.total_ceiling` so intake respects the fail closed requirements in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Apply per source and global backpressure based on `event.queue.total_ceiling` so intake respects the fail closed requirements in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Outputs:
 
@@ -278,7 +278,7 @@ Outputs:
 
 Failure behavior:
 
-* Validation failures return synchronous errors to the emitter, including `invalid_descriptor`, `scope_violation`, and `queue_full`, mapped to the taxonomy in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Validation failures return synchronous errors to the emitter, including `invalid_descriptor`, `scope_violation`, and `queue_full`, mapped to the taxonomy in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Every rejection must emit an auditable telemetry event and must be logged to [Log Manager](12-log-manager.md).
 
 Constraints:
@@ -321,7 +321,7 @@ Responsibilities:
 * Batch envelopes by `(app_id, domain_id, subscription_type)` and request ACL capsules from [ACL Manager](06-acl-manager.md) as defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Encode the originating [OperationContext](../services-and-apps/05-operation-context.md) identity and scope inside the capsule to prevent reuse by other identities, leveraging the trust model in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Cache capsules until the envelope ages out of `event.delivery.resume_window` or until no subscribers can reference the envelope.
-* Surface readiness false if [ACL Manager](06-acl-manager.md) is unavailable, preventing further delivery in accordance with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Surface readiness false if [ACL Manager](06-acl-manager.md) is unavailable, preventing further delivery in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Outputs:
 
@@ -330,7 +330,7 @@ Outputs:
 Failure behavior:
 
 * ACL failures or outages halt progression of affected envelopes. [Event Manager](11-event-manager.md) must not downgrade authorization, infer scope, or widen visibility.
-* Authorization binding failures must be recorded as audit events and must be visible in telemetry, mapped to the taxonomy from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Authorization binding failures must be recorded as audit events and must be visible in telemetry, mapped to the taxonomy from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Constraints:
 
@@ -348,11 +348,11 @@ Responsibilities:
 * Compile filters into deterministic matchers referencing capsule ids and scope metadata so subscription scope stays aligned with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Manage resume tokens, verify authenticity, locate referenced events in the resume index, and preload pending envelopes into the connection buffer exactly as described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Track per connection state `{ connection_id, operation_context, filters, buffer_state, last_ack_token, heartbeat_deadline }` and enforce heartbeat timers.
-* Emit auditable subscription lifecycle events for open, reject, close, overflow, resume accepted, and resume refused, using the [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) taxonomy.
+* Emit auditable subscription lifecycle events for open, reject, close, overflow, resume accepted, and resume refused, using the [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) taxonomy.
 
 Failure behavior:
 
-* Any filter validation failure results in immediate connection close with a typed error and a `security.subscription_rejected` audit event, adhering to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Any filter validation failure results in immediate connection close with a typed error and a `security.subscription_rejected` audit event, adhering to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Any resume token validation failure results in immediate close and a security audit event, without revealing whether the referenced token existed, honoring the secrecy requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 Constraints:
@@ -369,12 +369,12 @@ Responsibilities:
 * Consume class queues using weighted round robin with a default priority ordering of `graph` then `security` then `network` then `system`, while preventing starvation so that ordering guarantees from [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) remain intact.
 * Evaluate each envelope against registered subscriptions using cached capsule constraints derived from [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Write matching envelopes into per connection ring buffers sized by `event.queue.per_connection` and track ACK progress.
-* Apply backpressure when total buffered events reach `event.queue.total_ceiling` by signaling Source Intake to pause lower priority classes, never exceeding the fail closed bounds from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Apply backpressure when total buffered events reach `event.queue.total_ceiling` by signaling Source Intake to pause lower priority classes, never exceeding the fail closed bounds from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Serialize envelopes into deterministic JSON frames and send them via the WebSocket adapter described in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), capturing send success and failure telemetry.
 
 Failure behavior:
 
-* Missing ACKs beyond configured limits trigger buffer overflow handling and connection closure with typed errors per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Missing ACKs beyond configured limits trigger buffer overflow handling and connection closure with typed errors per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Repeated send failures increment per connection error counters and may force teardown.
 * Delivery must never retry silently after close. Clients must reconnect and recover via resume or read APIs. 
 
@@ -390,9 +390,9 @@ The Telemetry Engine provides observability across all engines.
 Responsibilities:
 
 * Sample queue depth, produced delivered dropped counters per class, per connection ACK latency, heartbeat failures, and subscription rejection reasons.
-* Emit readiness and liveness to [Health Manager](13-health-manager.md) on `event.telemetry.heartbeat_interval_ms` cadence and log readiness transitions via [Log Manager](12-log-manager.md), satisfying the observability requirements in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Emit readiness and liveness to [Health Manager](13-health-manager.md) on `event.telemetry.heartbeat_interval_ms` cadence and log readiness transitions via [Log Manager](12-log-manager.md), satisfying the observability requirements in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Forward repeated buffer overflows or subscription rejections to [DoS Guard Manager](14-dos-guard-manager.md) for abuse mitigation.
-* Raise `system.event_pipeline_degraded` when saturation persists beyond `event.telemetry.degraded_threshold_ms`, or when dependencies such as [ACL Manager](06-acl-manager.md) or [Config Manager](01-config-manager.md) are unavailable, ensuring fail closed signaling per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Raise `system.event_pipeline_degraded` when saturation persists beyond `event.telemetry.degraded_threshold_ms`, or when dependencies such as [ACL Manager](06-acl-manager.md) or [Config Manager](01-config-manager.md) are unavailable, ensuring fail closed signaling per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Constraints:
 
@@ -417,9 +417,9 @@ Constraints:
 
 Validation rules:
 
-* Startup fails if required keys are missing or invalid, matching the configuration constraints in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Reload follows [Config Manager](01-config-manager.md) prepare and commit flow. [Event Manager](11-event-manager.md) must acknowledge or veto reloads based on whether new limits can be applied safely without violating bounded memory, ordering, or authorization as mandated in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
-* If a reload cannot be applied without dropping existing connections, [Event Manager](11-event-manager.md) must either veto, or apply a deterministic shedding plan that is explicitly logged, and must surface readiness transitions accordingly, satisfying the fail closed rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Startup fails if required keys are missing or invalid, matching the configuration constraints in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Reload follows [Config Manager](01-config-manager.md) prepare and commit flow. [Event Manager](11-event-manager.md) must acknowledge or veto reloads based on whether new limits can be applied safely without violating bounded memory, ordering, or authorization as mandated in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
+* If a reload cannot be applied without dropping existing connections, [Event Manager](11-event-manager.md) must either veto, or apply a deterministic shedding plan that is explicitly logged, and must surface readiness transitions accordingly, satisfying the fail closed rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 9. Component interactions
 
@@ -441,9 +441,9 @@ Validation rules:
 
 ### 9.4 [Config Manager](01-config-manager.md)
 
-* Supplies `event.*` namespace snapshots, enabling [Event Manager](11-event-manager.md) to enforce the limits referenced in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* [Event Manager](11-event-manager.md) must request revalidation before applying reloads per the prepare/commit rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* [Event Manager](11-event-manager.md) must publish readiness false if configuration cannot be applied safely, matching the fail closed requirement in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Supplies `event.*` namespace snapshots, enabling [Event Manager](11-event-manager.md) to enforce the limits referenced in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* [Event Manager](11-event-manager.md) must request revalidation before applying reloads per the prepare/commit rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* [Event Manager](11-event-manager.md) must publish readiness false if configuration cannot be applied safely, matching the fail closed requirement in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 
 ### 9.5 [App Manager](08-app-manager.md) and services
 
@@ -457,14 +457,14 @@ Validation rules:
 
 ### 9.7 [Log Manager](12-log-manager.md)
 
-* Receives audit logs for subscription lifecycle, buffer drops, authorization failures, and abnormal delivery latencies so the failure taxonomy in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) is persisted. 
+* Receives audit logs for subscription lifecycle, buffer drops, authorization failures, and abnormal delivery latencies so the failure taxonomy in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) is persisted. 
 * Receives copies of critical `security.*` events so they can be persisted to sinks distinct from transient WebSocket delivery. 
 * Persistent notification feeds, if implemented, are owned by [Log Manager](12-log-manager.md) rather than [Event Manager](11-event-manager.md), because [Event Manager](11-event-manager.md) is explicitly non durable. The older high level design expectation of a unified, filterable notification feed aligns with [Log Manager](12-log-manager.md) persistence rather than realtime transient delivery.
 
 ### 9.8 [Health Manager](13-health-manager.md)
 
-* Consumes readiness, liveness, and queue depth metrics required by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* [Event Manager](11-event-manager.md) must mark readiness false when no listener is available, when dependencies are unavailable, or when intake queues are saturated, maintaining fail closed posture from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Consumes readiness, liveness, and queue depth metrics required by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* [Event Manager](11-event-manager.md) must mark readiness false when no listener is available, when dependencies are unavailable, or when intake queues are saturated, maintaining fail closed posture from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 
 ### 9.9 [Storage Manager](02-storage-manager.md)
 
@@ -475,12 +475,12 @@ Validation rules:
 
 [Event Manager](11-event-manager.md) must fail closed. Failures must be explicit, auditable, and must not widen visibility or weaken ordering.
 
-* Structural descriptor failures result in synchronous rejection to the emitting manager. [Event Manager](11-event-manager.md) logs the failure with context and drops the descriptor per the taxonomy in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Structural descriptor failures result in synchronous rejection to the emitting manager. [Event Manager](11-event-manager.md) logs the failure with context and drops the descriptor per the taxonomy in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * Subscription authentication failures are surfaced immediately to the HTTP layer. No socket upgrade occurs, preserving the trust boundaries from [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md). 
-* Authorization failures after upgrade, such as requesting a domain outside [OperationContext](../services-and-apps/05-operation-context.md), cause the connection to close with `permission_denied` mapped to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
-* Buffer overflows, heartbeat timeouts, invalid ACKs, invalid resume tokens, or malformed frames close the connection and emit security audit events, including `security.subscription_dropped` and `security.subscription_rejected`, satisfying [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Authorization failures after upgrade, such as requesting a domain outside [OperationContext](../services-and-apps/05-operation-context.md), cause the connection to close with `permission_denied` mapped to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
+* Buffer overflows, heartbeat timeouts, invalid ACKs, invalid resume tokens, or malformed frames close the connection and emit security audit events, including `security.subscription_dropped` and `security.subscription_rejected`, satisfying [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * [Event Manager](11-event-manager.md) never retries deliveries after closing a connection. Clients must reconnect and use resume or read APIs to recover, aligning with the realtime semantics in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). 
-* Dependency outages, including [ACL Manager](06-acl-manager.md) outage or [Config Manager](01-config-manager.md) inability to supply valid config, must force readiness false and must halt delivery rather than bypassing authorization or limits, consistent with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
+* Dependency outages, including [ACL Manager](06-acl-manager.md) outage or [Config Manager](01-config-manager.md) inability to supply valid config, must force readiness false and must halt delivery rather than bypassing authorization or limits, consistent with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 
 ## 11. Security and trust boundary constraints
 
@@ -494,25 +494,25 @@ Validation rules:
 ## 12. State, persistence, and backpressure constraints
 
 * [Event Manager](11-event-manager.md) persists no durable event log. It retains only `event.delivery.resume_window` entries in memory per class to service short reconnects, staying aligned with the realtime semantics of [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). 
-* Per connection buffers are bounded ring buffers sized to comply with the resource ceilings defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). The only mutable per connection state is `{ [OperationContext](../services-and-apps/05-operation-context.md), subscription filters, last_ack_token, queue }`. 
+* Per connection buffers are bounded ring buffers sized to comply with the resource ceilings defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). The only mutable per connection state is `{ [OperationContext](../services-and-apps/05-operation-context.md), subscription filters, last_ack_token, queue }`. 
 * On process restart, all subscriptions are lost, buffers are discarded, and clients must reconnect. This is acceptable because committed state remains in the graph and can be recovered via reads per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). 
-* [Event Manager](11-event-manager.md) must never persist events in SQLite, must never attempt to use [Storage Manager](02-storage-manager.md) as an event replay backend, and must never allocate memory beyond configured bounds to satisfy slow consumers, complying with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* [Event Manager](11-event-manager.md) must never persist events in SQLite, must never attempt to use [Storage Manager](02-storage-manager.md) as an event replay backend, and must never allocate memory beyond configured bounds to satisfy slow consumers, complying with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 13. Observability and telemetry outputs
 
 [Event Manager](11-event-manager.md) emits the following telemetry:
 
-* Readiness flag indicating whether the listener and critical engines are healthy, satisfying [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Liveness flag indicating runtime loop progress, also reported per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Readiness flag indicating whether the listener and critical engines are healthy, satisfying [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Liveness flag indicating runtime loop progress, also reported per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Counters per event class, produced delivered dropped, so ordering guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) can be audited.
-* Per connection utilization, buffer depth, ACK latency histograms to demonstrate compliance with the bounded memory rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Rate of subscription failures by reason, including `auth_failed`, `acl_denied`, `filter_invalid`, `buffer_overflow`, `resume_invalid`, `heartbeat_timeout`, all mapped to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Dependency health and saturation signals, including `system.event_pipeline_degraded`, enabling fail closed transitions per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Per connection utilization, buffer depth, ACK latency histograms to demonstrate compliance with the bounded memory rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Rate of subscription failures by reason, including `auth_failed`, `acl_denied`, `filter_invalid`, `buffer_overflow`, `resume_invalid`, `heartbeat_timeout`, all mapped to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Dependency health and saturation signals, including `system.event_pipeline_degraded`, enabling fail closed transitions per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * DoS Guard instructions and enforcement outcomes recorded as events so administrators can correlate cause and effect with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md) directives. 
 
 Telemetry routing:
 
-* Telemetry is routed through [Health Manager](13-health-manager.md) for aggregated status and through [Log Manager](12-log-manager.md) for audit records, matching the observability posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Telemetry is routed through [Health Manager](13-health-manager.md) for aggregated status and through [Log Manager](12-log-manager.md) for audit records, matching the observability posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Optional verbose samples controlled by `event.telemetry.emit_samples` may include `event_type` and `scope.app_id` but must never include full object bodies or sensitive identifiers outside authorized scope, staying within the access control model in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). 
 
 ## 14. Forbidden behaviors and compliance checklist
@@ -527,6 +527,6 @@ The following actions violate this specification:
 * Allowing event filters to span multiple apps or domains unless [App Manager](08-app-manager.md) explicitly registered the cross app subscription and [ACL Manager](06-acl-manager.md) validated visibility, breaking [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md). 
 * Calling [ACL Manager](06-acl-manager.md) in the per frame hot path for every delivered event rather than using capsules, which would contradict the capsule reuse requirement in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Allowing resume tokens to be accepted without cryptographic validation and retention window checks, violating [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Growing buffers beyond configured caps instead of failing closed, breaking [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Growing buffers beyond configured caps instead of failing closed, breaking [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Implementations must demonstrate that all guarantees, limits, ordering rules, and fail closed behaviors described above are enforced before the [Event Manager](11-event-manager.md) surface is considered complete. 

@@ -14,7 +14,7 @@ This specification consumes and is constrained by the protocol contracts defined
 - [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
 - [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
 - [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-- [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md)
+- [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
 - [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
 
 ## 2. Responsibilities and boundaries
@@ -206,7 +206,7 @@ The system fails closed under the following conditions:
 * index definitions that do not match the expected column contracts
 * missing required index that prevents mandatory read paths from meeting resource constraints and cannot be rebuilt
 
-Automatic repair is permitted only for index rebuilds. Any detected corruption in base tables remains a fatal error per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+Automatic repair is permitted only for index rebuilds. Any detected corruption in base tables remains a fatal error per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
 ## 9. Explicitly forbidden behavior
 

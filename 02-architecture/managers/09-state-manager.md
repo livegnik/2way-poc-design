@@ -17,7 +17,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
@@ -116,7 +116,7 @@ It verifies that persisted metadata and [Storage Manager](02-storage-manager.md)
 
 ### 4.4 Read Surface Engine
 
-The Read Surface Engine exposes strictly read-only views of state metadata to internal components. It guarantees that no partially applied or speculative state is ever visible, so all consumers observe only the durable outcomes required by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+The Read Surface Engine exposes strictly read-only views of state metadata to internal components. It guarantees that no partially applied or speculative state is ever visible, so all consumers observe only the durable outcomes required by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 5. Ordering and determinism
 
@@ -136,7 +136,7 @@ For each peer and domain, the [State Manager](09-state-manager.md) enforces:
 * No overlap or replay of previously accepted sequences.
 * No gaps unless explicitly permitted by protocol rules.
 
-Any violation results in rejection before [Graph Manager](07-graph-manager.md) invocation using the sync integrity error classes in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Any violation results in rejection before [Graph Manager](07-graph-manager.md) invocation using the sync integrity error classes in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 5.3 Deterministic behavior
 
@@ -155,7 +155,7 @@ Inbound remote data is processed in the following stages:
 5. Submission to [Graph Manager](07-graph-manager.md) for validation and persistence.
 6. Observation of commit result and metadata update.
 
-At no point may inbound data bypass any stage, ensuring every envelope honors the rejection rules enumerated in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+At no point may inbound data bypass any stage, ensuring every envelope honors the rejection rules enumerated in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 6.2 Operation context construction
 
@@ -174,7 +174,7 @@ Rejected inbound envelopes:
 
 * Do not mutate canonical state.
 * Do not advance sync state.
-* Are logged with deterministic error classification mapped to the sync integrity and cryptographic error classes from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Are logged with deterministic error classification mapped to the sync integrity and cryptographic error classes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Do not leak internal state details to peers.
 
 ## 7. Outbound synchronization
@@ -195,7 +195,7 @@ Outbound sync progress advances only after successful handoff to [Network Manage
 
 ### 7.3 Visibility enforcement
 
-Outbound packages must respect domain visibility and revocation rules described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and the violation codes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). The [State Manager](09-state-manager.md) must never export data a peer is not eligible to receive.
+Outbound packages must respect domain visibility and revocation rules described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and the violation codes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). The [State Manager](09-state-manager.md) must never export data a peer is not eligible to receive.
 
 ## 8. Persistence and durability
 
@@ -205,7 +205,7 @@ The [State Manager](09-state-manager.md) persists all authoritative metadata via
 
 ### 8.2 Atomicity requirements
 
-State metadata updates that depend on graph commits must be atomic with respect to commit observation. Partial updates are forbidden so that no package violates the rejection guarantees in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+State metadata updates that depend on graph commits must be atomic with respect to commit observation. Partial updates are forbidden so that no package violates the rejection guarantees in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 8.3 No shadow persistence
 
@@ -250,7 +250,7 @@ If forced shutdown occurs, recovery behavior must detect incomplete checkpoints 
 
 ### 11.1 Ordering violations
 
-Ordering violations result in immediate rejection and suspension of the offending peer domain until corrected. Rejections must be reported internally using the `ERR_SYNC_SEQUENCE_INVALID`, `ERR_SYNC_RANGE_MISMATCH`, or related classes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Ordering violations result in immediate rejection and suspension of the offending peer domain until corrected. Rejections must be reported internally using the `ERR_SYNC_SEQUENCE_INVALID`, `ERR_SYNC_RANGE_MISMATCH`, or related classes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 11.2 Persistence failures
 
@@ -258,11 +258,11 @@ Persistence failures result in:
 
 * No state advancement.
 * Suspension of affected operations.
-* Escalation to observability and administrative channels using the resource error patterns from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Escalation to observability and administrative channels using the resource error patterns from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 11.3 Recovery failures
 
-Any inconsistency between persisted metadata and canonical state results in fatal startup failure. Automatic repair or inference is forbidden per the recovery rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Any inconsistency between persisted metadata and canonical state results in fatal startup failure. Automatic repair or inference is forbidden per the recovery rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 11.4 Degraded operation
 

@@ -18,7 +18,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -32,8 +32,8 @@ This specification is responsible for the following:
 * Supporting route-level admin gating based on trusted local configuration or identity metadata without bypassing the app and domain rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Binding authentication results into [OperationContext](../services-and-apps/05-operation-context.md) inputs in a deterministic and immutable manner so envelope submission behaves exactly as described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Providing authenticated identity resolution for both HTTP and WebSocket entrypoints.
-* Rejecting unauthenticated or malformed requests with explicit failure classification that maps to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Emitting authentication and admin-gating audit signals via [Log Manager](12-log-manager.md) so that authentication-stage failures propagate into the observability posture described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Rejecting unauthenticated or malformed requests with explicit failure classification that maps to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Emitting authentication and admin-gating audit signals via [Log Manager](12-log-manager.md) so that authentication-stage failures propagate into the observability posture described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Operating as a strict trust boundary between untrusted frontend input and trusted backend execution, keeping remote identity handling with [Network Manager](10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 
 This specification does not cover the following:
@@ -220,7 +220,7 @@ Trust boundary:
 ### 9.1 Failure posture
 
 * Fail closed.
-* Reject on ambiguity, inconsistency, or unavailability, following the posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Reject on ambiguity, inconsistency, or unavailability, following the posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 9.2 Rejection categories
 
@@ -235,7 +235,7 @@ At minimum:
 * Backend identity missing.
 * Admin gating failure.
 
-These categories map to the canonical classification ordering in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+These categories map to the canonical classification ordering in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 9.3 Session store unavailability
 

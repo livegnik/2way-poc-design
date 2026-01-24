@@ -58,7 +58,7 @@ This overview references:
 - `01-protocol/06-access-control-model.md`
 - `01-protocol/07-sync-and-consistency.md`
 - `01-protocol/08-network-transport-requirements.md`
-- `01-protocol/09-errors-and-failure-modes.md`
+- `01-protocol/10-errors-and-failure-modes.md`
 - `01-protocol/10-versioning-and-compatibility.md`
 - `01-protocol/09-dos-guard-and-client-puzzles.md`
 - `02-architecture/01-component-model.md`

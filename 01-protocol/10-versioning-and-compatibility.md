@@ -13,7 +13,7 @@ This specification references:
 - [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+- [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -118,7 +118,7 @@ The following behaviors are forbidden:
 - Accepting any interaction from a peer with a different major version.
 - Processing [envelopes](03-serialization-and-envelopes.md) that depend on protocol behavior not defined by the local version.
 - Guessing, inferring, or emulating behavior outside the negotiated protocol version.
-- Weakening [validation](09-errors-and-failure-modes.md), [ACL enforcement](06-access-control-model.md), or [sync guarantees](07-sync-and-consistency.md) due to version mismatch.
+- Weakening [validation](10-errors-and-failure-modes.md), [ACL enforcement](06-access-control-model.md), or [sync guarantees](07-sync-and-consistency.md) due to version mismatch.
 
 Forbidden behavior must result in rejection.
 
@@ -148,7 +148,7 @@ This specification operates at the boundary between local protocol logic and rem
 
 If protocol versions are incompatible, the system must:
 
-- Reject the interaction deterministically (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
+- Reject the interaction deterministically (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)).
 - Perform no graph mutation (see [02-architecture/managers/07-graph-manager.md](../02-architecture/managers/07-graph-manager.md)).
 - Perform no [sync](07-sync-and-consistency.md) processing.
 - Release or avoid allocating protocol resources.

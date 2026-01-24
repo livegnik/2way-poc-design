@@ -18,7 +18,7 @@ This overview references:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 * [02-architecture/01-component-model.md](../01-component-model.md)
 * [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
@@ -247,7 +247,7 @@ Managers must reject any invocation lacking required context fields.
 * Structural failures are rejected before schema or ACL evaluation.
 * Attempted mutation after construction is logged and rejected.
 * Remote contexts missing required remote fields are rejected by State Manager.
-* Errors must use canonical classifications defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Errors must use canonical classifications defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ---
 

@@ -19,7 +19,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -44,8 +44,8 @@ This specification is responsible for the following:
   * Object-level ACL overrides.
 * Enforcing app isolation and domain isolation per [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Enforcing remote execution restrictions during sync application, including the remote envelope rules in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Producing deterministic allow or deny decisions with stable rejection categories that map to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Failing closed on missing, ambiguous, malformed, or unsupported policy data, following the rejection posture in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Producing deterministic allow or deny decisions with stable rejection categories that map to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Failing closed on missing, ambiguous, malformed, or unsupported policy data, following the rejection posture in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Participating in every graph mutation path before any persistent write occurs, consistent with the sequencing in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Participating in every restricted read path where visibility is constrained by policy, as required by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -75,7 +75,7 @@ Across all relevant components, boundaries, and contexts defined in this file, t
 * Authorization evaluation completes before any graph mutation occurs, firmly positioned between schema validation and persistence in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Explicit deny rules always override allow rules, matching the precedence rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Schema-defined prohibitions cannot be overridden by ACL data, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Authorization fails closed when correctness cannot be guaranteed, matching both [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and the rejection handling in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Authorization fails closed when correctness cannot be guaranteed, matching both [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and the rejection handling in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise, ensuring parity with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 4. Internal structure and engines
@@ -168,7 +168,7 @@ The [ACL Manager](06-acl-manager.md) returns:
 * A binary authorization decision, allow or deny.
 * A stable rejection category suitable for logging and audit.
 
-Rejection categories map deterministically to the protocol errors in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) (for example `ERR_AUTH_ACL_DENIED`), ensuring consistent telemetry across managers.
+Rejection categories map deterministically to the protocol errors in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) (for example `ERR_AUTH_ACL_DENIED`), ensuring consistent telemetry across managers.
 
 The [ACL Manager](06-acl-manager.md) does not emit events and does not mutate state, matching the side-effect restrictions in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -205,7 +205,7 @@ Schema metadata defines, consistent with [01-protocol/06-access-control-model.md
 
 Schema-defined prohibitions are absolute and cannot be overridden by ACL data, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-If schema metadata is missing or incomplete, access is denied, producing the schema-related rejection described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+If schema metadata is missing or incomplete, access is denied, producing the schema-related rejection described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 9. App and domain boundary enforcement
 
@@ -227,7 +227,7 @@ Rules:
 * Overrides may restrict or extend permissions within schema limits.
 * Overrides cannot violate schema-defined prohibitions from [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Explicit deny rules override allow rules.
-* Unsupported or malformed ACL data results in denial and produces the deterministic rejection outlined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Unsupported or malformed ACL data results in denial and produces the deterministic rejection outlined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 11. Graph-derived constraints
 
@@ -257,12 +257,12 @@ These local behaviors align with the baseline model in [01-protocol/06-access-co
 
 For remote execution during sync application, inside the envelope pipeline defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md):
 
-* Remote operations must not rewrite local history; rewrite attempts map to `ERR_SYNC_REWRITE_ATTEMPT` in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Remote operations must not rewrite local history; rewrite attempts map to `ERR_SYNC_REWRITE_ATTEMPT` in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Remote operations must not mutate objects owned by local identities unless explicitly permitted, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Remote operations must respect sync domain rules enforced by [State Manager](09-state-manager.md), including per-domain acceptance gates.
 * Remote operations must not access objects outside the permitted app and domain.
 
-Any violation results in denial regardless of ACL content, and refusal reasons map to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Any violation results in denial regardless of ACL content, and refusal reasons map to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 13. Allowed and forbidden behavior
 
@@ -316,7 +316,7 @@ If required context is missing, access is denied because the protocol forbids su
 
 ### 15.1 General rule
 
-Any ambiguity, missing data, or unsupported structure results in denial, matching the fail-closed requirement in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and the rejection handling defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). No partial evaluation or partial write is permitted.
+Any ambiguity, missing data, or unsupported structure results in denial, matching the fail-closed requirement in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and the rejection handling defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial evaluation or partial write is permitted.
 
 ### 15.2 Missing identity
 
@@ -328,13 +328,13 @@ If requester identity is missing:
 
 If schema-defined ACL metadata is missing:
 
-* Deny access, generating the schema-related rejection code from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Deny access, generating the schema-related rejection code from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 15.4 Malformed ACL data
 
 If object-level ACL data is malformed or unsupported:
 
-* Deny access, treating it as an authorization failure per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Deny access, treating it as an authorization failure per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 15.5 Internal or cache failure
 

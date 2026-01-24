@@ -13,7 +13,7 @@ This specification defines DoS Guard responsibilities, inputs and outputs, inter
 * [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for admission control and puzzle semantics.
@@ -47,7 +47,7 @@ Across all relevant contexts defined here, the following invariants and guarante
 * Admission decisions (`allow`, `deny`, `require_challenge`) are deterministic given the same telemetry and configuration per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Puzzle difficulty increases monotonically for abusive identities until they return to compliant behavior, matching Section 7.3 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Puzzle responses are validated before any resource-intensive processing, respecting [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Failure of DoS Guard to reach a decision results in `deny` to maintain fail-closed posture per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Failure of DoS Guard to reach a decision results in `deny` to maintain fail-closed posture per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Puzzle issuance and validation never rely on graph state or [OperationContext](../services-and-apps/05-operation-context.md), they operate solely on transport metadata and DoS heuristics, and they never infer identity from telemetry as required by [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * When DoS Guard issues a `deny` directive for a connection, [Network Manager](10-network-manager.md) must apply it immediately, terminate the connection, and must not route further traffic for that connection per Section 8 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
@@ -103,7 +103,7 @@ Puzzles follow the structure defined in [01-protocol/09-dos-guard-and-client-puz
 * DoS Guard requests puzzle seeds or HMAC keys from [Key Manager](03-key-manager.md). Seeds never leave DoS Guard after derivation.
 * Each challenge includes `{ challenge_id, difficulty_bits, expires_at, context_binding, payload, algorithm }`. The `context_binding` ties the challenge to the requesting connection, and the payload remains opaque to [Network Manager](10-network-manager.md).
 * Solutions are validated by recomputing the hash function and comparing against the difficulty threshold selected by the Policy Engine.
-* Puzzles expire after `dos.puzzle.ttl_ms`. Expired puzzles result in `ERR_RESOURCE_PUZZLE_FAILED` per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) and may increase difficulty for the associated connection.
+* Puzzles expire after `dos.puzzle.ttl_ms`. Expired puzzles result in `ERR_RESOURCE_PUZZLE_FAILED` per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) and may increase difficulty for the associated connection.
 
 Puzzle issuance and verification rules:
 
@@ -217,7 +217,7 @@ If DoS Guard is not ready, [Network Manager](10-network-manager.md) must treat p
 
 * If Telemetry Intake fails (queue overflow), DoS Guard logs the event and treats new connections as `require_challenge` until capacity returns, matching Section 10 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * If Policy Engine encounters an error, decisions default to `deny` and [Network Manager](10-network-manager.md) terminates the connection.
-* If Puzzle Engine cannot generate puzzles (for example, [Key Manager](03-key-manager.md) unavailable), DoS Guard emits `ERR_RESOURCE_PUZZLE_FAILED`, sets decisions to `deny`, and logs `critical` errors per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If Puzzle Engine cannot generate puzzles (for example, [Key Manager](03-key-manager.md) unavailable), DoS Guard emits `ERR_RESOURCE_PUZZLE_FAILED`, sets decisions to `deny`, and logs `critical` errors per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * If Publication Engine cannot reach [Network Manager](10-network-manager.md), DoS Guard retries with exponential backoff and informs [Health Manager](13-health-manager.md). After exceeding retry limits, DoS Guard fails closed so [Network Manager](10-network-manager.md) cannot bypass admission.
 
 Additional failure rules:
@@ -257,7 +257,7 @@ Implementations must demonstrate:
 
 * Every connection passes through the admission lifecycle.
 * Puzzle generation and validation align with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md), including challenge structure, validation rules, and expiry handling.
-* Failures default to `deny` (or `ERR_RESOURCE_PUZZLE_FAILED` when relevant) in accordance with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Failures default to `deny` (or `ERR_RESOURCE_PUZZLE_FAILED` when relevant) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Configuration reloads follow [Config Manager](01-config-manager.md)'s prepare/commit contract and apply atomically per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * No manager other than DoS Guard issues puzzles or admission directives.
 * [Network Manager](10-network-manager.md) obeys `deny` and `require_challenge` directives immediately and does not re-admit a terminated connection without a new admission decision.

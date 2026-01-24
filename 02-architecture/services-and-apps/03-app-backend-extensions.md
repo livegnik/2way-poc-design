@@ -47,7 +47,7 @@ Across all components and execution contexts described in this file, the followi
 * All authorization flows through [ACL Manager](../managers/06-acl-manager.md) using the capability posture in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md); extensions never authorize directly.
 * Every entry point constructs an immutable [OperationContext](05-operation-context.md) before calling managers, matching [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md).
 * Namespace isolation follows [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md). Extensions operate only on their owning `app_id` and never impersonate `app_0`.
-* All failures are handled fail closed with canonical error classes from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). Partial writes, best-effort retries, or out-of-band repairs are forbidden.
+* All failures are handled fail closed with canonical error classes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Partial writes, best-effort retries, or out-of-band repairs are forbidden.
 * Removal, upgrade, or rollback of an extension never corrupts graph state because [Graph Manager](../managers/07-graph-manager.md) remains the sole write authority under [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
 ## 2. Backend extension contract
@@ -79,7 +79,7 @@ App backend extensions sit between frontend applications and protocol managers. 
 
 * Every API, helper, or job constructs a complete [OperationContext](05-operation-context.md) before calling managers, using the fields and immutability guarantees in [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md).
 * [OperationContext](05-operation-context.md) always sets `app_id` to the owning application, stamps capability identifiers namespaced under the app (for example, `app.crm.ticket.create`), and records requester identity, device identity, trust posture, correlation IDs, and DoS Guard cost hints.
-* Automation jobs run with `actor_type=automation` so [ACL Manager](../managers/06-acl-manager.md) can distinguish them from user traffic. Missing or partial contexts are rejected with canonical errors derived from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Automation jobs run with `actor_type=automation` so [ACL Manager](../managers/06-acl-manager.md) can distinguish them from user traffic. Missing or partial contexts are rejected with canonical errors derived from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 2.5 Interface surfaces
 
@@ -91,7 +91,7 @@ Extensions expose three surface categories and must declare them before activati
 
 ### 2.6 Input handling and validation posture
 
-* All external input is untrusted. Extensions perform local validation (shape, size, cheap semantic checks) before invoking managers, keeping the fail-closed posture defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* All external input is untrusted. Extensions perform local validation (shape, size, cheap semantic checks) before invoking managers, keeping the fail-closed posture defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * [Schema Manager](../managers/05-schema-manager.md) validates types before [Graph Manager](../managers/07-graph-manager.md) persists any mutation, and [ACL Manager](../managers/06-acl-manager.md) authorizes reads/writes before data leaves the extension, preserving the ordering in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Extensions propagate manager error codes without rewriting them, except to attach human-readable context, so protocol-level rejection classes stay visible to callers.
 
@@ -145,7 +145,7 @@ State transitions are observable through [App Manager](../managers/08-app-manage
 
 ### 3.3 Dependency health and readiness
 
-* Extensions monitor [Health Manager](../managers/13-health-manager.md) for dependency readiness. If any dependency transitions to `not_ready`, the extension immediately stops the impacted surfaces and fails closed, following [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Extensions monitor [Health Manager](../managers/13-health-manager.md) for dependency readiness. If any dependency transitions to `not_ready`, the extension immediately stops the impacted surfaces and fails closed, following [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Readiness reports (`initializing`, `ready`, `degraded`, `not_ready`, `stopped`) must reflect the ability to handle new work without data loss. Misreporting readiness violates the [OperationContext](05-operation-context.md) guarantees that DoS Guard depends on.
 
 ## 4. Packaging, registration, and compatibility
@@ -201,7 +201,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/10-versio
 
 ### 6.1 Logging
 
-* Every action emits structured logs through [Log Manager](../managers/12-log-manager.md), including [OperationContext](05-operation-context.md) identifiers, capability names, manager outcomes, rejection codes, and latency buckets, so incidents map back to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Every action emits structured logs through [Log Manager](../managers/12-log-manager.md), including [OperationContext](05-operation-context.md) identifiers, capability names, manager outcomes, rejection codes, and latency buckets, so incidents map back to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Sensitive payloads are redacted before logging. Logs include a `redacted=true` flag so downstream tooling understands intentional truncation.
 
 ### 6.2 Events
@@ -229,7 +229,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/10-versio
 
 ## 8. Failure handling and recovery
 
-* Failures reject work atomically with canonical error codes (`ERR_APP_EXTENSION_CONTEXT`, `ERR_APP_EXTENSION_CAPABILITY`, etc.), aligning with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Failures reject work atomically with canonical error codes (`ERR_APP_EXTENSION_CONTEXT`, `ERR_APP_EXTENSION_CAPABILITY`, etc.), aligning with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Background work may retry idempotent operations using bounded exponential backoff. Retries respect the ordering guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Crash recovery reconstructs state entirely from [Graph Manager](../managers/07-graph-manager.md), [Config Manager](../managers/01-config-manager.md), and other manager-owned stores. Derived caches rebuild deterministically before readiness returns.
 * Upgrade or rollback failures trigger [App Manager](../managers/08-app-manager.md) to reinstall the previous signed version, emit health degradation events, and leave graph state untouched.

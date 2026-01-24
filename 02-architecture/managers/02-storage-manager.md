@@ -18,7 +18,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -60,12 +60,12 @@ Across all components and contexts defined in this file, the following invariant
 * All graph writes are durable, atomic, and ordered, matching the envelope atomicity requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Required metadata fields (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`) remain immutable once persisted, per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * `global_seq` is strictly monotonic and never reused in accordance with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* `domain_seq` and sync_state never advance when an operation fails, satisfying Section 3 of [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* `domain_seq` and sync_state never advance when an operation fails, satisfying Section 3 of [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Graph rows are append only and never deleted, preserving the constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * [Storage Manager](02-storage-manager.md) never interprets semantic meaning.
 * No component bypasses [Storage Manager](02-storage-manager.md) for persistence.
-* Failed writes leave no partial state or sequence movement, aligning with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* Startup either completes fully or aborts entirely, honoring the fail-closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Failed writes leave no partial state or sequence movement, aligning with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Startup either completes fully or aborts entirely, honoring the fail-closed posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Corruption is detected and causes fail closed behavior.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
@@ -306,7 +306,7 @@ Diagnostics never expose raw rows.
 * migration failure
 * invariant violation
 
-Recovery requires operator intervention. Automatic repair is forbidden. Failures never advance `global_seq`, `domain_seq`, or peer `sync_state`, honoring the rejection guarantees defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Recovery requires operator intervention. Automatic repair is forbidden. Failures never advance `global_seq`, `domain_seq`, or peer `sync_state`, honoring the rejection guarantees defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 14. Allowed and forbidden behaviors
 

@@ -93,9 +93,9 @@ System services expose three kinds of surfaces:
 
 ### 2.5 Input handling and validation posture
 
-* All external input is untrusted. Services perform local validation (shape, size, obvious semantic checks) before handing data to managers so the fail-closed posture described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) can be enforced deterministically. Hostile inputs die at the boundary and emit structured logs.
+* All external input is untrusted. Services perform local validation (shape, size, obvious semantic checks) before handing data to managers so the fail-closed posture described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) can be enforced deterministically. Hostile inputs die at the boundary and emit structured logs.
 * Services rely on [Schema Manager](../managers/05-schema-manager.md) validation before [Graph Manager](../managers/07-graph-manager.md) persists any mutation and on [ACL Manager](../managers/06-acl-manager.md) checks before serving read or write results, mirroring the ordering defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). They never bypass [Graph Manager](../managers/07-graph-manager.md) or attempt ad hoc persistence.
-* Services propagate manager error codes without rewriting them, except to attach human readable context, so protocol level error classes from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) remain visible. They do not introduce best-effort fallbacks.
+* Services propagate manager error codes without rewriting them, except to attach human readable context, so protocol level error classes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) remain visible. They do not introduce best-effort fallbacks.
 
 ### 2.6 Resource and capacity obligations
 
@@ -115,7 +115,7 @@ System services expose three kinds of surfaces:
 ### 3.2 Shutdown and fail-closed posture
 
 * During shutdown or degraded health, services stop accepting new work, mark outstanding jobs as `aborted`, and provide [Health Manager](../managers/13-health-manager.md) with a degraded reason. They flush logs and events before releasing dependencies.
-* Services do not attempt to run graceful fallbacks when managers are unavailable. They reject work with the relevant error classification so [DoS Guard Manager](../managers/14-dos-guard-manager.md) and frontend callers can back off, in line with the rejection semantics called out in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Services do not attempt to run graceful fallbacks when managers are unavailable. They reject work with the relevant error classification so [DoS Guard Manager](../managers/14-dos-guard-manager.md) and frontend callers can back off, in line with the rejection semantics called out in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Services must not attempt to drain or reconcile partially completed workflows by bypassing managers. Recovery is performed only through the normal manager pipeline after restart, preserving the envelope ordering rules in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 3.3 Upgrade and migration requirements
@@ -160,7 +160,7 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 
 ### 5.1 Logging
 
-* All actions produce structured logs through [Log Manager](../managers/12-log-manager.md), including [OperationContext](05-operation-context.md), capability attempted, target objects, manager error codes, and execution latency buckets, so rejection data can be traced back to the classifications in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* All actions produce structured logs through [Log Manager](../managers/12-log-manager.md), including [OperationContext](05-operation-context.md), capability attempted, target objects, manager error codes, and execution latency buckets, so rejection data can be traced back to the classifications in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Sensitive payloads (for example, bootstrap secrets) must be redacted before logging. Logs include a boolean flag (`redacted=true`) so downstream tools know the record is intentionally truncated.
 
 ### 5.2 Events
@@ -242,7 +242,7 @@ SBPS is the only authority allowed to transition a node from uninitialized to op
 
 ### 7.4 Failure handling
 
-* If any Graph or Schema operation fails, SBPS aborts the entire operation, rolls back, and records the failure reason (`ERR_BOOTSTRAP_SCHEMA`, `ERR_BOOTSTRAP_ACL`) in accordance with [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). No partial installs exist.
+* If any Graph or Schema operation fails, SBPS aborts the entire operation, rolls back, and records the failure reason (`ERR_BOOTSTRAP_SCHEMA`, `ERR_BOOTSTRAP_ACL`) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial installs exist.
 * Expired invites result in `HTTP 410 Gone` responses with DoS telemetry increments so repeated misuse pushes puzzle difficulty upward.
 * Device attestations that cannot be verified result in `ERR_BOOTSTRAP_DEVICE_ATTESTATION`. SBPS logs the fingerprint for audit.
 
@@ -279,7 +279,7 @@ IRS owns the authoritative identity directory within `app_0` and must uphold the
 
 ### 8.4 Failure handling
 
-* Unknown capability results in immediate rejection with `ERR_IDENTITY_CAPABILITY`, preserving the deterministic failure posture described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Unknown capability results in immediate rejection with `ERR_IDENTITY_CAPABILITY`, preserving the deterministic failure posture described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Integrity sweep failures (for example, orphaned capability edges) trigger alerts via [Event Manager](../managers/11-event-manager.md) (`severity=warning` or `critical`). IRS attempts to repair by submitting Graph envelopes. Repeated failure marks the service degraded.
 
 ## 9. Base Feed Service (BFS)
@@ -352,7 +352,7 @@ SOS bridges admin intent with [State Manager](../managers/09-state-manager.md)'s
 
 ### 10.4 Failure handling
 
-* [State Manager](../managers/09-state-manager.md) rejection leads to `ERR_SYNC_PLAN_INVALID`, logged with reason (ordering violation, unknown peer, ACL denial) so diagnostics map to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). SOS propagates the error and marks the plan `failed`.
+* [State Manager](../managers/09-state-manager.md) rejection leads to `ERR_SYNC_PLAN_INVALID`, logged with reason (ordering violation, unknown peer, ACL denial) so diagnostics map to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). SOS propagates the error and marks the plan `failed`.
 * If [DoS Guard Manager](../managers/14-dos-guard-manager.md) indicates a peer is abusive, SOS automatically pauses the peer and emits `system.sync.peer_paused` with severity `warning`, aligning with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ## 11. Operations Console Service (OCS)
@@ -387,14 +387,14 @@ OCS provides administrative surfaces needed to operate a node safely:
 
 ### 11.4 Failure handling
 
-* Missing capability, `ERR_OPS_CAPABILITY`, preserving the rejection semantics from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Missing capability, `ERR_OPS_CAPABILITY`, preserving the rejection semantics from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Config export failure due to ACL or [Config Manager](../managers/01-config-manager.md) rejection, `ERR_OPS_CONFIG_ACCESS`.
-* When OCS cannot reach [Health Manager](../managers/13-health-manager.md), it marks itself degraded and refuses to serve stale data so callers never rely on outdated readiness information per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* When OCS cannot reach [Health Manager](../managers/13-health-manager.md), it marks itself degraded and refuses to serve stale data so callers never rely on outdated readiness information per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 12. Shared security considerations
 
 * **No implicit trust**: Even though system services live inside the backend, managers treat them as untrusted callers. Services must never assume elevated privilege beyond what [ACL Manager](../managers/06-acl-manager.md) grants via capability edges, matching the boundaries in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* **Immutable audit trail**: Every service action must leave a trace in [Log Manager](../managers/12-log-manager.md) referencing [OperationContext](05-operation-context.md), capability, and object IDs, satisfying the traceability expectations in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* **Immutable audit trail**: Every service action must leave a trace in [Log Manager](../managers/12-log-manager.md) referencing [OperationContext](05-operation-context.md), capability, and object IDs, satisfying the traceability expectations in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * **Secret handling**: Bootstrap secrets, invitation tokens, and admin toggles are stored as encrypted attributes governed by ACL rules so Key and [Network Manager](../managers/10-network-manager.md) boundaries from [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and identity bindings from [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) remain intact. Services never store secrets in configuration or derived caches.
 * **DoS response**: Services integrate with [DoS Guard Manager](../managers/14-dos-guard-manager.md) by submitting telemetry events when abusive patterns appear, ensuring the admission layer can intervene before resources are exhausted, consistent with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
@@ -409,6 +409,6 @@ OCS provides administrative surfaces needed to operate a node safely:
 7. **Jobs**: Scheduler manifests declare cadence, capability, resource cost, and abort semantics. Jobs can resume idempotently after crash.
 8. **Observability**: Logs, events, and health signals wired through [Log Manager](../managers/12-log-manager.md), [Event Manager](../managers/11-event-manager.md), and [Health Manager](../managers/13-health-manager.md) with deterministic severity levels.
 9. **Security**: Secrets stored only via [Graph Manager](../managers/07-graph-manager.md) with ACL protection so [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) remains authoritative. [DoS Guard Manager](../managers/14-dos-guard-manager.md) telemetry integrated per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md). Capability delegation enforced exclusively by [ACL Manager](../managers/06-acl-manager.md).
-10. **Failure drills**: Service tested for manager outages, configuration reload failures, schema mismatches, and [DoS Guard Manager](../managers/14-dos-guard-manager.md) throttling to confirm fail closed behavior, mirroring the failure posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+10. **Failure drills**: Service tested for manager outages, configuration reload failures, schema mismatches, and [DoS Guard Manager](../managers/14-dos-guard-manager.md) throttling to confirm fail closed behavior, mirroring the failure posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 Following this specification ensures all system services deliver consistent behavior, align with the manager fabric, and remain safe to reuse by every application targeting the 2WAY substrate.

@@ -19,7 +19,7 @@ This specification consumes and is constrained by the protocol contracts defined
 * [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
 * [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
 * [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
 
 ## 2. Responsibilities and boundaries
 

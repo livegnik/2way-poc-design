@@ -15,7 +15,7 @@ This specification defines the health classification model, responsibilities, in
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
@@ -24,7 +24,7 @@ Those files remain normative for all behaviors described here.
 
 This specification is responsible for the following:
 
-* Owning the single authoritative readiness (`ready`/`not_ready`) and liveness (`alive`/`dead`) state for the node runtime, keeping these states aligned with the fail-closed rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Owning the single authoritative readiness (`ready`/`not_ready`) and liveness (`alive`/`dead`) state for the node runtime, keeping these states aligned with the fail-closed rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Collecting periodic health samples and event-driven signals from every manager ([Config Manager](01-config-manager.md), [Storage Manager](02-storage-manager.md), [Graph Manager](07-graph-manager.md), [Schema Manager](05-schema-manager.md), [ACL Manager](06-acl-manager.md), [Key Manager](03-key-manager.md), [Auth Manager](04-auth-manager.md), [App Manager](08-app-manager.md), [State Manager](09-state-manager.md), [Network Manager](10-network-manager.md), [Event Manager](11-event-manager.md), [Log Manager](12-log-manager.md), [DoS Guard Manager](14-dos-guard-manager.md)) plus critical services (HTTP/WebSocket loop, scheduler, transport adapters).
 * Evaluating collected signals against deterministic thresholds (latency ceilings, queue depth caps, error rates) and generating health conclusions per subsystem.
 * Publishing health state via in-process subscription APIs, the admin HTTP surface described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) ([OperationContext](../services-and-apps/05-operation-context.md) driven), and optional [Event Manager](11-event-manager.md) notifications (`system.health_state_changed`, `security.health_degraded`) without leaking sensitive metadata.
@@ -43,7 +43,7 @@ This specification does not cover the following:
 Across all relevant contexts defined here, the following invariants hold:
 
 * Readiness and liveness are represented as immutable snapshots with monotonically increasing `health_seq`. Once published, a health snapshot is never edited; a new snapshot is produced when state changes.
-* Health evaluation never mutates graph state, never accesses raw storage, and never bypasses the fail-closed ordering in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Health evaluation never mutates graph state, never accesses raw storage, and never bypasses the fail-closed ordering in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Health signals are treated as untrusted input until validated against configured ranges. Malformed or missing signals cause the corresponding subsystem to be marked `unknown`, and repeated failures escalate to `degraded` or `failed`.
 * All public health outputs are tagged with [OperationContext](../services-and-apps/05-operation-context.md) metadata when exposed via HTTP so that audit trails remain consistent with [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * [Health Manager](13-health-manager.md) never downgrades errors reported by other managers. If a manager declares `failed`, [Health Manager](13-health-manager.md) propagates that status intact. It may escalate severity (e.g., from `degraded` to `failed`) but never suppress it.
@@ -65,7 +65,7 @@ Each monitored subsystem reports one of the following states:
 
 ### 4.2 Readiness and liveness evaluation
 
-* **Readiness** (`ready`/`not_ready`). The node runtime is ready only if all critical subsystems ([Config Manager](01-config-manager.md), [Storage Manager](02-storage-manager.md), [Graph Manager](07-graph-manager.md), [Schema Manager](05-schema-manager.md), [ACL Manager](06-acl-manager.md), [Key Manager](03-key-manager.md), [Auth Manager](04-auth-manager.md), [State Manager](09-state-manager.md), [Network Manager](10-network-manager.md), [Event Manager](11-event-manager.md), [Log Manager](12-log-manager.md), [DoS Guard Manager](14-dos-guard-manager.md)) report `healthy`. Subsystems marked `degraded` force `ready=false`, honoring the fail-closed guidance in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). `unknown` subsystems force `ready=false` until a signal arrives. Optional subsystems (app extensions) do not block readiness unless flagged as critical in configuration.
+* **Readiness** (`ready`/`not_ready`). The node runtime is ready only if all critical subsystems ([Config Manager](01-config-manager.md), [Storage Manager](02-storage-manager.md), [Graph Manager](07-graph-manager.md), [Schema Manager](05-schema-manager.md), [ACL Manager](06-acl-manager.md), [Key Manager](03-key-manager.md), [Auth Manager](04-auth-manager.md), [State Manager](09-state-manager.md), [Network Manager](10-network-manager.md), [Event Manager](11-event-manager.md), [Log Manager](12-log-manager.md), [DoS Guard Manager](14-dos-guard-manager.md)) report `healthy`. Subsystems marked `degraded` force `ready=false`, honoring the fail-closed guidance in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). `unknown` subsystems force `ready=false` until a signal arrives. Optional subsystems (app extensions) do not block readiness unless flagged as critical in configuration.
 * **Liveness** (`alive`/`dead`). Liveness remains `alive` until the [Health Manager](13-health-manager.md) becomes unreachable or explicitly marked `dead`. Long-term inability to collect signals (e.g., scheduler stalled) transitions to `dead`. `dead` implies `ready=false`.
 
 ### 4.3 Health snapshot structure
@@ -163,7 +163,7 @@ Responsibilities:
 
 Failure behavior:
 
-* If evaluation fails (e.g., due to internal error), [Health Manager](13-health-manager.md) marks readiness false, emits `critical` logs, and requests operator intervention in accordance with the fail-closed posture defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* If evaluation fails (e.g., due to internal error), [Health Manager](13-health-manager.md) marks readiness false, emits `critical` logs, and requests operator intervention in accordance with the fail-closed posture defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 8.4 Publication Engine
 
@@ -175,7 +175,7 @@ Responsibilities:
 
 Failure behavior:
 
-* Publication failures trigger retries with exponential backoff. After `health.publication.max_retries` failures, readiness is set to false and a `critical` log is emitted per the same fail-closed rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Publication failures trigger retries with exponential backoff. After `health.publication.max_retries` failures, readiness is set to false and a `critical` log is emitted per the same fail-closed rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 9. Component interactions
 
@@ -188,7 +188,7 @@ Failure behavior:
 
 ## 10. Failure handling and rejection behavior
 
-* [Health Manager](13-health-manager.md) follows the precedence rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). Validation failures are classified as structural; evaluator failures are resource-level; sink notification failures are environmental.
+* [Health Manager](13-health-manager.md) follows the precedence rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Validation failures are classified as structural; evaluator failures are resource-level; sink notification failures are environmental.
 * When [Health Manager](13-health-manager.md) itself encounters a fatal error, it emits `health.manager_failed` logs, sets liveness to `dead`, readiness to `not_ready`, and signals [Event Manager](11-event-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) to halt admissions, ensuring [DoS Guard Manager](14-dos-guard-manager.md) follows its fail-closed requirements in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Missing signals for a component cause escalation: `unknown` after the timeout; `degraded` after two timeouts; `failed` after three consecutive timeouts or an explicit `failed` signal.
 

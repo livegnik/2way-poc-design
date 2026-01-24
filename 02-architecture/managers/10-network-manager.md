@@ -17,7 +17,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
@@ -31,7 +31,7 @@ This specification is responsible for the following:
 * Owning all inbound and outbound listeners, sessions, and connection state machines for supported transports, consolidating the consumer boundary defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Abstracting transport implementations while preserving peer context and transport metadata, exactly as required by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Providing ordered startup and shutdown sequencing for all network surfaces, including onion service lifecycle where configured, so that surfaces mandated by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) are either ready or explicitly failed closed.
-* Enforcing hard transport-level limits for size, rate, concurrency, and buffering independently of any DoS policy, satisfying the resource-failure constraints defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Enforcing hard transport-level limits for size, rate, concurrency, and buffering independently of any DoS policy, satisfying the resource-failure constraints defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Providing staged admission via a Bastion Engine that isolates unauthenticated peers and coordinates with [DoS Guard Manager](14-dos-guard-manager.md) for allow, deny, and challenge flows per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Executing challenge transport as an opaque exchange, without interpreting puzzle content, difficulty, or verification logic, which are owned by [DoS Guard Manager](14-dos-guard-manager.md) and defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Performing peer discovery for first-degree peers, including:
@@ -76,7 +76,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Trust escalation is explicit, monotonic, and irreversible across the boundaries defined in this file.
 * The [Network Manager](10-network-manager.md) never performs schema validation, ACL evaluation, graph mutation, sync ordering, or reconciliation.
 * The [Network Manager](10-network-manager.md) never introduces delivery, ordering, deduplication, retry, or persistence guarantees beyond what the transport provides, as mandated by [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
 ## 4. Internal engine structure
@@ -621,7 +621,7 @@ The [Network Manager](10-network-manager.md) must not:
 
 ## 13. Failure and rejection behavior
 
-Failure handling maps each condition to symbolic error classes defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) and must preserve the fail-closed posture described there.
+Failure handling maps each condition to symbolic error classes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) and must preserve the fail-closed posture described there.
 
 ### 13.1 Invalid input and malformed framing
 
@@ -719,7 +719,7 @@ The [Network Manager](10-network-manager.md) enforces mandatory limits, includin
 
 These limits are mandatory and cannot be disabled.
 
-They enforce hard-cap guidance from [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), preserve resource-failure semantics described in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md), and feed telemetry inputs consumed by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
+They enforce hard-cap guidance from [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), preserve resource-failure semantics described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), and feed telemetry inputs consumed by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ## 15. Security considerations
 

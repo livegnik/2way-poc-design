@@ -27,7 +27,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
@@ -57,7 +57,7 @@ All managers share a single fail-closed posture. Regardless of caller, transport
 5. **Separation of configuration vs. data**: Configuration lives in `.env` + SQLite `settings` and belongs to [Config Manager](01-config-manager.md); graph state never stores node-local configuration, mirroring the bootstrap/data split in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and the authority boundaries in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 6. **Cryptographic boundaries**: Only [Key Manager](03-key-manager.md) accesses private keys. [Network Manager](10-network-manager.md), [State Manager](09-state-manager.md), and [Graph Manager](07-graph-manager.md) rely on it but never read raw key material ([01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)).
 7. **Admission and DoS**: [DoS Guard Manager](14-dos-guard-manager.md) controls every inbound/outbound connection via [Network Manager](10-network-manager.md)'s Bastion Engine; when [DoS Guard Manager](14-dos-guard-manager.md) is unavailable, admissions fail closed per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
-8. **Observability unity**: [Log Manager](12-log-manager.md) is the only structured logging surface, [Event Manager](11-event-manager.md) the only event surface, and [Health Manager](13-health-manager.md) the only readiness/liveness authority. Managers emit telemetry exclusively through them, preserving the fail-closed reporting model in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+8. **Observability unity**: [Log Manager](12-log-manager.md) is the only structured logging surface, [Event Manager](11-event-manager.md) the only event surface, and [Health Manager](13-health-manager.md) the only readiness/liveness authority. Managers emit telemetry exclusively through them, preserving the fail-closed reporting model in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 3. Manager catalog and dependency graph
 
@@ -116,7 +116,7 @@ The table below summarizes the 14 managers and their primary dependencies. Every
 
 ### 4.5 Observability and incident response
 
-* **[Log Manager](12-log-manager.md)** records every critical action (auth failure, [ACL Manager](06-acl-manager.md) denial, config reload, network admission decision) so error families remain observable per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* **[Log Manager](12-log-manager.md)** records every critical action (auth failure, [ACL Manager](06-acl-manager.md) denial, config reload, network admission decision) so error families remain observable per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * **[Event Manager](11-event-manager.md)** broadcasts state changes to authorized subscribers (graph domain events, security alerts, network telemetry, health transitions) while honoring audience constraints derived from [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * **[Health Manager](13-health-manager.md)** exposes readiness/liveness snapshots; when `ready=false`, [DoS Guard Manager](14-dos-guard-manager.md) raises puzzle difficulty and [Network Manager](10-network-manager.md) stops new admissions, delivering the shutdown posture described in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). [Event Manager](11-event-manager.md) and [Log Manager](12-log-manager.md) record the transition.
 

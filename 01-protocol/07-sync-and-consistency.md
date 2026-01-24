@@ -16,7 +16,7 @@ This specification references:
 - [04-cryptography.md](04-cryptography.md)
 - [05-keys-and-identity.md](05-keys-and-identity.md)
 - [06-access-control-model.md](06-access-control-model.md)
-- [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
+- [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -91,7 +91,7 @@ Properties:
 - Sequence numbers are never reused.
 - Sequence numbers define a total order of envelopes on that node.
 
-Global sequence numbers are used exclusively for sync ordering and replay detection (see [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)).
+Global sequence numbers are used exclusively for sync ordering and replay detection (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)).
 
 ### 5.2 Domain sequence tracking
 
@@ -134,7 +134,7 @@ Each incoming envelope must pass, in order:
 - [Schema validation](../02-architecture/managers/05-schema-manager.md) of all objects.
 - [Ownership](02-object-model.md) and immutability validation.
 - [Access control](06-access-control-model.md) validation.
-- [Sequence ordering validation](09-errors-and-failure-modes.md).
+- [Sequence ordering validation](10-errors-and-failure-modes.md).
 
 Failure at any stage results in rejection.
 

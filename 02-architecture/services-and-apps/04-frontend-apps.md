@@ -51,7 +51,7 @@ Across all frontend apps, the following invariants must hold:
 * Frontend apps are untrusted clients. Every request they emit must tolerate backend rejection and must never assume privileged access beyond published capabilities ([01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)).
 * [OperationContext](05-operation-context.md) inputs (user identity, device identity, app_id, capability intent, trust posture, correlation metadata) are collected and transmitted exactly as defined in [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md). Frontends never fabricate server-side context.
 * All backend interactions traverse the published HTTP/WebSocket/sync surfaces in [04-interfaces/**](../../04-interfaces/**) and inherit the authentication, ACL, schema, and ordering rules codified in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md), and [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). DoS Guard enforcement and puzzle handling remain entirely on the backend. No direct database, filesystem, or socket manipulation occurs.
-* Inputs are validated locally before being sent so malformed payloads never reach the backend, preventing resource abuse and ensuring deterministic error handling per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Inputs are validated locally before being sent so malformed payloads never reach the backend, preventing resource abuse and ensuring deterministic error handling per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Frontend storage is non-authoritative. Only graph commits acknowledged by the backend count as truth, cached state can be dropped and regenerated at any time, matching the graph authority rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Offline or background automation follows the same signing, authentication, and replay rules as interactive usage ([01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)). Automation cannot invent capabilities or attempt to bypass backend DoS controls defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md); it simply respects backend throttling decisions.
 * Sensitive material (keys, tokens, PII) is handled according to [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [05-security/**](../../05-security/**) guidance, encrypted at rest when stored locally, never logged in plaintext, and scoped to the owning app.
@@ -141,7 +141,7 @@ Frontends must supply the following fields on every request before the backend c
 
   * Auth envelope or session token issued by [Auth Manager](../managers/04-auth-manager.md) per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
   * [OperationContext](05-operation-context.md) payload serialized according to [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Responses must be parsed using the canonical error catalog in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). Unknown fields must not crash the client, they must be ignored while preserving the signed body for optional logging.
+* Responses must be parsed using the canonical error catalog in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Unknown fields must not crash the client, they must be ignored while preserving the signed body for optional logging.
 * WebSocket clients must implement backpressure aligned with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), if the backend signals `slow_client`, the frontend pauses subscriptions until it drains local queues.
 
 ### 4.2 Sync packages
@@ -229,14 +229,14 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 7.3 Conflict handling
 
-* When the backend rejects a mutation with `ERR_OBJECT_VERSION` or equivalent ([01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)), the client fetches the latest object, highlights conflicting fields, and allows the user to reapply or discard changes.
+* When the backend rejects a mutation with `ERR_OBJECT_VERSION` or equivalent ([01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)), the client fetches the latest object, highlights conflicting fields, and allows the user to reapply or discard changes.
 * Automated merges are allowed only when the schema marks fields as commutative or last-writer-wins and the app documents the policy.
 
 ## 8. Error handling and resilience
 
 ### 8.1 Canonical error catalog
 
-Clients must map backend error codes (from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)) to UI states:
+Clients must map backend error codes (from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)) to UI states:
 
 | Error class              | Client response                                                       |
 | ------------------------ | --------------------------------------------------------------------- |
@@ -262,7 +262,7 @@ Clients must map backend error codes (from [01-protocol/09-errors-and-failure-mo
 
 ### 9.1 Structured logging
 
-* Logs include timestamp, severity, correlation ID, [OperationContext](05-operation-context.md) summary (redacted), request and response identifiers, and error codes so backend auditors can map them to the canonical error catalog in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Logs include timestamp, severity, correlation ID, [OperationContext](05-operation-context.md) summary (redacted), request and response identifiers, and error codes so backend auditors can map them to the canonical error catalog in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Sensitive payloads are redacted, replaced with stable tokens so operators can correlate logs without exposing content.
 * Logs are stored locally until uploaded via Operations Console diagnostics endpoints. Users must opt in before uploads occur.
 

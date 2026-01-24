@@ -280,7 +280,7 @@ Failure handling rules:
 * Runtime lookup failures result in immediate request rejection.
 * Partial or degraded application states are not permitted.
 
-  All failures must fail closed, consistent with the error handling posture mandated by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+  All failures must fail closed, consistent with the error handling posture mandated by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 12. Invariants and guarantees
 

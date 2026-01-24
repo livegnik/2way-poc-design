@@ -16,7 +16,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -34,7 +34,7 @@ This specification is responsible for the following:
 * Enforcing that private keys are never returned, serialized, logged, or emitted, preserving the fail-closed posture in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Acting as the sole component permitted to access private key material.
 * Ensuring the node key exists, is valid, and is usable before dependent managers may operate, matching the Node key requirements in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Refusing all cryptographic operations when invariants are violated, surfacing failures that map to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Refusing all cryptographic operations when invariants are violated, surfacing failures that map to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 This specification does not cover the following:
 

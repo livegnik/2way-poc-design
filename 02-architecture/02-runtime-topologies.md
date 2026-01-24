@@ -234,7 +234,7 @@ Nodes communicate with untrusted remote peers for domain-scoped synchronization 
 
 ### 9.6 Failure behavior
 
-- Invalid, replayed, or unauthorized envelopes are rejected as defined in [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+- Invalid, replayed, or unauthorized envelopes are rejected as defined in [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 - Peer misbehavior does not corrupt local state.
 
 ## 10. Cross-topology constraints

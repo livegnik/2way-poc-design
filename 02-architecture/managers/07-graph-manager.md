@@ -20,7 +20,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -40,7 +40,7 @@ This specification is responsible for the following:
 * Publishing semantic graph events after commit through [Event Manager](11-event-manager.md) so downstream consumers see only committed state, matching the ordering posture in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Providing canonical read operations for graph objects, with authorization, application context, consistency guarantees, and default visibility filtering enforced per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Providing bounded traversal primitives required to support authorization checks that depend on graph distance, as required by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Enforcing bounded read and traversal budgets consistent with the resource safety posture of [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Enforcing bounded read and traversal budgets consistent with the resource safety posture of [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Defining the concurrency contract for graph reads and writes at the manager boundary so sequencing and consistency guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) hold.
 * Enforcing strict separation between graph access logic and storage implementation per the manager boundaries laid out in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Remaining cryptographically agnostic by never performing signing, verification, encryption, or decryption, and by rejecting any remote sourced envelope that bypasses the [Network Manager](10-network-manager.md) and [State Manager](09-state-manager.md) path, per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
@@ -282,7 +282,7 @@ The [Graph Manager](07-graph-manager.md) forbids:
 * Writing into another application's graph, which breaks [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Partial envelope application, disallowed by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Emitting events prior to commit, which would contradict the ordering rules in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Unbounded reads or traversals, violating the fail-closed posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Unbounded reads or traversals, violating the fail-closed posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Accepting remote envelopes that bypass [State Manager](09-state-manager.md), which would conflict with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Issuing direct storage calls, which would bypass the manager boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
@@ -352,7 +352,7 @@ Authorization is mandatory per [01-protocol/06-access-control-model.md](../../01
 
 ### 10.4 Resource limits
 
-  All reads enforce fixed budgets per the fail-closed resource constraints defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+  All reads enforce fixed budgets per the fail-closed resource constraints defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 11. Bounded traversal support
 
@@ -367,11 +367,11 @@ Constraints:
 
 ## 12. Failure and rejection handling
 
-Failures fail closed per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Failures fail closed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 * No partial writes occur, consistent with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Serialized context is released.
-* Errors follow protocol precedence rules defined by [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md), including structural failures taking precedence over schema and ACL failures.
+* Errors follow protocol precedence rules defined by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), including structural failures taking precedence over schema and ACL failures.
 
 ## 13. Object lifecycle assumptions
 
@@ -389,7 +389,7 @@ Failures fail closed per [01-protocol/09-errors-and-failure-modes.md](../../01-p
 ### 14.2 Forbidden state
 
 * Long lived semantic indices that would conflict with [Storage Manager](02-storage-manager.md) ownership in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Recovery critical in memory state, which would break the failure posture in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Recovery critical in memory state, which would break the failure posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 15. Component interactions
 

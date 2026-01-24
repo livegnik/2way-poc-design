@@ -18,7 +18,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
 
 Those files remain normative for all behaviors described here.
@@ -30,14 +30,14 @@ This specification is responsible for the following:
 * Loading all schema definitions from graph objects stored in app_0 so application-owned type metadata referenced by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) has one authoritative source.
 * Enforcing that exactly one schema exists per app_id, preserving the namespace boundaries defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Validating schema structure, cardinality, and internal consistency before those rules can shape the `value_json` payloads described in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Rejecting malformed, incomplete, ambiguous, or conflicting schemas in the same failure class as `ERR_SCHEMA_*` outcomes from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Rejecting malformed, incomplete, ambiguous, or conflicting schemas in the same failure class as `ERR_SCHEMA_*` outcomes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Compiling schemas into immutable in-memory structures so downstream managers can rely on stable metadata per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Maintaining per-app and per-kind mappings from type_key to numeric type_id so operations that choose either identifier form in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) can be processed deterministically.
 * Ensuring type_id stability across restarts and reloads, matching the immutability guarantees on `type_id` in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Exposing schema metadata to other managers through a read-only interface, including the ACL inputs identified in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Providing schema-based validation helpers to [Graph Manager](07-graph-manager.md), which must run schema checks before persistence per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Compiling and exposing sync domain configuration metadata to [State Manager](09-state-manager.md) so the domain-scoped sync described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) can be enforced.
-* Detecting and failing closed on schema integrity violations, surfacing the schema-specific failures enumerated in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Detecting and failing closed on schema integrity violations, surfacing the schema-specific failures enumerated in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Participating in startup readiness determination as part of the manager lifecycle described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Participating in controlled schema reload operations without violating the compatibility posture of [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
 
@@ -65,7 +65,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * A numeric type_id, once assigned, is stable and never remapped, matching the immutability guarantees in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Schema validation and type resolution are deterministic given the same inputs.
 * Compiled schemas are immutable during normal operation.
-* Schema-dependent operations fail closed if schema loading or validation fails, surfacing the schema error class defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* Schema-dependent operations fail closed if schema loading or validation fails, surfacing the schema error class defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Disagreement between compiled schema state and persisted indices is fatal.
 * Sync domain metadata reflects exactly what is declared in schemas, because domain-scoped sync in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) relies on deterministic membership.
 * Schema validation does not imply authorization; ACL evaluation remains the scope of [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
@@ -347,15 +347,15 @@ If startup fails:
 * Schema-dependent operations are rejected.
 * [Health Manager](13-health-manager.md) must surface the failure.
 
-All such failures are reported using the schema error class defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+All such failures are reported using the schema error class defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 14.2 Runtime failures
 
-At runtime, operations referencing unknown or invalid schema elements must be rejected immediately, preserving the precedence rules (structural before schema before authorization) in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+At runtime, operations referencing unknown or invalid schema elements must be rejected immediately, preserving the precedence rules (structural before schema before authorization) in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ### 14.3 Integrity failures
 
-Any detected inconsistency between schema declarations and persisted indices is fatal and must block schema-dependent operations, even if the caller would otherwise succeed per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+Any detected inconsistency between schema declarations and persisted indices is fatal and must block schema-dependent operations, even if the caller would otherwise succeed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 15. Security constraints
 
@@ -369,7 +369,7 @@ Any detected inconsistency between schema declarations and persisted indices is 
 * [Graph Manager](07-graph-manager.md) depends on [Schema Manager](05-schema-manager.md) for validation only, matching the processing order in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * [State Manager](09-state-manager.md) depends on [Schema Manager](05-schema-manager.md) for domain metadata only, consistent with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * [Storage Manager](02-storage-manager.md) is used only for type_id persistence and must uphold the immutability constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* [Health Manager](13-health-manager.md) consumes readiness and failure signals so system posture matches [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
+* [Health Manager](13-health-manager.md) consumes readiness and failure signals so system posture matches [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 No cyclic dependencies are permitted.
 

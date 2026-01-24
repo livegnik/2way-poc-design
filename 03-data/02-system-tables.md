@@ -16,7 +16,7 @@ This specification consumes and is constrained by the protocol contracts defined
 - [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
 - [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
 - [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-- [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md)
+- [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
 - [01-protocol/10-versioning-and-compatibility.md](../01-protocol/10-versioning-and-compatibility.md)
 
 ## 2. Responsibilities and boundaries
@@ -331,7 +331,7 @@ The system fails closed under the following conditions:
 
 Recovery requires operator intervention.
 
-Automatic repair is forbidden per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+Automatic repair is forbidden per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
 ## 9. Explicitly forbidden behavior
 

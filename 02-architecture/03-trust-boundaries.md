@@ -40,7 +40,7 @@ This specification is responsible for the following:
 
 * Defining architectural trust boundaries between frontend, apps, services, managers, storage, network, and remote peers as framed in [01-component-model.md](01-component-model.md) and [02-runtime-topologies.md](02-runtime-topologies.md).
 * Defining which interactions are allowed and forbidden across those boundaries aligned to [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md).
-* Defining rejection, failure, and containment behavior at boundary violations aligned to [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+* Defining rejection, failure, and containment behavior at boundary violations aligned to [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
 This specification does not cover the following:
 
@@ -258,7 +258,7 @@ Network Manager may:
 
 * Transmit and receive encrypted payloads.
 * Perform peer-level throttling and rate limiting enforced by [DoS Guard Manager](managers/14-dos-guard-manager.md).
-* Reject malformed or abusive traffic per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+* Reject malformed or abusive traffic per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 * Apply client puzzles under load as defined by [DoS Guard Manager](managers/14-dos-guard-manager.md) and [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ### 10.3 Forbidden behaviors

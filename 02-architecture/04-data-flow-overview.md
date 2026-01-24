@@ -338,7 +338,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 
 ### 10.5 Failure behavior
 
-* Invalid signatures or revoked keys cause rejection per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
+* Invalid signatures or revoked keys cause rejection per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 * Sequence violations cause rejection without partial application per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Rejections are recorded in peer sync state.
 
