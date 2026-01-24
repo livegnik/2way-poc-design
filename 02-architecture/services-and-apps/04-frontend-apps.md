@@ -53,7 +53,7 @@ Across all frontend apps, the following invariants must hold:
 * All backend interactions traverse the published HTTP/WebSocket/sync surfaces in [04-interfaces/**](../../04-interfaces/**) and inherit the authentication, ACL, schema, and ordering rules codified in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md), and [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). DoS Guard enforcement and puzzle handling remain entirely on the backend. No direct database, filesystem, or socket manipulation occurs.
 * Inputs are validated locally before being sent so malformed payloads never reach the backend, preventing resource abuse and ensuring deterministic error handling per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Frontend storage is non-authoritative. Only graph commits acknowledged by the backend count as truth, cached state can be dropped and regenerated at any time, matching the graph authority rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Offline or background automation follows the same signing, authentication, and replay rules as interactive usage ([01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)). Automation cannot invent capabilities or attempt to bypass backend DoS controls defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md); it simply respects backend throttling decisions.
+* Offline or background automation follows the same signing, authentication, and replay rules as interactive usage ([01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)). Automation cannot invent capabilities or attempt to bypass backend DoS controls defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md); it simply respects backend throttling decisions.
 * Sensitive material (keys, tokens, PII) is handled according to [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [05-security/**](../../05-security/**) guidance, encrypted at rest when stored locally, never logged in plaintext, and scoped to the owning app.
 
 ## 2. Frontend application model
@@ -80,7 +80,7 @@ Every frontend app must document which layers it implements and how they map to 
 Different surfaces share the same guarantees:
 
 * **Interactive contexts** (UI, CLI) must collect user consent for each capability invocation, surface backend admission errors or waits clearly, and display backend errors verbatim.
-* **Automation contexts** (background workers, scheduled tasks) must run under automation-specific [OperationContext](05-operation-context.md) entries (`actor_type=automation`), publish schedule manifests, and respect backend throttling decisions communicated via standard error responses ([01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)).
+* **Automation contexts** (background workers, scheduled tasks) must run under automation-specific [OperationContext](05-operation-context.md) entries (`actor_type=automation`), publish schedule manifests, and respect backend throttling decisions communicated via standard error responses ([01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)).
 * **Embedded contexts** (widgets, plugins) inherit the host container's capability posture but still identify themselves to the backend via their own app_id.
 
 ### 2.3 Mandatory components
@@ -171,7 +171,7 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 5.2 Transport hardening and admission feedback
 
-* DoS Guard enforcement and client puzzles are implemented entirely by the backend per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md). Frontends never solve puzzles or generate proofs; they simply relay opaque admission data when instructed (for example, forwarding signed envelopes) and wait for the backend to accept or reject the request.
+* DoS Guard enforcement and client puzzles are implemented entirely by the backend per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md). Frontends never solve puzzles or generate proofs; they simply relay opaque admission data when instructed (for example, forwarding signed envelopes) and wait for the backend to accept or reject the request.
 * When the backend returns `ERR_RESOURCE_*` or any admission delay, frontends surface clear messaging, pause retries, and give the user control to wait or cancel. No additional computation occurs on the client.
 * TLS or Noise transports defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) are mandatory. Clients must validate certificates or static keys pinned by the deployment.
 

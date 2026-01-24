@@ -50,7 +50,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * All database access passes through [Storage Manager](managers/02-storage-manager.md).
 * All write operations are serialized and assigned a strictly monotonic global sequence per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * All network ingress and egress passes through [Network Manager](managers/10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
-* [DoS Guard Manager](managers/14-dos-guard-manager.md) is applied exclusively to network level ingress per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* [DoS Guard Manager](managers/14-dos-guard-manager.md) is applied exclusively to network level ingress per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * All real-time notifications pass through [Event Manager](managers/11-event-manager.md).
 * All cryptographic private keys are accessed only by [Key Manager](managers/03-key-manager.md) per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
 * [OperationContext](services-and-apps/05-operation-context.md) is immutable once constructed and propagated unchanged.
@@ -314,7 +314,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 ### 10.2 Flow
 
 * [Network Manager](managers/10-network-manager.md) accepts or rejects the peer connection per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
-* [DoS Guard Manager](managers/14-dos-guard-manager.md) applies admission control using dynamic difficulty challenges and rate limits per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* [DoS Guard Manager](managers/14-dos-guard-manager.md) applies admission control using dynamic difficulty challenges and rate limits per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * [Network Manager](managers/10-network-manager.md) receives encrypted payloads only on admitted connections.
 * [Key Manager](managers/03-key-manager.md) looks up the claimed key id and validates key existence, allowed purpose, and revocation state per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
 * [Key Manager](managers/03-key-manager.md) verifies the signature over the authenticated message header per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
@@ -354,7 +354,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 * [State Manager](managers/09-state-manager.md) selects eligible graph objects by domain and sequence per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Envelopes are constructed per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
 * [Key Manager](managers/03-key-manager.md) signs the authenticated message header, including sender key id and ciphertext binding per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
-* [Network Manager](managers/10-network-manager.md) establishes or reuses a peer connection, including solving required client puzzles during admission per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* [Network Manager](managers/10-network-manager.md) establishes or reuses a peer connection, including solving required client puzzles during admission per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * [Key Manager](managers/03-key-manager.md) looks up the recipient peer key material required for encryption per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
 * [Network Manager](managers/10-network-manager.md) encrypts the payload for the remote peer per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [Network Manager](managers/10-network-manager.md) transmits the encrypted package over the established connection.
@@ -434,7 +434,7 @@ This data flow model guarantees:
 * Authenticated before decrypt processing for all remote ingress payloads.
 * Replay protection enforced by [State Manager](managers/09-state-manager.md) using ordering and peer sync state per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Confidentiality and integrity for peer transport via encryption and signed authenticated headers per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
-* DoS containment on peer connections via [DoS Guard Manager](managers/14-dos-guard-manager.md) admission control with dynamic difficulty challenges per [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* DoS containment on peer connections via [DoS Guard Manager](managers/14-dos-guard-manager.md) admission control with dynamic difficulty challenges per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Derived and cached data is non-authoritative and cannot affect correctness when lost.
 * Network retry decisions are owned by [State Manager](managers/09-state-manager.md) and driven by per-peer sync state per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Predictable fail-closed behavior under error or load.

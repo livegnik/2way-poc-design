@@ -19,7 +19,7 @@ This overview references:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
-* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 * [02-architecture/01-component-model.md](../01-component-model.md)
 * [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
 * [02-architecture/managers/**](managers/)
@@ -235,7 +235,7 @@ Managers consume OperationContext as follows:
 * **[State Manager](../managers/09-state-manager.md)** uses context to gate sync application and domain enforcement per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * **[Event Manager](../managers/11-event-manager.md)** applies visibility filtering and audience scoping.
 * **[Log Manager](../managers/12-log-manager.md)** records immutable context snapshots for audit trails.
-* **[DoS Guard Manager](../managers/14-dos-guard-manager.md)** does not rely on OperationContext for admission decisions, per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* **[DoS Guard Manager](../managers/14-dos-guard-manager.md)** does not rely on OperationContext for admission decisions, per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 Managers must reject any invocation lacking required context fields.
 

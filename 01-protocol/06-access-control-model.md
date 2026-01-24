@@ -15,7 +15,7 @@ This specification references:
 - [04-cryptography.md](04-cryptography.md)
 - [05-keys-and-identity.md](05-keys-and-identity.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+- [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 This document is normative for the PoC.
 
@@ -33,7 +33,7 @@ This specification does not cover the following:
 - Authenticate identities or verify [cryptographic signatures](04-cryptography.md).
 - Perform [schema compilation](../02-architecture/managers/05-schema-manager.md) or migration.
 - Resolve conflicts during [sync](07-sync-and-consistency.md).
-- Enforce rate limits or denial of service protections (see [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)).
+- Enforce rate limits or denial of service protections (see [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)).
 - Persist audit logs beyond standard error reporting (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)).
 
 These concerns are defined in other documents.

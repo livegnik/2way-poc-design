@@ -73,7 +73,7 @@ App backend extensions sit between frontend applications and protocol managers. 
 
 * Managers never depend on extensions. Extensions consume manager APIs (Config, Schema, ACL, Graph, Event, Log, Health, DoS Guard, Network, State, App) exactly as documented in [02-architecture/managers/00-managers-overview.md](../managers/00-managers-overview.md).
 * Extensions never access SQLite, storage paths, cryptographic keys, sockets, or sync metadata directly. [Graph Manager](../managers/07-graph-manager.md) remains the only write path and Network + State Managers remain the only transport authorities, matching [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), and [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Extensions do not implement ad hoc listeners or side channels. All network-facing behavior is routed through interface definitions in [04-interfaces/**](../../04-interfaces/), which in turn use [Network Manager](../managers/10-network-manager.md) and DoS Guard admissions per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Extensions do not implement ad hoc listeners or side channels. All network-facing behavior is routed through interface definitions in [04-interfaces/**](../../04-interfaces/), which in turn use [Network Manager](../managers/10-network-manager.md) and DoS Guard admissions per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ### 2.4 [OperationContext](05-operation-context.md) and capability encoding
 
@@ -98,7 +98,7 @@ Extensions expose three surface categories and must declare them before activati
 ### 2.7 Mandatory dependencies and resource obligations
 
 * The minimum dependency set for declaring readiness includes App, Config, Schema, Graph, ACL, Log, Event, Health, and DoS Guard Managers, plus Network and State Managers for any remote-aware surface. Extensions never instantiate managers themselves.
-* Extensions declare resource budgets (CPU, memory, storage) and DoS Guard hints so [Health Manager](../managers/13-health-manager.md) and DoS Guard can enforce throttles before exhaustion, mirroring [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Extensions declare resource budgets (CPU, memory, storage) and DoS Guard hints so [Health Manager](../managers/13-health-manager.md) and DoS Guard can enforce throttles before exhaustion, mirroring [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Derived caches are optional, non-authoritative, rebuilt from graph reads, and must recheck authorization on every read.
 
 ### 2.8 Allowed responsibilities
@@ -130,7 +130,7 @@ Extensions must never:
 
 1. **Initialization**: Dependency injection, configuration snapshot validation, schema availability checks.
 2. **Surface registration**: Interface routes and scheduler jobs register with interface and scheduler layers, respecting [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-3. **Admission**: DoS Guard cost hints and quotas register per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+3. **Admission**: DoS Guard cost hints and quotas register per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 4. **Execution**: Requests, jobs, and helper RPCs run while [Health Manager](../managers/13-health-manager.md) reports `ready`.
 5. **Drain**: New work is rejected, outstanding jobs complete, backpressure surfaces to [App Manager](../managers/08-app-manager.md).
 6. **Shutdown**: Resources release, telemetry flushed, [Health Manager](../managers/13-health-manager.md) marks the extension stopped.
@@ -139,7 +139,7 @@ State transitions are observable through [App Manager](../managers/08-app-manage
 
 ### 3.2 Admission, scheduling, and backpressure
 
-* Extension surfaces register DoS Guard hints (cost classes, identity tokens, max concurrency) to ensure [Network Manager](../managers/10-network-manager.md) throttles before code execution, per [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Extension surfaces register DoS Guard hints (cost classes, identity tokens, max concurrency) to ensure [Network Manager](../managers/10-network-manager.md) throttles before code execution, per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Extensions emit backpressure signals (queue depth, latency, cache pressure) via [Health Manager](../managers/13-health-manager.md) so [App Manager](../managers/08-app-manager.md) and DoS Guard can slow inbound work when budgets approach limits.
 * Scheduler jobs declare concurrency limits and budgets. Budget violations trigger throttling or [Health Manager](../managers/13-health-manager.md) degradation, and jobs halt when dependencies are `not_ready`.
 
@@ -212,7 +212,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/10-versio
 ### 6.3 Health and metrics
 
 * Extensions register readiness and liveness probes with [Health Manager](../managers/13-health-manager.md). Metrics include request counts, rejection reasons, queue depth, job runtime, cache rebuild counts, and DoS Guard hint utilization.
-* Health transitions drive admission. When an extension reports `not_ready`, [Network Manager](../managers/10-network-manager.md) and frontend routers stop forwarding new work to it in accordance with [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Health transitions drive admission. When an extension reports `not_ready`, [Network Manager](../managers/10-network-manager.md) and frontend routers stop forwarding new work to it in accordance with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ### 6.4 Diagnostics hooks
 

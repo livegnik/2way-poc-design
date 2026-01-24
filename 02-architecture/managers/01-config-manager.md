@@ -19,7 +19,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
-* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -36,7 +36,7 @@ This specification is responsible for the following:
 * Publish per namespace immutable snapshots to managers during startup and during approved reloads.
 * Coordinate safe change propagation via a two phase prepare and commit sequence with veto support by owning managers.
 * Emit a monotonic configuration version identifier (`cfg_seq`) and associated provenance metadata for every committed snapshot.
-* Supply DoS Guard policy snapshots (rate limits, burst windows, difficulty caps, abuse thresholds, telemetry verbosity) exactly as defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md), ensuring atomic visibility to [DoS Guard Manager](14-dos-guard-manager.md).
+* Supply DoS Guard policy snapshots (rate limits, burst windows, difficulty caps, abuse thresholds, telemetry verbosity) exactly as defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md), ensuring atomic visibility to [DoS Guard Manager](14-dos-guard-manager.md).
 * Supply the canonical locally declared protocol version tuple required by [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md).
 
 This specification does not cover the following:
@@ -127,7 +127,7 @@ Canonical namespaces:
 * `network.*` network operational settings, owned by [Network Manager](10-network-manager.md), excluding keys and secrets.
 * `acl.*` access control operational settings, owned by [ACL Manager](06-acl-manager.md), excluding graph ACL objects.
 * `log.*` logging thresholds and routing settings, owned by [Log Manager](12-log-manager.md).
-* `dos.*` DoS containment thresholds, puzzle policy, and telemetry directives mandated by [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md), owned by [DoS Guard Manager](14-dos-guard-manager.md).
+* `dos.*` DoS containment thresholds, puzzle policy, and telemetry directives mandated by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md), owned by [DoS Guard Manager](14-dos-guard-manager.md).
 * `event.*` event routing and websocket related operational settings, owned by [Event Manager](11-event-manager.md).
 * `health.*` health reporting and thresholds, owned by [Health Manager](13-health-manager.md).
 * `app.<app_id>.*` app scoped settings owned by the app backend extension or [App Manager](08-app-manager.md).
@@ -215,7 +215,7 @@ Startup is fail closed and must be deterministic.
 4. Load Engine merges defaults, `.env`, SQLite, then overrides per precedence.
 5. Validation Engine validates the merged tree, including `node.protocol.version` validation and build compatibility checks.
 6. Snapshot Engine creates the initial snapshot and assigns `cfg_seq`.
-7. [Config Manager](01-config-manager.md) publishes namespace snapshots to managers during their initialization hooks. The `dos.*` namespace must reach [DoS Guard Manager](14-dos-guard-manager.md) as a single validated snapshot that satisfies the policy contract in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md); if publication fails, [DoS Guard Manager](14-dos-guard-manager.md) must remain in fail-closed mode with no admissions.
+7. [Config Manager](01-config-manager.md) publishes namespace snapshots to managers during their initialization hooks. The `dos.*` namespace must reach [DoS Guard Manager](14-dos-guard-manager.md) as a single validated snapshot that satisfies the policy contract in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md); if publication fails, [DoS Guard Manager](14-dos-guard-manager.md) must remain in fail-closed mode with no admissions.
 8. Each manager must acknowledge acceptance. Failure to acknowledge halts startup. Partial initialization is forbidden.
 9. [Health Manager](13-health-manager.md) is notified that [Config Manager](01-config-manager.md) is ready only after publication acknowledgements succeed.
 
@@ -354,7 +354,7 @@ Rules:
 * Veto cancels the entire update or reload attempt.
 * On veto, [Config Manager](01-config-manager.md) must preserve the prior snapshot and must not partially apply any changes.
 * Change notifications must be delivered in deterministic order, based on a fixed manager ordering, and must be consistent across runs.
-* `dos.*` policy updates must be committed atomically so that [DoS Guard Manager](14-dos-guard-manager.md) never observes partial policies, satisfying the policy update rule in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* `dos.*` policy updates must be committed atomically so that [DoS Guard Manager](14-dos-guard-manager.md) never observes partial policies, satisfying the policy update rule in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ### 9.3 Serialization
 

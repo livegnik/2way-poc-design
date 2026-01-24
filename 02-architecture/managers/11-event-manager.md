@@ -21,7 +21,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
 * [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
 * [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md)
-* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here and for every cross-manager interaction referenced by this document.
 
@@ -36,7 +36,7 @@ This specification is responsible for the following:
 * Providing deterministic classification and routing for domain events, lifecycle events, transport events, and abuse and audit events, while preserving naming, envelope, and compatibility guarantees from [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/10-versioning-and-compatibility.md](../../01-protocol/10-versioning-and-compatibility.md). 
 * Emitting audit signals to [Log Manager](12-log-manager.md) when subscriptions change state, buffers overflow, delivery is suppressed, or component health transitions, matching the failure taxonomy defined in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). 
 * Enforcing per connection and global resource limits sourced from `event.*` configuration so hostile subscribers cannot exhaust backend memory, and failing closed when limits from [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md) cannot be honored. 
-* Reporting readiness, liveness, and queue depth to [Health Manager](13-health-manager.md), and forwarding repeated abuse signals to [DoS Guard Manager](14-dos-guard-manager.md), so event surfaces participate in fail closed behavior alongside [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md) directives. 
+* Reporting readiness, liveness, and queue depth to [Health Manager](13-health-manager.md), and forwarding repeated abuse signals to [DoS Guard Manager](14-dos-guard-manager.md), so event surfaces participate in fail closed behavior alongside [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md) directives. 
 * Providing an internal in process pub sub bus for managers to observe lifecycle transitions and operational signals without introducing additional delivery surfaces, preserving the trust boundaries mandated in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
 This specification does not cover the following:
@@ -235,7 +235,7 @@ Global backpressure:
 
 DoS integration:
 
-* [DoS Guard Manager](14-dos-guard-manager.md) may instruct [Event Manager](11-event-manager.md) to temporarily deny new subscriptions or close existing subscriptions when abuse thresholds are crossed, using the directive model defined in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md). 
+* [DoS Guard Manager](14-dos-guard-manager.md) may instruct [Event Manager](11-event-manager.md) to temporarily deny new subscriptions or close existing subscriptions when abuse thresholds are crossed, using the directive model defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md). 
 * [Event Manager](11-event-manager.md) must treat such instructions as authoritative for admission, but must still emit auditable outcomes and preserve fail closed behavior.
 
 ### 6.7 Startup and shutdown behavior
@@ -508,7 +508,7 @@ Validation rules:
 * Per connection utilization, buffer depth, ACK latency histograms to demonstrate compliance with the bounded memory rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Rate of subscription failures by reason, including `auth_failed`, `acl_denied`, `filter_invalid`, `buffer_overflow`, `resume_invalid`, `heartbeat_timeout`, all mapped to [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
 * Dependency health and saturation signals, including `system.event_pipeline_degraded`, enabling fail closed transitions per [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md).
-* DoS Guard instructions and enforcement outcomes recorded as events so administrators can correlate cause and effect with [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md) directives. 
+* DoS Guard instructions and enforcement outcomes recorded as events so administrators can correlate cause and effect with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md) directives. 
 
 Telemetry routing:
 

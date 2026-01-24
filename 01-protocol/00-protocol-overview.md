@@ -21,7 +21,7 @@ This overview references:
 * [08-network-transport-requirements.md](08-network-transport-requirements.md)
 * [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md)
 * [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md)
-* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -60,7 +60,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 * [08-network-transport-requirements.md](08-network-transport-requirements.md) defines the adversarial transport abstraction and mandatory signaling and delivery properties.
 * [09-errors-and-failure-modes.md](09-errors-and-failure-modes.md) defines canonical error classes, precedence rules, and mandatory rejection behavior.
 * [10-versioning-and-compatibility.md](10-versioning-and-compatibility.md) defines version tuples and compatibility checks.
-* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md) defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
+* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md) defines admission control policy, client puzzle lifecycle, and DoS Guard Manager responsibilities.
 
 ## 5. Operation lifecycle
 
@@ -94,7 +94,7 @@ The protocol is intentionally partitioned so each layer owns a narrow set of inv
 
 * [State Manager](../02-architecture/managers/09-state-manager.md) is the only producer of outbound sync packages and the only consumer of inbound sync packages.
 * Remote sync uses the same [graph message envelope](03-serialization-and-envelopes.md) format as local writes, wrapped with sync metadata, including sender identity, sync domain name, and a declared sequence range such as `from_seq` and `to_seq`.
-* [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) enforces admission control and client puzzles before [Network Manager](../02-architecture/managers/10-network-manager.md) processes inbound connections, per [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md).
+* [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) enforces admission control and client puzzles before [Network Manager](../02-architecture/managers/10-network-manager.md) processes inbound connections, per [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md).
 * [Network Manager](../02-architecture/managers/10-network-manager.md) handles transport and cryptography, including signature creation and verification, and ECIES encryption where confidentiality is required (see [04-cryptography.md](04-cryptography.md)).
 * The receiver enforces per-peer, per-domain ordering rules and must reject packages that are replayed, out of order, malformed, or inconsistent with known sync state.
 

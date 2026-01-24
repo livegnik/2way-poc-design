@@ -16,7 +16,7 @@ This specification defines the health classification model, responsibilities, in
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
 * [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
-* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -30,7 +30,7 @@ This specification is responsible for the following:
 * Publishing health state via in-process subscription APIs, the admin HTTP surface described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) ([OperationContext](../services-and-apps/05-operation-context.md) driven), and optional [Event Manager](11-event-manager.md) notifications (`system.health_state_changed`, `security.health_degraded`) without leaking sensitive metadata.
 * Recording health transitions as structured logs routed through [Log Manager](12-log-manager.md).
 * Enforcing access control for health queries. Only administrative identities defined by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) can retrieve privileged health details.
-* Providing a single place where [DoS Guard Manager](14-dos-guard-manager.md), [Log Manager](12-log-manager.md), and operators can learn when the node runtime intentionally stops accepting traffic due to local degradation, aligning with DoS Guard escalation rules in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Providing a single place where [DoS Guard Manager](14-dos-guard-manager.md), [Log Manager](12-log-manager.md), and operators can learn when the node runtime intentionally stops accepting traffic due to local degradation, aligning with DoS Guard escalation rules in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 This specification does not cover the following:
 
@@ -182,14 +182,14 @@ Failure behavior:
 * **[Config Manager](01-config-manager.md)**: Provides `health.*` snapshots. [Health Manager](13-health-manager.md) observes the prepare/commit flow and applies new thresholds atomically.
 * **[Log Manager](12-log-manager.md)**: Receives structured logs for every component transition and global readiness and liveness change.
 * **[Event Manager](11-event-manager.md)**: Receives notifications when readiness or liveness changes, or when a component transitions to `failed` if `health.event_notifications` is true.
-* **[DoS Guard Manager](14-dos-guard-manager.md)**: Consumes health state to adjust admission policy. [Health Manager](13-health-manager.md) ensures [DoS Guard Manager](14-dos-guard-manager.md) is informed when readiness changes to support escalation semantics in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* **[DoS Guard Manager](14-dos-guard-manager.md)**: Consumes health state to adjust admission policy. [Health Manager](13-health-manager.md) ensures [DoS Guard Manager](14-dos-guard-manager.md) is informed when readiness changes to support escalation semantics in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * **[Network Manager](10-network-manager.md)**: Supplies transport-level telemetry (connection counts, listener status) as part of its heartbeat, following the signaling guarantees and trust boundaries defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * **[State Manager](09-state-manager.md) / [Graph Manager](07-graph-manager.md) / [Storage Manager](02-storage-manager.md) / [Schema Manager](05-schema-manager.md) / [ACL Manager](06-acl-manager.md) / [Key Manager](03-key-manager.md) / [Auth Manager](04-auth-manager.md) / [App Manager](08-app-manager.md) / [Event Manager](11-event-manager.md) / [Log Manager](12-log-manager.md)**: Each emits health signals. [Health Manager](13-health-manager.md) enforces that all critical managers participate.
 
 ## 10. Failure handling and rejection behavior
 
 * [Health Manager](13-health-manager.md) follows the precedence rules in [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md). Validation failures are classified as structural; evaluator failures are resource-level; sink notification failures are environmental.
-* When [Health Manager](13-health-manager.md) itself encounters a fatal error, it emits `health.manager_failed` logs, sets liveness to `dead`, readiness to `not_ready`, and signals [Event Manager](11-event-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) to halt admissions, ensuring [DoS Guard Manager](14-dos-guard-manager.md) follows its fail-closed requirements in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* When [Health Manager](13-health-manager.md) itself encounters a fatal error, it emits `health.manager_failed` logs, sets liveness to `dead`, readiness to `not_ready`, and signals [Event Manager](11-event-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) to halt admissions, ensuring [DoS Guard Manager](14-dos-guard-manager.md) follows its fail-closed requirements in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Missing signals for a component cause escalation: `unknown` after the timeout; `degraded` after two timeouts; `failed` after three consecutive timeouts or an explicit `failed` signal.
 
 ## 11. Security and trust boundaries

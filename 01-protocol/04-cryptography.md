@@ -15,7 +15,7 @@ This specification references:
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](08-network-transport-requirements.md)
-- [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+- [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in [05-keys-and-identity.md](05-keys-and-identity.md), [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md), and the [data layout documents](../03-data/01-sqlite-layout.md), and are out of scope here.
 
@@ -246,4 +246,4 @@ If a message claims an unsupported algorithm, or its cryptographic fields are ma
 
 If cryptographic checks succeed but higher layers reject the envelope due to [ordering](07-sync-and-consistency.md), [schema](../02-architecture/managers/05-schema-manager.md), or [ACL rules](06-access-control-model.md), the message must be treated as rejected. Cryptographic validity must not override ordering constraints, schema constraints, or ACL constraints.
 
-The handling of peer scoring, rate limiting, and sync state consequences of repeated failures is defined in [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md), not in this file.
+The handling of peer scoring, rate limiting, and sync state consequences of repeated failures is defined in [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md), not in this file.

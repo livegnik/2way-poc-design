@@ -94,7 +94,7 @@ Each manager owns a single responsibility domain:
 - [Event Manager](managers/11-event-manager.md) owns event publication and subscription.
 - [Log Manager](managers/12-log-manager.md) owns audit, diagnostic, and operational logging.
 - [Health Manager](managers/13-health-manager.md) owns liveness checks and health state reporting.
-- [DoS Guard Manager](managers/14-dos-guard-manager.md) owns request throttling and abuse mitigation aligned to [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+- [DoS Guard Manager](managers/14-dos-guard-manager.md) owns request throttling and abuse mitigation aligned to [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 Managers may call other managers only through explicit, validated inputs. Circular dependencies are forbidden.
 

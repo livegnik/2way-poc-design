@@ -18,7 +18,7 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
 * [01-protocol/09-errors-and-failure-modes.md](../../01-protocol/09-errors-and-failure-modes.md)
-* [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 Those files remain normative for all behaviors described here.
 
@@ -42,7 +42,7 @@ This specification does not cover the following:
 * Schema validation, semantic validation, or authorization decisions.
 * Direct mutation of canonical graph objects.
 * Network transport, peer discovery, or routing, which are governed by the requirements in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* DoS mitigation, client puzzles, or connection throttling, which are defined for [Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) in [01-protocol/11-dos-guard-and-client-puzzles.md](../../01-protocol/11-dos-guard-and-client-puzzles.md).
+* DoS mitigation, client puzzles, or connection throttling, which are defined for [Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Application-specific logic or derived analytics.
 * Storage engine implementation details beyond required persistence contracts.
 

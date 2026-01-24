@@ -259,7 +259,7 @@ Network Manager may:
 * Transmit and receive encrypted payloads.
 * Perform peer-level throttling and rate limiting enforced by [DoS Guard Manager](managers/14-dos-guard-manager.md).
 * Reject malformed or abusive traffic per [01-protocol/09-errors-and-failure-modes.md](../01-protocol/09-errors-and-failure-modes.md).
-* Apply client puzzles under load as defined by [DoS Guard Manager](managers/14-dos-guard-manager.md) and [01-protocol/11-dos-guard-and-client-puzzles.md](../01-protocol/11-dos-guard-and-client-puzzles.md).
+* Apply client puzzles under load as defined by [DoS Guard Manager](managers/14-dos-guard-manager.md) and [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ### 10.3 Forbidden behaviors
 

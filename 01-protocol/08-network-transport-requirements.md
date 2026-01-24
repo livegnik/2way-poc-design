@@ -15,7 +15,7 @@ This specification references:
 - [05-keys-and-identity.md](05-keys-and-identity.md)
 - [06-access-control-model.md](06-access-control-model.md)
 - [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+- [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 ## 2. Position in the system
 
@@ -39,7 +39,7 @@ This specification is responsible for the following:
 - Signaling connection establishment and termination.
 - Signaling delivery failure, timeout, or disconnect.
 - Supporting multiple concurrent peer connections.
-- Producing connection-level telemetry (byte and message counters, timing samples, resource pressure indicators) required for [DoS Guard](11-dos-guard-and-client-puzzles.md) and observability tooling while preserving envelope opacity.
+- Producing connection-level telemetry (byte and message counters, timing samples, resource pressure indicators) required for [DoS Guard](09-dos-guard-and-client-puzzles.md) and observability tooling while preserving envelope opacity.
 - Operating over untrusted and potentially anonymous networks as required by the PoC.
 
 This specification does not cover the following:
@@ -100,7 +100,7 @@ The transport layer is permitted to:
 - Delay delivery arbitrarily.
 - Duplicate envelope delivery.
 - Disconnect peers without explanation.
-- Apply coarse connection level rate limiting (see [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)).
+- Apply coarse connection level rate limiting (see [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)).
 - Operate over routed, proxied, or anonymized networks.
 
 All higher layers must remain correct under these behaviors.

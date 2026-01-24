@@ -18,7 +18,7 @@ This specification references:
 * [06-access-control-model.md](06-access-control-model.md)
 * [07-sync-and-consistency.md](07-sync-and-consistency.md)
 * [08-network-transport-requirements.md](08-network-transport-requirements.md)
-* [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)
+* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 ### 2. Responsibilities and boundaries
 
@@ -140,7 +140,7 @@ Sync integrity errors invalidate the entire package.
 
 #### 5.6 Resource and load errors
 
-Resource errors indicate local inability to process input safely (see [11-dos-guard-and-client-puzzles.md](11-dos-guard-and-client-puzzles.md)).
+Resource errors indicate local inability to process input safely (see [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)).
 
 * Rate limits exceeded. `ERR_RESOURCE_RATE_LIMIT`
 * Peer exceeds allowed request frequency. `ERR_RESOURCE_PEER_LIMIT`
