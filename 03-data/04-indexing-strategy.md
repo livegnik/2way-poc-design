@@ -1,7 +1,7 @@
 
 
 
-# 04. Indexing strategy
+# 04 Indexing strategy
 
 ## 1. Purpose and scope
 
