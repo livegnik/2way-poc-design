@@ -2,7 +2,7 @@
 
 
 
-# 08. Network transport requirements
+# 08 Network transport requirements
 
 ## 1. Purpose and scope
 
