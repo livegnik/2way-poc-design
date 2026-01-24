@@ -2,7 +2,7 @@
 
 
 
-# 04. Cryptography
+# 04 Cryptography
 
 ## 1. Purpose and scope
 
