@@ -2,7 +2,7 @@
 
 
 
-# 05. Keys and Identity
+# 05 Keys and Identity
 
 ## 1. Purpose and scope
 
