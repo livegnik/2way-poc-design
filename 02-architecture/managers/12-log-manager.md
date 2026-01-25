@@ -20,8 +20,8 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for log classification, [OperationContext](../services-and-apps/05-operation-context.md) semantics, identifier rejection requirements, trace correlation, DoS Guard admission telemetry, and failure handling behavior.
 
