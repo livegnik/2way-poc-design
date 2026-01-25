@@ -18,8 +18,8 @@ This specification consumes the protocol contracts defined in:
 * [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
+* [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)
 
 Those files remain normative for all behaviors described here.
 
