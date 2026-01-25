@@ -15,8 +15,8 @@ This specification defines the health classification model, responsibilities, in
 * [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
 * [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
 * [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 * [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
+* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
 
 Those files remain normative for all behaviors described here.
 
