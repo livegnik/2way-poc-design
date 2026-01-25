@@ -19,9 +19,9 @@ This overview references:
 * [06-access-control-model.md](06-access-control-model.md)
 * [07-sync-and-consistency.md](07-sync-and-consistency.md)
 * [08-network-transport-requirements.md](08-network-transport-requirements.md)
+* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 * [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
 * [11-versioning-and-compatibility.md](11-versioning-and-compatibility.md)
-* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
 
 ## 2. Responsibilities and boundaries
 
