@@ -4,41 +4,11 @@
 
 # 06 Access Control Model
 
-## 1. Purpose and scope
+Defines authorization evaluation rules and enforcement layers for 2WAY graph operations.
+Specifies authorization inputs, decision ordering, and rejection conditions.
+Defines required isolation constraints and security properties for access control.
 
-This document defines the access control model of the 2WAY protocol as implemented in the PoC. It specifies how permissions are expressed, evaluated, and enforced at the protocol level. It covers authorization semantics only. [Authentication](05-keys-and-identity.md), [identity representation](05-keys-and-identity.md), [cryptographic verification](04-cryptography.md), [schema definition](../02-architecture/managers/05-schema-manager.md), [sync behavior](07-sync-and-consistency.md), and [storage mechanics](../03-data/01-sqlite-layout.md) are defined elsewhere and are referenced but not restated.
-
-This specification references:
-
-- [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
-- [02-object-model.md](02-object-model.md)
-- [04-cryptography.md](04-cryptography.md)
-- [05-keys-and-identity.md](05-keys-and-identity.md)
-- [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
-
-This document is normative for the PoC.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-- Determining whether an authenticated identity is permitted to perform a specific operation on a specific graph object.
-- Enforcing ownership, schema rules, and explicit access control constraints.
-- Enforcing app and domain isolation during [graph mutations](../02-architecture/managers/07-graph-manager.md) and reads.
-- Producing deterministic authorization decisions based solely on local state.
-
-This specification does not cover the following:
-
-- Authenticate identities or verify [cryptographic signatures](04-cryptography.md).
-- Perform [schema compilation](../02-architecture/managers/05-schema-manager.md) or migration.
-- Resolve conflicts during [sync](07-sync-and-consistency.md).
-- Enforce rate limits or denial of service protections (see [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)).
-- Persist audit logs beyond standard error reporting (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)).
-
-These concerns are defined in other documents.
-
-## 3. Invariants and guarantees
+## 1. Invariants and guarantees
 
 The access control model enforces the following invariants:
 
@@ -53,7 +23,7 @@ The following guarantees are provided:
 - [Schema](../02-architecture/managers/05-schema-manager.md) defined prohibitions cannot be overridden by object level access rules.
 - App and domain boundaries are strictly enforced (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 
-## 4. Access control inputs
+## 2. Access control inputs
 
 Authorization evaluation operates on the following inputs:
 
@@ -67,11 +37,11 @@ Authorization evaluation operates on the following inputs:
 
 No implicit context, network metadata, or transport level information is used.
 
-## 5. Authorization layers
+## 3. Authorization layers
 
 Authorization is evaluated as a strict sequence of checks. Failure at any step results in rejection.
 
-### 5.1 Ownership rules
+### 3.1 Ownership rules
 
 Ownership is derived from [Parent](02-object-model.md) authorship.
 
@@ -82,7 +52,7 @@ Rules:
 - Only the owner may mutate owned objects unless an explicit ACL permits otherwise.
 - Remote operations attempting to mutate objects owned by another identity are rejected.
 
-### 5.2 Schema level permissions
+### 3.2 Schema level permissions
 
 Schemas define default access semantics for object types (see [02-architecture/managers/05-schema-manager.md](../02-architecture/managers/05-schema-manager.md)).
 
@@ -95,7 +65,7 @@ Rules:
 
 [Schema validation](../02-architecture/managers/05-schema-manager.md) occurs before ACL evaluation.
 
-### 5.3 App and domain boundaries
+### 3.3 App and domain boundaries
 
 Apps and domains define isolation scopes (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 
@@ -107,7 +77,7 @@ Rules:
 
 Operations that cross app or domain boundaries without explicit authorization are rejected.
 
-### 5.4 Object level ACLs
+### 3.4 Object level ACLs
 
 ACLs provide explicit permission rules bound to specific objects or object sets.
 
@@ -118,7 +88,7 @@ Rules:
 - ACLs cannot override schema level prohibitions.
 - Explicit deny rules take precedence over grant rules.
 
-### 5.5 Graph derived constraints
+### 3.5 Graph derived constraints
 
 Authorization may depend on graph structure when explicitly defined by [schema](../02-architecture/managers/05-schema-manager.md).
 
@@ -130,7 +100,7 @@ Rules:
 
 All such constraints must be explicitly declared by schema and evaluated deterministically.
 
-## 6. Allowed behaviors
+## 4. Allowed behaviors
 
 The following behaviors are allowed when all authorization layers succeed:
 
@@ -139,7 +109,7 @@ The following behaviors are allowed when all authorization layers succeed:
 - Read access to objects permitted by visibility rules.
 - Limited interaction with non owned objects when explicitly authorized.
 
-## 7. Forbidden behaviors
+## 5. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
@@ -149,7 +119,7 @@ The following behaviors are explicitly forbidden:
 - Inferring permissions from peer identity, network origin, or [transport context](08-network-transport-requirements.md).
 - Partial authorization of an operation. Authorization is atomic per operation.
 
-## 8. Interaction with other components
+## 6. Interaction with other components
 
 The access control model interacts with other components as follows:
 
@@ -163,7 +133,7 @@ Trust boundaries:
 - All inputs are treated as untrusted until validated.
 - Authorization logic relies only on local graph state and compiled [schemas](../02-architecture/managers/05-schema-manager.md).
 
-## 9. Failure and rejection behavior
+## 7. Failure and rejection behavior
 
 On authorization failure:
 
@@ -174,7 +144,7 @@ On authorization failure:
 
 Authorization failures do not modify graph state or authorization rules.
 
-## 10. Security properties
+## 8. Security properties
 
 The access control model ensures:
 
