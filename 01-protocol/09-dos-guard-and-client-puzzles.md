@@ -1,6 +1,7 @@
 
 
 
+
 # 09 DoS Guard and client puzzle requirements
 
 ## 1. Purpose and scope
