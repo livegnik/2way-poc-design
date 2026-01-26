@@ -4,41 +4,11 @@
 
 # 07 Sync and consistency
 
-## 1. Purpose and scope
+Defines synchronization units, ordering rules, and validation requirements for 2WAY replication.
+Specifies sync state tracking, acceptance criteria, and rejection behavior for envelopes.
+Defines consistency guarantees, conflict handling, and invariants during sync.
 
-This document defines the protocol-level synchronization and consistency rules for 2WAY. It specifies how [graph state](../02-architecture/managers/07-graph-manager.md) is exchanged between peers, how ordering and integrity are enforced, and which guarantees are provided. It is limited to protocol semantics. It does not define transport mechanisms, cryptographic primitives, [access control](06-access-control-model.md) rules, or [storage internals](../03-data/01-sqlite-layout.md) beyond what is required for correctness of sync.
-
-This specification references:
-
-- [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
-- [02-object-model.md](02-object-model.md)
-- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-- [04-cryptography.md](04-cryptography.md)
-- [05-keys-and-identity.md](05-keys-and-identity.md)
-- [06-access-control-model.md](06-access-control-model.md)
-- [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-- The unit of synchronization.
-- The ordering model used during replication.
-- The rules for sync state tracking.
-- Acceptance and rejection criteria for incoming data.
-- Consistency and replay protection guarantees.
-- Failure and rejection behavior during sync.
-
-This specification does not cover the following:
-
-- Network transport selection or peer discovery (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
-- Encryption algorithms or key derivation (see [04-cryptography.md](04-cryptography.md)).
-- [Access control](06-access-control-model.md) semantics or ACL evaluation logic.
-- [Application-level meaning of graph objects](02-object-model.md).
-- Conflict resolution beyond protocol-level rejection.
-- Storage engine layout or indexing strategy (see [03-data/01-sqlite-layout.md](../03-data/01-sqlite-layout.md)).
-
-## 3. Sync model overview
+## 1. Sync model overview
 
 2WAY uses explicit, envelope-based synchronization between peers.
 
@@ -51,9 +21,9 @@ Synchronization is:
 
 Nodes never perform full graph replication. Only objects belonging to explicitly shared domains are eligible for sync.
 
-## 4. Unit of synchronization
+## 2. Unit of synchronization
 
-### 4.1 Envelope
+### 2.1 Envelope
 
 The atomic unit of synchronization is the [envelope](03-serialization-and-envelopes.md).
 
@@ -68,7 +38,7 @@ An envelope contains:
 
 An envelope is indivisible. Partial acceptance is forbidden.
 
-### 4.2 Object constraints
+### 2.2 Object constraints
 
 Objects within an envelope must satisfy all of the following:
 
@@ -79,9 +49,9 @@ Objects within an envelope must satisfy all of the following:
 
 Violation of any constraint causes rejection of the entire envelope.
 
-## 5. Ordering model
+## 3. Ordering model
 
-### 5.1 Global sequence
+### 3.1 Global sequence
 
 Each node assigns a strictly monotonic global sequence number to every envelope it accepts locally (see [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)).
 
@@ -93,7 +63,7 @@ Properties:
 
 Global sequence numbers are used exclusively for sync ordering and replay detection (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)).
 
-### 5.2 Domain sequence tracking
+### 3.2 Domain sequence tracking
 
 For each peer and each domain, the receiving node tracks:
 
@@ -102,9 +72,9 @@ For each peer and each domain, the receiving node tracks:
 
 Incoming envelopes must advance the known sequence monotonically. Envelopes that would regress or overlap known sequence state are rejected.
 
-## 6. Sync state
+## 4. Sync state
 
-### 6.1 Sync state definition
+### 4.1 Sync state definition
 
 Sync state is maintained per peer and per domain.
 
@@ -116,15 +86,15 @@ Sync state includes:
 
 Sync state is authoritative for acceptance decisions.
 
-### 6.2 State advancement
+### 4.2 State advancement
 
 Sync state advances only when an envelope is fully accepted and persisted.
 
 Rejected envelopes do not modify sync state.
 
-## 7. Validation and acceptance
+## 5. Validation and acceptance
 
-### 7.1 Mandatory validation stages
+### 5.1 Mandatory validation stages
 
 Each incoming envelope must pass, in order:
 
@@ -138,7 +108,7 @@ Each incoming envelope must pass, in order:
 
 Failure at any stage results in rejection.
 
-### 7.2 Acceptance rules
+### 5.2 Acceptance rules
 
 An envelope is accepted if and only if:
 
@@ -152,7 +122,7 @@ An envelope is accepted if and only if:
 
 Acceptance is atomic.
 
-### 7.3 Forbidden behaviors
+### 5.3 Forbidden behaviors
 
 The following behaviors are forbidden and must be rejected:
 
@@ -163,7 +133,7 @@ The following behaviors are forbidden and must be rejected:
 - Mixing objects from multiple domains in one [envelope](03-serialization-and-envelopes.md).
 - Referencing unknown or incompatible [schema definitions](../02-architecture/managers/05-schema-manager.md).
 
-## 8. Consistency guarantees
+## 6. Consistency guarantees
 
 The protocol guarantees:
 
@@ -173,19 +143,13 @@ The protocol guarantees:
 - No partial application of operations.
 - Tamper-evident replication.
 
-The protocol does not guarantee:
+## 7. Conflict handling
 
-- Global total ordering across nodes.
-- Conflict-free convergence at the application level.
-- Automatic reconciliation of concurrent writes.
-
-## 9. Conflict handling
-
-### 9.1 Conflict definition
+### 7.1 Conflict definition
 
 A conflict occurs when a valid envelope proposes state changes that violate [schema rules](../02-architecture/managers/05-schema-manager.md), [ownership invariants](02-object-model.md), or immutability guarantees when applied to current local state.
 
-### 9.2 Resolution behavior
+### 7.2 Resolution behavior
 
 Conflict resolution is rejection-based.
 
@@ -197,9 +161,9 @@ Rules:
 
 Application-level conflict handling is outside the scope of this specification.
 
-## 10. Failure and rejection behavior
+## 8. Failure and rejection behavior
 
-### 10.1 Rejection handling
+### 8.1 Rejection handling
 
 On rejection:
 
@@ -209,7 +173,7 @@ On rejection:
 
 Rejection reasons may be logged for audit purposes (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)).
 
-### 10.2 Peer-level handling
+### 8.2 Peer-level handling
 
 Repeated invalid envelopes from a peer may result in:
 
@@ -217,11 +181,9 @@ Repeated invalid envelopes from a peer may result in:
 - Increased validation strictness.
 - Rate limiting.
 
-These actions are policy decisions and are not mandated by this specification.
+## 9. Trust boundaries and interactions
 
-## 11. Trust boundaries and interactions
-
-### 11.1 Inputs
+### 9.1 Inputs
 
 Inputs:
 
@@ -229,7 +191,7 @@ Inputs:
 - Local sync state.
 - Domain and [schema definitions](../02-architecture/managers/05-schema-manager.md).
 
-### 11.2 Outputs
+### 9.2 Outputs
 
 Outputs:
 
@@ -237,7 +199,7 @@ Outputs:
 - Updated sync state.
 - Explicit acceptance or rejection outcomes.
 
-### 11.3 Trust assumptions
+### 9.3 Trust assumptions
 
 Assumptions:
 
@@ -247,7 +209,7 @@ Assumptions:
 
 No peer-provided data is trusted without validation.
 
-## 12. Invariants
+## 10. Invariants
 
 The following invariants must always hold:
 
