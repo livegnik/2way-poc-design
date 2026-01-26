@@ -1,0 +1,52 @@
+
+
+
+
+# 10 Errors and Failure Modes
+
+### 1. Purpose and scope
+
+This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define [transport formats](08-network-transport-requirements.md), API payloads, [logging](../02-architecture/managers/12-log-manager.md), or user-facing presentation.
+
+This specification references:
+
+* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
+* [02-object-model.md](02-object-model.md)
+* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
+* [04-cryptography.md](04-cryptography.md)
+* [05-keys-and-identity.md](05-keys-and-identity.md)
+* [06-access-control-model.md](06-access-control-model.md)
+* [07-sync-and-consistency.md](07-sync-and-consistency.md)
+* [08-network-transport-requirements.md](08-network-transport-requirements.md)
+* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
+
+### 2. Responsibilities and boundaries
+
+This specification is responsible for the following:
+
+* Defining the canonical set of protocol-level error classes and symbolic error codes.
+* Defining when an operation, [envelope](03-serialization-and-envelopes.md), or [sync package](07-sync-and-consistency.md) must be rejected.
+* Defining invariants around rejection behavior and state safety.
+* Defining guarantees about side effects in the presence of failure.
+* Defining how failures are surfaced across trust boundaries (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
+
+This specification does not cover the following:
+
+* UI error messages or localization.
+* HTTP status codes or [transport-specific representations](08-network-transport-requirements.md).
+* Internal logging formats or [telemetry](../02-architecture/managers/11-event-manager.md).
+* Retry strategies, backoff policies, or scheduling.
+* Component-internal exceptions that do not cross protocol boundaries.
+
+### 3. Absence of recovery semantics
+
+Key recovery and revocation semantics are defined in [05-keys-and-identity.md](05-keys-and-identity.md) and are not redefined here.
+
+### 4. Explicit exclusions
+
+The following are explicitly out of scope:
+
+* User-facing error descriptions.
+* [Transport-specific failure codes](08-network-transport-requirements.md).
+* [Logging verbosity](../02-architecture/managers/12-log-manager.md) or retention.
+* Debug or diagnostic interfaces.

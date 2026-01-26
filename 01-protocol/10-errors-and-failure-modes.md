@@ -4,41 +4,11 @@
 
 ## 10 Errors and Failure Modes
 
-### 1. Purpose and scope
+Defines protocol-level error classes and symbolic codes for 2WAY operations and sync packages.
+Specifies validation-stage ordering, rejection behavior, and peer-facing handling.
+Defines failure precedence and component boundaries for error detection.
 
-This document defines the errors and failure modes of the 2WAY protocol at the protocol boundary. It specifies how invalid input, rejected operations, and failure conditions are classified, detected, and reported. The scope is limited to protocol-level error semantics and observable behavior. It does not define [transport formats](08-network-transport-requirements.md), API payloads, [logging](../02-architecture/managers/12-log-manager.md), or user-facing presentation.
-
-This specification references:
-
-* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
-* [02-object-model.md](02-object-model.md)
-* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-* [04-cryptography.md](04-cryptography.md)
-* [05-keys-and-identity.md](05-keys-and-identity.md)
-* [06-access-control-model.md](06-access-control-model.md)
-* [07-sync-and-consistency.md](07-sync-and-consistency.md)
-* [08-network-transport-requirements.md](08-network-transport-requirements.md)
-* [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
-
-### 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Defining the canonical set of protocol-level error classes and symbolic error codes.
-* Defining when an operation, [envelope](03-serialization-and-envelopes.md), or [sync package](07-sync-and-consistency.md) must be rejected.
-* Defining invariants around rejection behavior and state safety.
-* Defining guarantees about side effects in the presence of failure.
-* Defining how failures are surfaced across trust boundaries (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
-
-This specification does not cover the following:
-
-* UI error messages or localization.
-* HTTP status codes or [transport-specific representations](08-network-transport-requirements.md).
-* Internal logging formats or [telemetry](../02-architecture/managers/11-event-manager.md).
-* Retry strategies, backoff policies, or scheduling.
-* Component-internal exceptions that do not cross protocol boundaries.
-
-### 3. Invariants and guarantees
+### 1. Invariants and guarantees
 
 The following invariants apply to all failures defined in this file:
 
@@ -55,9 +25,9 @@ The protocol guarantees:
 * [Sync integrity](07-sync-and-consistency.md) violations are detected before [object](02-object-model.md) materialization.
 * [Revocation state](05-keys-and-identity.md) takes precedence over ordering and freshness.
 
-### 4. Allowed and forbidden behaviors
+### 2. Allowed and forbidden behaviors
 
-#### 4.1 Allowed behaviors
+#### 2.1 Allowed behaviors
 
 The protocol allows:
 
@@ -66,7 +36,7 @@ The protocol allows:
 * Disconnection of peers that repeatedly trigger fatal failures (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
 * Independent local enforcement of rejection rules per node.
 
-#### 4.2 Forbidden behaviors
+#### 2.2 Forbidden behaviors
 
 The protocol forbids:
 
@@ -76,11 +46,11 @@ The protocol forbids:
 * Acceptance of operations signed by revoked keys (see [05-keys-and-identity.md](05-keys-and-identity.md)).
 * Acceptance of out-of-order or replayed [sync packages](07-sync-and-consistency.md).
 
-### 5. Error classification
+### 3. Error classification
 
 Errors are classified by the validation stage that detects them. Each operation or sync package may produce at most one protocol-level error.
 
-#### 5.1 Structural errors
+#### 3.1 Structural errors
 
 Structural errors indicate that an [envelope](03-serialization-and-envelopes.md) or [package](07-sync-and-consistency.md) is not well-formed.
 
@@ -91,7 +61,7 @@ Structural errors indicate that an [envelope](03-serialization-and-envelopes.md)
 
 Structural errors are terminal for the input and must be rejected immediately.
 
-#### 5.2 Cryptographic and identity errors
+#### 3.2 Cryptographic and identity errors
 
 Cryptographic errors indicate that identity or authorship cannot be verified (see [04-cryptography.md](04-cryptography.md) and [05-keys-and-identity.md](05-keys-and-identity.md)).
 
@@ -103,7 +73,7 @@ Cryptographic errors indicate that identity or authorship cannot be verified (se
 
 Cryptographic errors are terminal and indicate untrusted input.
 
-#### 5.3 Schema and domain errors
+#### 3.3 Schema and domain errors
 
 Schema errors indicate that an operation violates [schema](../02-architecture/managers/05-schema-manager.md) or domain constraints.
 
@@ -115,7 +85,7 @@ Schema errors indicate that an operation violates [schema](../02-architecture/ma
 
 Schema errors are terminal for the operation.
 
-#### 5.4 Authorization errors
+#### 3.4 Authorization errors
 
 Authorization errors indicate that the author identity lacks permission (see [06-access-control-model.md](06-access-control-model.md)).
 
@@ -126,7 +96,7 @@ Authorization errors indicate that the author identity lacks permission (see [06
 
 Authorization errors are terminal and must not leak additional state.
 
-#### 5.5 Sync integrity errors
+#### 3.5 Sync integrity errors
 
 Sync integrity errors indicate invalid replication behavior (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
@@ -138,7 +108,7 @@ Sync integrity errors indicate invalid replication behavior (see [07-sync-and-co
 
 Sync integrity errors invalidate the entire package.
 
-#### 5.6 Resource and load errors
+#### 3.6 Resource and load errors
 
 Resource errors indicate local inability to process input safely (see [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)).
 
@@ -148,9 +118,9 @@ Resource errors indicate local inability to process input safely (see [09-dos-gu
 
 Resource errors may be transient but never permit partial processing.
 
-### 6. Failure handling behavior
+### 4. Failure handling behavior
 
-#### 6.1 Rejection behavior
+#### 4.1 Rejection behavior
 
 On any failure:
 
@@ -159,7 +129,7 @@ On any failure:
 * No sequence counters are advanced.
 * No derived or secondary actions are triggered.
 
-#### 6.2 Failure precedence
+#### 4.2 Failure precedence
 
 When multiple violations are present:
 
@@ -170,7 +140,7 @@ When multiple violations are present:
 
 The first applicable failure class determines the rejection.
 
-#### 6.3 Interaction with components
+#### 4.3 Interaction with components
 
 Failures are detected at specific trust boundaries:
 
@@ -182,7 +152,7 @@ Failures are detected at specific trust boundaries:
 
 Each component may reject input only within its responsibility boundary.
 
-### 7. Peer-facing behavior
+### 5. Peer-facing behavior
 
 For remote peers:
 
@@ -196,21 +166,10 @@ For local callers:
 * Rejection reason must be surfaced explicitly using the symbolic error code.
 * No side effects may be observable after rejection.
 
-### 8. Absence of recovery semantics
+### 6. Absence of recovery semantics
 
 This specification defines no automatic recovery behavior.
 
 * Recovery from failure is external to the protocol.
 * Rejected input must be corrected and resubmitted.
 * Sync resumes only after invalid packages are discarded (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
-
-Key recovery and revocation semantics are defined in [05-keys-and-identity.md](05-keys-and-identity.md) and are not redefined here.
-
-### 9. Explicit exclusions
-
-The following are explicitly out of scope:
-
-* User-facing error descriptions.
-* [Transport-specific failure codes](08-network-transport-requirements.md).
-* [Logging verbosity](../02-architecture/managers/12-log-manager.md) or retention.
-* Debug or diagnostic interfaces.
