@@ -4,42 +4,13 @@
 
 # 02 Object model
 
-## 1. Purpose and scope
+Defines the canonical graph object categories for 2WAY and their required fields.
+Specifies object invariants, reference rules, and application-domain isolation constraints.
+Defines acceptance and rejection conditions for object mutations.
 
-This document defines the normative graph object model used by 2WAY. It specifies the canonical object categories, required fields, structural constraints, and invariants that must hold for any object to be accepted into the graph.
+## 1. Invariants and guarantees
 
-This specification references:
-
-* [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
-* [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-* [04-cryptography.md](04-cryptography.md)
-* [05-keys-and-identity.md](05-keys-and-identity.md)
-* [06-access-control-model.md](06-access-control-model.md)
-* [07-sync-and-consistency.md](07-sync-and-consistency.md)
-
-This document does not define [serialization formats](03-serialization-and-envelopes.md), [envelope structures](03-serialization-and-envelopes.md), [schema semantics](../02-architecture/managers/05-schema-manager.md), [ACL evaluation logic](06-access-control-model.md), [persistence layout](../03-data/01-sqlite-layout.md), or [synchronization behavior](07-sync-and-consistency.md). Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* The canonical graph object categories.
-* Required fields and reference structure for each object category.
-* Object level invariants that are enforced independently of schema or ACL logic.
-* Cross object and cross category structural constraints.
-* Explicit rejection conditions for structurally invalid objects.
-
-This specification does not cover the following:
-
-* [Schema meaning](../02-architecture/managers/05-schema-manager.md), type validation, or value interpretation.
-* [Authorization rules](06-access-control-model.md) or ACL evaluation.
-* [Envelope formats](03-serialization-and-envelopes.md) or wire serialization.
-* [Persistence schemas](../03-data/01-sqlite-layout.md), indexes, or query behavior.
-* [Sync ordering](07-sync-and-consistency.md), conflict resolution, or domain selection.
-
-## 3. Invariants and guarantees
-
-### 3.1 Invariants
+### 1.1 Invariants
 
 The following invariants apply to all graph objects:
 
@@ -49,7 +20,7 @@ The following invariants apply to all graph objects:
 * Object identifiers, ownership, and provenance metadata are immutable once assigned (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 * All references between objects are explicit and must resolve within the same `app_id` scope.
 
-### 3.2 Guarantees
+### 1.2 Guarantees
 
 When enforced as specified, the object model guarantees:
 
@@ -58,11 +29,9 @@ When enforced as specified, the object model guarantees:
 * Structural isolation between application domains.
 * Deterministic rejection of structurally invalid objects.
 
-This document does not guarantee [schema validity](../02-architecture/managers/05-schema-manager.md), [authorization correctness](06-access-control-model.md), or semantic consistency beyond structural constraints.
+## 2. Canonical object categories
 
-## 4. Canonical object categories
-
-### 4.1 Categories
+### 2.1 Categories
 
 2WAY defines five canonical graph object categories:
 
@@ -76,14 +45,14 @@ Parent, Attribute, Edge, and Rating are stored as first class object records. AC
 
 No other persistent object categories are permitted.
 
-### 4.2 Naming constraints
+### 2.2 Naming constraints
 
 * The category names Parent, Attribute, Edge, Rating, ACL are canonical and fixed.
 * Implementations must not alias or redefine these category names in protocol visible behavior.
 
-## 5. Common fields and reference rules
+## 3. Common fields and reference rules
 
-### 5.1 Required metadata fields
+### 3.1 Required metadata fields
 
 All stored object records include the following required metadata fields:
 
@@ -94,9 +63,7 @@ All stored object records include the following required metadata fields:
 * `global_seq`. Integer sequence assigned by the local node at accept time ([07-sync-and-consistency.md](07-sync-and-consistency.md)).
 * `sync_flags`. Integer metadata used by the sync subsystem ([07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
-The presence and immutability of these fields are defined here. Their assignment and interpretation are defined elsewhere, including [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md).
-
-### 5.2 Immutability rules
+### 3.2 Immutability rules
 
 For any persisted object:
 
@@ -109,7 +76,7 @@ For any persisted object:
 
 If updates are supported, only value bearing fields defined for the object category may change, and only under external [validation](../02-architecture/managers/05-schema-manager.md) and [authorization](06-access-control-model.md).
 
-### 5.3 Object reference form
+### 3.3 Object reference form
 
 All object references are explicit and consist of:
 
@@ -119,13 +86,13 @@ All object references are explicit and consist of:
 
 References MUST NOT rely on implicit `app_id` inheritance or contextual assumptions.
 
-## 6. Parent
+## 4. Parent
 
-### 6.1 Definition
+### 4.1 Definition
 
 A Parent represents an entity root within an application domain. All other object categories attach to a Parent directly or indirectly.
 
-### 6.2 Required fields
+### 4.2 Required fields
 
 A Parent record includes:
 
@@ -134,30 +101,30 @@ A Parent record includes:
 
 The contents of `value_json` are opaque to this specification.
 
-### 6.3 Structural invariants
+### 4.3 Structural invariants
 
 * A Parent anchors attachment of Attributes, Edges, Ratings, and ACL structures.
 * Ownership of a Parent is permanent.
 * A Parent cannot be reassigned to another `app_id`.
 
-### 6.4 Explicitly allowed
+### 4.4 Explicitly allowed
 
 * Creation of a Parent with valid metadata fields.
 * Attachment of other objects that satisfy the constraints in this document.
 
-### 6.5 Explicitly forbidden
+### 4.5 Explicitly forbidden
 
 * Deleting a Parent.
 * Changing `owner_identity`, `type_id`, or `app_id` of a Parent.
 * Referencing a non-existent Parent.
 
-## 7. Attribute
+## 5. Attribute
 
-### 7.1 Definition
+### 5.1 Definition
 
 An Attribute represents typed data attached to a source Parent.
 
-### 7.2 Required fields
+### 5.2 Required fields
 
 An Attribute record includes:
 
@@ -165,30 +132,30 @@ An Attribute record includes:
 * `src_parent_id`. Identifier of the Parent the Attribute attaches to.
 * `value_json`. Optional, schema defined payload.
 
-### 7.3 Structural invariants
+### 5.3 Structural invariants
 
 * `src_parent_id` MUST reference an existing Parent within the same `app_id`.
 * Attribute ownership is permanent.
 * An Attribute MUST NOT reference a Parent in a different `app_id`.
 
-### 7.4 Explicitly allowed
+### 5.4 Explicitly allowed
 
 * Creation of an Attribute attached to an existing Parent.
 * Updating `value_json` only, if updates are supported and externally authorized.
 
-### 7.5 Explicitly forbidden
+### 5.5 Explicitly forbidden
 
 * Rebinding an Attribute to a different Parent.
 * Changing `owner_identity` or `type_id`.
 * Creating an Attribute whose source Parent does not exist.
 
-## 8. Edge
+## 6. Edge
 
-### 8.1 Definition
+### 6.1 Definition
 
 An Edge represents a typed relationship issued from a source Parent to a destination object.
 
-### 8.2 Required fields
+### 6.2 Required fields
 
 An Edge record includes:
 
@@ -196,7 +163,7 @@ An Edge record includes:
 * `src_parent_id`. Identifier of the source Parent.
 * `dst_parent_id` or `dst_attr_id`. Exactly one MUST be present.
 
-### 8.3 Structural invariants
+### 6.3 Structural invariants
 
 * `src_parent_id` MUST reference an existing Parent in the same `app_id`.
 * If present, `dst_parent_id` MUST reference an existing Parent in the same `app_id`.
@@ -204,24 +171,24 @@ An Edge record includes:
 * Exactly one destination selector MUST be set.
 * Edge ownership is permanent.
 
-### 8.4 Explicitly allowed
+### 6.4 Explicitly allowed
 
 * Creation of an Edge with valid source and destination references.
 * Updating destination or value fields, if supported and externally authorized, while preserving invariants.
 
-### 8.5 Explicitly forbidden
+### 6.5 Explicitly forbidden
 
 * Setting both destination selectors or neither.
 * Changing `owner_identity` or `type_id`.
 * Creating an Edge with unresolved references.
 
-## 9. Rating
+## 7. Rating
 
-### 9.1 Definition
+### 7.1 Definition
 
 A Rating represents a typed evaluation issued by an identity toward a target object.
 
-### 9.2 Required fields
+### 7.2 Required fields
 
 A Rating record includes:
 
@@ -229,26 +196,26 @@ A Rating record includes:
 * `target_parent_id` or `target_attr_id`. Exactly one MUST be present.
 * `value_json`. Optional, schema defined payload.
 
-### 9.3 Structural invariants
+### 7.3 Structural invariants
 
 * Target references MUST resolve within the same `app_id`.
 * Exactly one target selector MUST be set.
 * Rating ownership is permanent.
 
-### 9.4 Explicitly allowed
+### 7.4 Explicitly allowed
 
 * Creation of a Rating targeting a valid object.
-* Updating `value_json` only, if supported and externally authorized.
+* Updating `value_json` only, if updates are supported and externally authorized.
 
-### 9.5 Explicitly forbidden
+### 7.5 Explicitly forbidden
 
 * Changing `owner_identity` or `type_id`.
 * Targeting non-existent objects.
 * Cross application targeting.
 
-## 10. ACL
+## 8. ACL
 
-### 10.1 Definition
+### 8.1 Definition
 
 ACL is a canonical object category used to express authorization structures as graph data.
 
@@ -257,19 +224,19 @@ ACL is represented as:
 * A Parent that serves as the ACL root.
 * A constrained set of Attributes attached to that Parent.
 
-### 10.2 Structural invariants
+### 8.2 Structural invariants
 
 * ACL structures MUST be representable using only Parent and Attribute records.
 * All ACL objects MUST reside within a single `app_id` scope, unless explicitly defined as system scope elsewhere.
 
-### 10.3 Explicitly forbidden
+### 8.3 Explicitly forbidden
 
 * Representing ACL data as a separate storage category.
 * Introducing cross application references not permitted by the ACL model.
 
-## 11. Application domain isolation
+## 9. Application domain isolation
 
-### 11.1 Isolation invariant
+### 9.1 Isolation invariant
 
 For all object categories:
 
@@ -282,14 +249,14 @@ This applies to:
 * Rating target references.
 * ACL related attachments.
 
-### 11.2 Explicitly forbidden
+### 9.2 Explicitly forbidden
 
 * Accepting objects that reference other application domains.
 * Accepting objects that rely on implicit domain inheritance.
 
-## 12. Inputs, outputs, and trust boundaries
+## 10. Inputs, outputs, and trust boundaries
 
-### 12.1 Inputs
+### 10.1 Inputs
 
 The object model evaluates proposed object mutations that include:
 
@@ -297,24 +264,22 @@ The object model evaluates proposed object mutations that include:
 * Required fields for that category.
 * Declared `owner_identity`.
 
-Authentication, [signature verification](04-cryptography.md), [schema validation](../02-architecture/managers/05-schema-manager.md), and [ACL evaluation](06-access-control-model.md) are assumed to occur outside this specification.
-
-### 12.2 Outputs
+### 10.2 Outputs
 
 The object model produces one of two outcomes:
 
 * Accept. The object satisfies all structural constraints.
 * Reject. One or more constraints are violated.
 
-### 12.3 Trust boundaries
+### 10.3 Trust boundaries
 
 * Caller supplied fields are not trusted.
 * Object existence checks must be explicit.
 * [Structural validation](03-serialization-and-envelopes.md) is mandatory before any [persistence](../03-data/01-sqlite-layout.md).
 
-## 13. Failure and rejection behavior
+## 11. Failure and rejection behavior
 
-### 13.1 Rejection conditions
+### 11.1 Rejection conditions
 
 A proposed mutation MUST be rejected if:
 
@@ -324,13 +289,13 @@ A proposed mutation MUST be rejected if:
 * Application domain isolation is violated.
 * An immutable field would be modified.
 
-### 13.2 Failure handling guarantees
+### 11.2 Failure handling guarantees
 
 * Rejection produces no partial persistence.
 * Rejection is deterministic given the proposed mutation and current graph state.
 * Rejection reasons must distinguish structural violations from external [validation](../02-architecture/managers/05-schema-manager.md) failures.
 
-## 14. Guarantees summary
+## 12. Guarantees summary
 
 When enforced as specified, this object model guarantees:
 
