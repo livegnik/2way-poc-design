@@ -4,20 +4,11 @@
 
 # 08 Network transport requirements
 
-## 1. Purpose and scope
+Defines transport-layer responsibilities and envelope handling for 2WAY.
+Specifies transport invariants, permitted behavior, and failure signaling.
+Defines boundaries, trust assumptions, and compliance criteria for transport implementations.
 
-This document defines the normative requirements for the network transport layer of the 2WAY protocol. It specifies the responsibilities, invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling of the transport abstraction as required by the PoC build guide. It does not define concrete network implementations, routing mechanisms, [cryptographic formats](04-cryptography.md), or [sync logic](07-sync-and-consistency.md) beyond transport level constraints. All higher level protocol semantics are defined elsewhere.
-
-This specification references:
-
-- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-- [04-cryptography.md](04-cryptography.md)
-- [05-keys-and-identity.md](05-keys-and-identity.md)
-- [06-access-control-model.md](06-access-control-model.md)
-- [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md)
-
-## 2. Position in the system
+## 1. Position in the system
 
 The network transport layer provides best effort delivery of opaque envelopes between peers.
 
@@ -28,7 +19,7 @@ It operates:
 
 The transport layer is not a trust boundary and must be treated as adversarial by all consuming components.
 
-## 3. Responsibilities and boundaries
+## 2. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
@@ -57,7 +48,7 @@ This specification does not cover the following:
 
 All correctness and security guarantees are enforced above this layer, including those in [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md).
 
-## 4. Invariants and guarantees
+## 3. Invariants and guarantees
 
 The transport layer must maintain the following invariants:
 
@@ -81,7 +72,7 @@ The transport layer provides no guarantees of:
 - Availability.
 - Peer honesty or correctness.
 
-## 5. Transport abstraction requirements
+## 4. Transport abstraction requirements
 
 Any transport implementation used by the PoC must expose the following abstract capabilities:
 
@@ -92,7 +83,7 @@ Any transport implementation used by the PoC must expose the following abstract 
 
 Peer references provided by the transport are advisory only and must not be treated as [identity assertions](05-keys-and-identity.md).
 
-## 6. Allowed behaviors
+## 5. Allowed behaviors
 
 The transport layer is permitted to:
 
@@ -105,7 +96,7 @@ The transport layer is permitted to:
 
 All higher layers must remain correct under these behaviors.
 
-## 7. Forbidden behaviors
+## 6. Forbidden behaviors
 
 The transport layer must not:
 
@@ -117,7 +108,7 @@ The transport layer must not:
 - Infer trust, reputation, or intent.
 - Persist envelope contents for analysis or replay.
 
-## 8. Trust boundaries
+## 7. Trust boundaries
 
 All data received from the transport layer crosses an untrusted boundary.
 
@@ -129,9 +120,9 @@ Transport level peer identifiers:
 
 All binding between envelopes and identities occurs through [cryptographic verification](04-cryptography.md) at higher layers.
 
-## 9. Interaction with other components
+## 8. Interaction with other components
 
-### 9.1 Inputs
+### 8.1 Inputs
 
 The transport layer accepts:
 
@@ -139,7 +130,7 @@ The transport layer accepts:
 - Peer addressing or routing references.
 - Connection lifecycle directives from the [Network Manager](../02-architecture/managers/10-network-manager.md).
 
-### 9.2 Outputs
+### 8.2 Outputs
 
 The transport layer emits:
 
@@ -149,7 +140,7 @@ The transport layer emits:
 - Delivery failure or timeout events.
 - Connection telemetry including byte counters, message counters, timing samples, and resource pressure metrics suitable for [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) analysis and [Event Manager](../02-architecture/managers/11-event-manager.md) observability. All telemetry remains advisory and unauthenticated.
 
-### 9.3 Consumers
+### 8.3 Consumers
 
 Transport outputs may be consumed only by:
 
@@ -159,13 +150,13 @@ Transport outputs may be consumed only by:
 
 No other component may directly access the transport.
 
-### 9.4 Telemetry propagation
+### 8.4 Telemetry propagation
 
 - Transport implementations must surface connection lifecycle events, delivery failures, timeouts, disconnects, and associated telemetry so that the [Network Manager](../02-architecture/managers/10-network-manager.md) can forward them to [Event Manager](../02-architecture/managers/11-event-manager.md) and [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) without mutation.
 - Telemetry may include byte counters, message counters, routing metadata, latency samples, and local resource pressure indicators. All such data is advisory and must not be treated as authenticated identity or authorization evidence.
 - [State Manager](../02-architecture/managers/09-state-manager.md) consumes only the verified package deliveries supplied by [Network Manager](../02-architecture/managers/10-network-manager.md); telemetry shared with State Manager is limited to the readiness signals necessary for [sync](07-sync-and-consistency.md) scheduling and may not expose raw transport payloads.
 
-## 10. Failure and rejection handling
+## 9. Failure and rejection handling
 
 On delivery failure:
 
@@ -186,7 +177,7 @@ On peer misbehavior:
 
 All recovery, retry, reconciliation, and penalty logic is defined above the transport layer.
 
-## 11. Security assumptions
+## 10. Security assumptions
 
 The transport layer is assumed to be:
 
@@ -197,7 +188,7 @@ The transport layer is assumed to be:
 
 All protocol security properties defined elsewhere must hold under these assumptions without relying on transport guarantees.
 
-## 12. Compliance criteria
+## 11. Compliance criteria
 
 A transport implementation is compliant with this specification if and only if:
 
