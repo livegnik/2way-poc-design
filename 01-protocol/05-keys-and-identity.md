@@ -4,44 +4,13 @@
 
 # 05 Keys and Identity
 
-## 1. Purpose and scope
+Defines protocol identity and key representations for 2WAY.
+Specifies key binding, authorship assertion, and signature verification rules.
+Defines identity invariants, allowed/forbidden behaviors, and rejection conditions.
 
-This document defines the protocol-level model for identities and cryptographic keys in 2WAY. It specifies how identities are represented in the graph, how public keys are bound to identities, how authorship is asserted and verified, and which invariants and failure conditions apply. It is limited to protocol semantics. Storage, rotation procedures, revocation mechanics, transport encryption, ACL evaluation, and device or app policy are defined in other documents and are only referenced where required for correctness.
+## 1. Identity model
 
-This specification references:
-
-- [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)
-- [02-object-model.md](02-object-model.md)
-- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-- [04-cryptography.md](04-cryptography.md)
-- [06-access-control-model.md](06-access-control-model.md)
-- [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [08-network-transport-requirements.md](08-network-transport-requirements.md)
-
-This document is normative for all 2WAY-compliant implementations.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-- The definition of an identity at the protocol level.
-- The binding between identities and public keys.
-- The rules for authorship and ownership attribution.
-- The requirements for identity references and signatures in envelopes.
-- Mandatory invariants and rejection conditions related to identity and keys.
-
-This specification does not cover the following:
-
-- Key generation or entropy requirements.
-- Private key storage or protection (see [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md)).
-- Key rotation, revocation, or recovery workflows (see [02-architecture/managers/03-key-manager.md](../02-architecture/managers/03-key-manager.md)).
-- Transport-level confidentiality (see [04-cryptography.md](04-cryptography.md)).
-- [Authorization rules](06-access-control-model.md) or permission evaluation.
-- [Application-specific identity semantics](02-object-model.md).
-
-## 3. Identity model
-
-### 3.1 Identity representation
+### 1.1 Identity representation
 
 An identity is a first-class protocol entity that represents an actor capable of authorship.
 
@@ -54,7 +23,7 @@ An identity exists if and only if:
 
 Identities are not inferred, implicit, or contextual. All identities are explicit [graph objects](02-object-model.md).
 
-### 3.2 Identity scope
+### 1.2 Identity scope
 
 Identities may represent:
 
@@ -66,9 +35,9 @@ Identities may represent:
 
 The protocol does not distinguish these categories at the identity layer. Distinctions, if any, are imposed by [schema](../02-architecture/managers/05-schema-manager.md), [ACL](06-access-control-model.md), or application logic.
 
-## 4. Key model
+## 2. Key model
 
-### 4.1 Key type
+### 2.1 Key type
 
 Keys are asymmetric cryptographic keypairs.
 
@@ -78,9 +47,7 @@ Protocol requirements for keys:
 - The private key is never represented in the graph or transmitted.
 - Each keypair uniquely identifies a signing authority.
 
-The specific algorithms and encodings are defined in [04-cryptography.md](04-cryptography.md) and the PoC build guide.
-
-### 4.2 Key binding
+### 2.2 Key binding
 
 A public key is bound to an identity by being attached as an [Attribute](02-object-model.md) to the identity Parent.
 
@@ -92,9 +59,9 @@ Key binding rules:
 
 Multiple public keys may be bound to the same identity Parent, subject to [schema](../02-architecture/managers/05-schema-manager.md) and [ACL](06-access-control-model.md) constraints.
 
-## 5. Authorship and signatures
+## 3. Authorship and signatures
 
-### 5.1 Authorship assertion
+### 3.1 Authorship assertion
 
 Every [operation envelope](03-serialization-and-envelopes.md) declares exactly one author identity.
 
@@ -105,7 +72,7 @@ Authorship is asserted by:
 
 The backend never infers authorship from [transport](08-network-transport-requirements.md), session state, or network metadata.
 
-### 5.2 Signature verification
+### 3.2 Signature verification
 
 An operation is considered authentic if and only if:
 
@@ -115,9 +82,9 @@ An operation is considered authentic if and only if:
 
 Signature verification is mandatory and precedes all other validation steps, including [schema validation](../02-architecture/managers/05-schema-manager.md) and [ACL evaluation](06-access-control-model.md).
 
-## 6. Invariants and guarantees
+## 4. Invariants and guarantees
 
-### 6.1 Mandatory invariants
+### 4.1 Mandatory invariants
 
 The following invariants are enforced by the protocol:
 
@@ -127,7 +94,7 @@ The following invariants are enforced by the protocol:
 - Identity Parents are immutable after creation.
 - Public keys cannot change identity ownership.
 
-### 6.2 Guarantees
+### 4.2 Guarantees
 
 The protocol guarantees:
 
@@ -136,7 +103,7 @@ The protocol guarantees:
 - Structural prevention of identity impersonation.
 - Independence of identity verification from network trust.
 
-## 7. Allowed behaviors
+## 5. Allowed behaviors
 
 The following behaviors are explicitly allowed:
 
@@ -145,7 +112,7 @@ The following behaviors are explicitly allowed:
 - Using identities for users, nodes, services, or delegated actors.
 - Rejecting identities that violate [schema](../02-architecture/managers/05-schema-manager.md) or validation rules.
 
-## 8. Forbidden behaviors
+## 6. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
@@ -156,9 +123,9 @@ The following behaviors are explicitly forbidden:
 - Inferring identity from IP address, session, or [transport](08-network-transport-requirements.md) channel.
 - Treating unsigned or partially signed data as authoritative.
 
-## 9. Interaction with other components
+## 7. Interaction with other components
 
-### 9.1 Inputs
+### 7.1 Inputs
 
 This specification consumes:
 
@@ -166,14 +133,14 @@ This specification consumes:
 - Public key [Attributes](02-object-model.md) stored on identity Parents.
 - [Schema definitions](../02-architecture/managers/05-schema-manager.md) that classify identity Parents and key Attributes.
 
-### 9.2 Outputs
+### 7.2 Outputs
 
 This specification produces:
 
 - A verified or rejected identity assertion.
 - A resolved author identity for downstream components.
 
-### 9.3 Trust boundaries
+### 7.3 Trust boundaries
 
 Identity and signature verification occurs before:
 
@@ -183,7 +150,7 @@ Identity and signature verification occurs before:
 
 No component may bypass identity verification.
 
-## 10. Failure and rejection behavior
+## 8. Failure and rejection behavior
 
 An operation must be rejected if any of the following conditions occur:
 
@@ -201,7 +168,7 @@ Rejected operations:
 
 Rejection is final for the envelope.
 
-## 11. Compliance requirements
+## 9. Compliance requirements
 
 An implementation is compliant with this specification if and only if:
 
