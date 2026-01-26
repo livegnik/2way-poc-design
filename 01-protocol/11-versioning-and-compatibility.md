@@ -4,39 +4,13 @@
 
 # 11 Versioning and compatibility
 
-## 1. Purpose and scope
+Defines protocol version identifiers and compatibility rules for 2WAY peers.
+Specifies compatibility validation boundaries and rejection behavior.
+Defines allowed/forbidden cross-version interactions and guarantees.
 
-This document defines protocol versioning and compatibility rules for 2WAY. It specifies how protocol versions are represented, how peers determine compatibility, and how version mismatches are handled. This file applies strictly to the protocol layer. It does not define application versioning, [schema evolution](../02-architecture/managers/05-schema-manager.md), [storage migrations](../03-data/01-sqlite-layout.md), API versioning, or deployment concerns.
+## 1. Protocol version identifier
 
-This specification references:
-
-- [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)
-- [06-access-control-model.md](06-access-control-model.md)
-- [07-sync-and-consistency.md](07-sync-and-consistency.md)
-- [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-- Defining the protocol version identifier and its interpretation.
-- Defining compatibility requirements between peers.
-- Defining allowed and forbidden interactions across protocol versions.
-- Defining mandatory failure behavior when versions are incompatible.
-- Preserving protocol safety, determinism, and security guarantees across versions.
-
-This specification does not cover the following:
-
-- Schema compatibility or schema migration rules (see [02-architecture/managers/05-schema-manager.md](../02-architecture/managers/05-schema-manager.md)).
-- Application or service feature negotiation.
-- Backend or frontend API versioning.
-- Database layout evolution (see [03-data/01-sqlite-layout.md](../03-data/01-sqlite-layout.md)).
-- Transport negotiation or transport versioning (see [08-network-transport-requirements.md](08-network-transport-requirements.md)).
-- Upgrade orchestration or rollout strategy.
-
-## 3. Protocol version identifier
-
-### 3.1 Representation
+### 1.1 Representation
 
 The protocol version is represented as a tuple of three integers:
 
@@ -46,7 +20,7 @@ The protocol version is represented as a tuple of three integers:
 
 The tuple is compared lexicographically.
 
-### 3.2 Interpretation
+### 1.2 Interpretation
 
 The semantic meaning of each component is as follows:
 
@@ -56,9 +30,9 @@ The semantic meaning of each component is as follows:
 
 Patch version differences must not affect compatibility decisions or runtime behavior.
 
-## 4. Compatibility rules
+## 2. Compatibility rules
 
-### 4.1 Compatibility definition
+### 2.1 Compatibility definition
 
 Two peers are protocol compatible if and only if all of the following conditions hold:
 
@@ -68,7 +42,7 @@ Two peers are protocol compatible if and only if all of the following conditions
 
 Compatibility is asymmetric. A peer implementing a higher minor version may accept peers implementing lower minor versions of the same major version. The reverse is forbidden.
 
-### 4.2 Compatibility guarantees
+### 2.2 Compatibility guarantees
 
 When compatibility conditions are satisfied, the following guarantees apply:
 
@@ -79,9 +53,9 @@ When compatibility conditions are satisfied, the following guarantees apply:
 
 No guarantees are made regarding availability of features introduced after the negotiated minor version.
 
-## 5. Version declaration and validation
+## 3. Version declaration and validation
 
-### 5.1 Declaration requirement
+### 3.1 Declaration requirement
 
 A peer must declare its protocol version during any interaction that establishes protocol state or trust, including:
 
@@ -90,7 +64,7 @@ A peer must declare its protocol version during any interaction that establishes
 
 Version declarations are treated as untrusted input.
 
-### 5.2 Validation boundary
+### 3.2 Validation boundary
 
 Protocol version compatibility must be evaluated before any of the following occur:
 
@@ -101,9 +75,9 @@ Protocol version compatibility must be evaluated before any of the following occ
 
 If compatibility cannot be established, the interaction must not proceed.
 
-## 6. Allowed and forbidden behaviors
+## 4. Allowed and forbidden behaviors
 
-### 6.1 Explicitly allowed behaviors
+### 4.1 Explicitly allowed behaviors
 
 The following behaviors are allowed:
 
@@ -111,7 +85,7 @@ The following behaviors are allowed:
 - Restricting protocol behavior to the feature set defined by the negotiated minor version.
 - Maintaining concurrent connections to peers running different minor versions of the same major version.
 
-### 6.2 Explicitly forbidden behaviors
+### 4.2 Explicitly forbidden behaviors
 
 The following behaviors are forbidden:
 
@@ -122,29 +96,29 @@ The following behaviors are forbidden:
 
 Forbidden behavior must result in rejection.
 
-## 7. Interaction with other components
+## 5. Interaction with other components
 
-### 7.1 Inputs
+### 5.1 Inputs
 
 This specification consumes the following inputs:
 
 - Declared protocol version from a remote peer.
 - Locally configured protocol version.
 
-### 7.2 Outputs
+### 5.2 Outputs
 
 This specification produces the following outputs:
 
 - A compatibility decision, compatible or incompatible.
 - An effective protocol version, defined as the remote peer minor version when compatible.
 
-### 7.3 Trust boundary
+### 5.3 Trust boundary
 
 This specification operates at the boundary between local protocol logic and remote peers (see [08-network-transport-requirements.md](08-network-transport-requirements.md)). No assumptions are made about correctness, honesty, or completeness of remote declarations.
 
-## 8. Failure and rejection behavior
+## 6. Failure and rejection behavior
 
-### 8.1 Incompatible versions
+### 6.1 Incompatible versions
 
 If protocol versions are incompatible, the system must:
 
@@ -153,11 +127,11 @@ If protocol versions are incompatible, the system must:
 - Perform no [sync](07-sync-and-consistency.md) processing.
 - Release or avoid allocating protocol resources.
 
-### 8.2 Invalid version declarations
+### 6.2 Invalid version declarations
 
 If a version declaration is missing, malformed, or semantically invalid, it must be treated as incompatible and rejected.
 
-### 8.3 Late detection
+### 6.3 Late detection
 
 If incompatibility is detected after partial interaction, the system must:
 
@@ -167,9 +141,9 @@ If incompatibility is detected after partial interaction, the system must:
 
 No retry or downgrade behavior is defined at the protocol level.
 
-## 9. Invariants and guarantees
+## 7. Invariants and guarantees
 
-### 9.1 Invariants
+### 7.1 Invariants
 
 The following invariants must always hold:
 
@@ -177,7 +151,7 @@ The following invariants must always hold:
 - Version mismatch cannot weaken security or validation guarantees.
 - Protocol behavior is deterministic within a negotiated version.
 
-### 9.2 Guarantees
+### 7.2 Guarantees
 
 The protocol provides the following guarantees:
 
