@@ -4,23 +4,11 @@
 
 # 01 Services vs Apps
 
-## 1. Purpose and scope
+Defines how services and applications are separated in the 2WAY backend architecture.
+Specifies invariants for service/app isolation, OperationContext usage, and manager-only authority.
+Defines service classes, app responsibilities, and interaction rules across trust boundaries.
 
-This specification defines how backend services and applications relate inside the 2WAY PoC architecture. It explains why services and applications are separate architectural constructs, enumerates the invariants that keep them isolated, and provides implementation rules that every conforming backend must follow. It binds the component model, manager responsibilities, and OperationContext requirements into a single consumable contract that backend implementers must follow when writing system services, optional app extensions, or frontend applications that target this backend.
-
-This document does not redefine schemas, ACL policy, serialization, cryptography, or other protocol-level mechanics. Those topics remain governed by their dedicated specifications, and this document consumes them without restating their guarantees.
-
-This specification references the following documents:
-
-* `01-protocol/**`
-* `02-architecture/01-component-model.md`
-* `02-architecture/managers/00-managers-overview.md`
-* `02-architecture/managers/**`
-* `02-architecture/services-and-apps/05-operation-context.md`
-
-Those documents remain normative for their respective domains.
-
-## 2. Terminology and classification
+## 1. Terminology and classification
 
 * **Service** : A backend module that executes inside the node process, translates high level intent into manager calls, and never owns protocol invariants. Two classes exist: system services and app extension services.
 * **System service** : A mandatory service that ships with every node. System services implement shared functionality (bootstrap, provisioning, feeds, sync helpers, etc.). They have no owner app and cannot be removed by app uninstallations.
@@ -40,7 +28,7 @@ The following table summarizes the primary distinctions:
 | Isolation boundary | Service boundary only | App domain boundary | App domain boundary plus frontend trust boundary |
 | Removal impact | Requires migration or replacement | Must be removable without global impact | User choice |
 
-## 3. Architectural positioning
+## 2. Architectural positioning
 
 1. Managers enforce protocol invariants. Services, regardless of class, are orchestration layers that assemble manager calls. Apps own UX and policy semantics but never mutate manager state directly.
 2. Apps define namespaces, ACL policy, schemas, and UI semantics. A backend service may exist without an app (system service) or be tethered to exactly one app (extension), but an app may also live without any backend code (frontend only experience).
@@ -48,9 +36,9 @@ The following table summarizes the primary distinctions:
 4. OperationContext ties apps, services, and managers together. Every service invocation must name an application domain (often `app_0` for system work) even when the caller is a system service. Frontend apps must provide enough context for the backend to bind an OperationContext before invoking services.
 5. Deployments must ensure services and apps evolve independently. A service upgrade cannot assume frontend behavior, and frontend updates cannot change backend invariants.
 
-## 4. Service classes and invariants
+## 3. Service classes and invariants
 
-### 4.1 System services
+### 3.1 System services
 
 System services implement functionality that is required for every conforming node, such as account provisioning, identity graph helpers, base feeds, sync planners, or administrative APIs. Architectural requirements include:
 
@@ -61,7 +49,7 @@ System services implement functionality that is required for every conforming no
 * **Observability** : They must emit structured logs through Log Manager and register health checks through Health Manager so that backend supervisors can determine readiness and liveness.
 * **Upgrade path** : Since they are mandatory, system services must support rolling schema or ACL migrations by coordinating with Schema Manager and Graph Manager explicitly.
 
-### 4.2 App extension services
+### 3.2 App extension services
 
 App extension services extend backend behavior for a specific application. Requirements:
 
@@ -72,18 +60,18 @@ App extension services extend backend behavior for a specific application. Requi
 * **Fault containment** : App Manager must be able to disable a faulty extension while leaving the rest of the backend operational. Extensions must therefore expose a stop hook and avoid shared memory outside their module.
 * **Capability limits** : Extension services cannot: register system services, claim system app identifiers, call other extensions directly, or declare their own trust boundaries.
 
-### 4.3 Shared service requirements
+### 3.3 Shared service requirements
 
 Regardless of class, every service must comply with the following rules (restating the component model and manager specifications):
 
 1. **OperationContext discipline** : Services must construct a complete OperationContext for every manager invocation, including caller identity, device identity, app identity, capability intent, and request correlation metadata. Missing or malformed context is a rejection reason.
-2. **Manager-only state access** : Services never access SQLite, key files, or network sockets; only Storage Manager, Key Manager, and Network Manager may do so. Services call the managers’ public methods.
+2. **Manager-only state access** : Services never access SQLite, key files, or network sockets; only Storage Manager, Key Manager, and Network Manager may do so. Services call the managers� public methods.
 3. **Fail-closed posture** : Ambiguous conditions result in rejection, not default success. Services must bubble up manager rejections unchanged so that frontend apps see authoritative failures.
 4. **Concurrency** : Services may spawn worker tasks but must never bypass the serialized write path. Any background task that mutates state must funnel its work through Graph Manager under a fresh OperationContext.
 5. **Configuration** : Services read configuration solely via Config Manager. The configuration contract must be declared so deployment tooling knows which values are required.
 6. **Observability** : Log Manager is mandatory for audit trails; Health Manager is mandatory for component liveness; Event Manager is optional but recommended for emitting domain events.
 
-### 4.4 Forbidden service behaviors
+### 3.4 Forbidden service behaviors
 
 * Defining new trust boundaries or authorization shortcuts outside ACL Manager.
 * Acting on partially validated envelopes or OperationContext data.
@@ -91,9 +79,9 @@ Regardless of class, every service must comply with the following rules (restati
 * Calling into frontend code or relying on UI state to preserve correctness.
 * Invoking remote peers directly or opening sockets; all outbound or inbound network I/O must flow through Network Manager and DoS Guard Manager.
 
-## 5. Application layers and responsibilities
+## 4. Application layers and responsibilities
 
-### 5.1 Application identity and namespace
+### 4.1 Application identity and namespace
 
 Applications exist independently of services. Registration, slug assignment, `app_id` allocation, and identity binding are the sole domain of App Manager (`02-architecture/managers/08-app-manager.md`). Applications provide:
 
@@ -104,7 +92,7 @@ Applications exist independently of services. Registration, slug assignment, `ap
 
 Applications are authoritative for their own schemas and ACL rules but must obey system constraints (e.g., no schema that bypasses required auditing fields). Schemas must be compiled and loaded through Schema Manager even when authored by apps.
 
-### 5.2 Backend extension binding
+### 4.2 Backend extension binding
 
 If an application declares backend logic, it ships an extension module that App Manager wires into the backend. Implementation rules:
 
@@ -112,7 +100,7 @@ If an application declares backend logic, it ships an extension module that App 
 * Extension modules must be versioned. Upgrades require compatibility shims or explicit data migration steps executed through Graph Manager.
 * Module initialization occurs after the owning application schema loads but before the backend advertises readiness. Initialization may enqueue background work but cannot mutate graph state until OperationContext creation is possible.
 
-### 5.3 Frontend applications
+### 4.3 Frontend applications
 
 Frontend apps (native, mobile, CLI, or web) consume backend APIs or sync flows defined by system or extension services. Requirements:
 
@@ -121,15 +109,15 @@ Frontend apps (native, mobile, CLI, or web) consume backend APIs or sync flows d
 * Frontend apps must track the `app_id` they belong to and send it with every request, enabling the backend to bind OperationContext and enforce ACL rules.
 * Frontend apps may be multi-surface (e.g., local UI + remote automation) but all surfaces share the same app identity and backend permissions.
 
-### 5.4 App-service coordination
+### 4.4 App-service coordination
 
 * Apps specify which services handle their backend requests. System services may refuse app traffic if schemas or ACLs are misconfigured.
 * Services expose explicit APIs that name the app domains they are willing to serve. For example, a social feed system service may accept requests from any app that adheres to a given schema contract, whereas a ledger extension service only accepts requests from its own app.
 * Apps must not assume that a service exists. Frontend apps must handle `503 Service Unavailable` or explicit rejection responses when a required extension is missing.
 
-## 6. Interaction model
+## 5. Interaction model
 
-### 6.1 Local frontend to backend request flow
+### 5.1 Local frontend to backend request flow
 
 1. Frontend app issues a request to an HTTP/WebSocket endpoint owned by a service.
 2. Interface layer authenticates the caller via Auth Manager, building an initial OperationContext skeleton (user, device, session, app identifier).
@@ -138,7 +126,7 @@ Frontend apps (native, mobile, CLI, or web) consume backend APIs or sync flows d
 5. Service invokes managers in the required order (Schema -> ACL -> Graph -> Storage -> Event) per the data flow rules in `02-architecture/04-data-flow-overview.md`.
 6. Manager responses propagate back to the frontend app unchanged, with logging and metrics recorded through Log Manager and Health Manager.
 
-### 6.2 Backend extension initiated work
+### 5.2 Backend extension initiated work
 
 Extensions may run scheduled work (e.g., a digest generator). Requirements:
 
@@ -146,7 +134,7 @@ Extensions may run scheduled work (e.g., a digest generator). Requirements:
 * Each job constructs a synthetic OperationContext that clearly states it is automation (e.g., `actor_type=automation`). ACL Manager must see the owning app identity and enforce policy accordingly.
 * Jobs must respect DoS Guard quotas when enqueueing tasks that will result in outbound network traffic via Network Manager.
 
-### 6.3 Remote peer interactions
+### 5.3 Remote peer interactions
 
 When remote nodes send sync packages tied to a particular application:
 
@@ -154,7 +142,7 @@ When remote nodes send sync packages tied to a particular application:
 * Services must not assume remote peers share the same schema versions. Schema Manager and ACL Manager enforce compatibility and access rules, and the service either rejects the package or invokes Graph Manager for permissible mutations.
 * Services cannot respond directly; Network Manager owns transmission. Services hand responses to State Manager or Event Manager depending on the flow.
 
-## 7. OperationContext authorship rules
+## 6. OperationContext authorship rules
 
 OperationContext unifies services and apps. Mandatory rules (expanding on `02-architecture/services-and-apps/05-operation-context.md` once implemented):
 
@@ -164,16 +152,16 @@ OperationContext unifies services and apps. Mandatory rules (expanding on `02-ar
 4. **Traceability** : Correlation IDs, timestamps, and service identifiers are required so Log Manager can reconstruct flows. Lack of traceability is a structural error.
 5. **Immutability** : Once constructed, OperationContext is immutable. Services pass it verbatim to managers. Any attempt to mutate mid-flight is rejected by instrumentation wrappers.
 
-## 8. Data ownership and cross-app behavior
+## 7. Data ownership and cross-app behavior
 
 * Graph data belongs to the app domain where it was created, even when a system service orchestrated the mutation. Cross-app reads or writes require explicit ACL policy and Schema Manager validation. This enforces the isolation rules in `01-protocol/02-object-model.md`.
 * Services may offer shared functionality that spans apps (e.g., a messaging service) but the data always resides in a concrete app domain chosen at object creation. Shared services must not create hidden global namespaces.
 * When services aggregate data across apps, they must ensure OperationContext expresses the requesting app so ACL Manager can mask unauthorized rows.
 * Ratings and suppression signals remain app scoped. Services cannot delete or mutate another app's objects; they can only request Ratings or new objects that reference targeted objects per the data flow spec.
 
-## 9. Lifecycle and deployment ordering
+## 8. Lifecycle and deployment ordering
 
-### 9.1 Startup sequence
+### 8.1 Startup sequence
 
 1. Managers initialize and declare readiness (Config, Storage, Key, Schema, ACL, Graph, App, etc.).
 2. App Manager loads application registry, binds identities, and prepares backend extension metadata.
@@ -181,19 +169,19 @@ OperationContext unifies services and apps. Mandatory rules (expanding on `02-ar
 4. App extension services load only after their owning application schema passes validation. Any failure aborts backend startup or results in the extension being skipped with an audit log entry.
 5. Frontend endpoints are registered only after the owning service declares readiness. Partially initialized services must not receive traffic.
 
-### 9.2 Shutdown sequence
+### 8.2 Shutdown sequence
 
 * Services receive a stop signal and must quiesce, rejecting new work while completing in-flight operations within a bounded timeout.
 * Extension services must flush derived caches and persist checkpoint metadata via Storage Manager if they need fast resume.
 * App Manager marks extensions as stopped before managers shut down so no background job attempts to run without manager support.
 
-### 9.3 Installation and upgrade
+### 8.3 Installation and upgrade
 
 * Installing an app registers schemas and ACL policies first, then loads backend code. Any schema error halts installation before code executes.
 * Upgrades must be explicitly versioned. Services must support coexistence of requests from older frontend versions by handling backwards-compatible payloads or rejecting unsupported versions with actionable errors.
 * Removing an app unloads its extension service, revokes scheduled jobs, and leaves graph data intact. No other app or service may reuse the freed `app_id`.
 
-## 10. Security posture and failure handling
+## 9. Security posture and failure handling
 
 * All services treat frontend input as hostile even when called from the same device. Validation occurs before manager invocation, and failures propagate unchanged.
 * App extension services have no implicit elevation. They must pass through the same ACL and schema gates as system services.
@@ -201,7 +189,7 @@ OperationContext unifies services and apps. Mandatory rules (expanding on `02-ar
 * Any attempt by an app or service to bypass manager APIs is a fatal configuration error and must stop the backend from accepting traffic until corrected.
 * Services must clearly categorize failures: structural (schema), authorization (ACL), sequencing (Graph), storage, or resource limits. This classification is surfaced in OperationContext for observability.
 
-## 11. Observability, configuration, and policy inputs
+## 10. Observability, configuration, and policy inputs
 
 * Services declare required configuration keys, default values, and dynamic reload behavior through Config Manager. Hot reload is optional but, when supported, services must revalidate inputs before applying them.
 * Every service registers a health endpoint with Health Manager, exposing: readiness (dependencies satisfied), liveness (event loop responsive), and degraded modes (e.g., running without optional peer connections).
@@ -209,7 +197,7 @@ OperationContext unifies services and apps. Mandatory rules (expanding on `02-ar
 * Services emitting domain events must document schemas for those events so downstream subscribers (often frontend apps) can parse them deterministically.
 * Policy inputs (feature flags, ACL templates, schema migrations) are delivered as graph data governed by Schema and ACL rules. Services read them using Storage Manager rather than ad hoc configuration files.
 
-## 12. Implementation checklist
+## 11. Implementation checklist
 
 Before shipping a service or app, verify the following:
 
