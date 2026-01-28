@@ -4,43 +4,11 @@
 
 # 00 Services and Apps Overview
 
-## 1. Purpose and scope
+Defines how services and apps fit into the manager-centric 2WAY architecture.
+Specifies shared invariants, trust boundaries, and lifecycle ordering for services and apps.
+Summarizes end-to-end flows for local requests and remote sync packages.
 
-This overview defines how backend services and applications fit into the 2WAY architecture. It summarizes the shared responsibilities, trust boundaries, and lifecycle guarantees that apply across system services, app backend extension services, and frontend apps. It connects the component model and manager contracts to the concrete service and app specifications without repeating their detailed rules.
-
-This overview is descriptive and binding for structure and boundaries, but it does not restate protocol mechanics, schema grammar, ACL syntax, or interface shapes. Those details remain authoritative in their dedicated specifications.
-
-This overview references:
-
-* [01-protocol/**](../../01-protocol/)
-* [02-architecture/01-component-model.md](../01-component-model.md)
-* [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md)
-* [02-architecture/managers/**](managers/)
-* [02-architecture/managers/00-managers-overview.md](../managers/00-managers-overview.md)
-* [02-architecture/services-and-apps/**](./)
-* [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md)
-* [02-architecture/services-and-apps/02-system-services.md](02-system-services.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md)
-* [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md)
-* [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md)
-* [04-interfaces/**](../../04-interfaces/)
-
-## 2. Responsibilities and boundaries
-
-This overview is responsible for the following:
-
-* Explaining the role of services and apps within the manager-centric architecture.
-* Summarizing the classes of services and applications and how they are distinguished.
-* Highlighting shared invariants: [OperationContext](05-operation-context.md) discipline, manager-only state access, and fail-closed behavior.
-* Describing how services and apps compose into end-to-end request and sync flows.
-
-This overview does not cover the following:
-
-* Protocol object formats, envelope serialization, or cryptographic details ([01-protocol/**](../../01-protocol/)).
-* Manager implementation details beyond their published APIs ([02-architecture/managers/**](../managers/)).
-* Frontend UX or product-specific behavior beyond required trust boundaries.
-
-## 3. Service and application taxonomy
+## 1. Service and application taxonomy
 
 The architecture separates backend orchestration from application identity and frontend experiences. The key constructs are:
 
@@ -53,7 +21,7 @@ The architecture separates backend orchestration from application identity and f
 
 The taxonomy is formalized in [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md). The operational contracts for each class are defined in [02-architecture/services-and-apps/02-system-services.md](02-system-services.md), [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md), and [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md).
 
-## 4. Shared invariants
+## 2. Shared invariants
 
 All services and apps must uphold the following invariants:
 
@@ -63,7 +31,7 @@ All services and apps must uphold the following invariants:
 4. **Trust boundaries**: Services run in-process but are treated as untrusted by managers. Frontend apps are fully untrusted clients.
 5. **App isolation**: App domains are isolated by `app_id`. Cross-app access is allowed only when schema and ACL policy explicitly permit it.
 
-## 5. End-to-end flow summary
+## 3. End-to-end flow summary
 
 Services and apps participate in a single data-flow pipeline governed by managers. The entry path differs for local requests versus remote sync packages, but both converge on the manager sequencing rules.
 
@@ -76,7 +44,7 @@ Services and apps participate in a single data-flow pipeline governed by manager
 
 Services and apps never create alternate write paths. Derived caches are allowed but non-authoritative and rebuilt from graph state.
 
-## 6. Lifecycle and readiness
+## 4. Lifecycle and readiness
 
 Services and apps follow a deterministic lifecycle so readiness is observable and fail-closed:
 
@@ -88,7 +56,7 @@ Services and apps follow a deterministic lifecycle so readiness is observable an
 
 Shutdown reverses this order. Extension services must be unloadable without global impact, and frontend apps must tolerate missing or disabled extensions.
 
-## 7. Document map
+## 5. Document map
 
 Use the following documents for detailed requirements:
 
