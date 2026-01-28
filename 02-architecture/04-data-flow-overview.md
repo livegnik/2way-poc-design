@@ -4,42 +4,11 @@
 
 # 04 Data flow overview
 
-## 1. Purpose and scope
+Defines authoritative data flow paths for 2WAY, including bootstrap, read/write, sync, and rejection handling.
+Specifies ordering, validation, authorization, and persistence boundaries for all flows.
+Defines visibility suppression and event emission semantics.
 
-This document defines the authoritative data flow model for the 2WAY system as implemented in the PoC. It specifies how data enters, moves through, mutates, and exits the system, including bootstrap, user provisioning, validation, authorization, sequencing, persistence, event emission, synchronization, rejection handling, and visibility suppression. It is limited to data flow semantics and boundaries and does not define schemas, envelopes, storage layouts, network formats, or UI behavior except where required for correctness.
-
-This specification references:
-
-* [01-protocol/**](../01-protocol/)
-* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
-* [02-architecture/01-component-model.md](01-component-model.md)
-* [02-architecture/02-runtime-topologies.md](02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md)
-* [02-architecture/managers/**](managers/)
-* [02-architecture/services-and-apps/**](services-and-apps/)
-* [04-interfaces/**](../04-interfaces/)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Defining all allowed data flow paths between frontend, services, managers, storage, and network layers described in [01-component-model.md](01-component-model.md).
-* Defining the required ordering of bootstrap, provisioning, validation, authorization, sequencing, persistence, and emission aligned to [02-architecture/00-architecture-overview.md](00-architecture-overview.md).
-* Defining trust boundaries crossed during data movement as described in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md).
-* Defining allowed and forbidden data movements.
-* Defining rejection and failure propagation behavior.
-* Defining visibility suppression semantics via Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
-
-This specification does not cover the following:
-
-* Envelope structure or serialization details ([01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)).
-* Schema definitions or schema evolution rules ([01-protocol/02-object-model.md](../01-protocol/02-object-model.md)).
-* ACL rule syntax or policy composition ([01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)).
-* Database schemas, indices, or query strategies.
-* Transport protocols, routing, or discovery mechanisms ([01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md)).
-* UI level behavior or frontend state management ([04-interfaces/**](../04-interfaces/)).
-
-## 3. Invariants and guarantees
+## 1. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
@@ -59,7 +28,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 4. Data flow classification
+## 2. Data flow classification
 
 All data movement in the system is classified into the following flow categories:
 
@@ -75,9 +44,9 @@ All data movement in the system is classified into the following flow categories
 
 No other data flow categories are permitted.
 
-## 5. Node bootstrap and user provisioning flows
+## 3. Node bootstrap and user provisioning flows
 
-### 5.1 Scope
+### 3.1 Scope
 
 This section defines two distinct but related flows:
 
@@ -86,7 +55,7 @@ This section defines two distinct but related flows:
 
 For the PoC, frontend and backend execution are assumed to occur on the same physical device, so key generation is performed by the backend without altering trust assumptions, while later versions may relocate key generation without changing the data flow model.
 
-### 5.2 Node bootstrap and Server Graph initialization
+### 3.2 Node bootstrap and Server Graph initialization
 
 #### Inputs
 
@@ -117,7 +86,7 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * Partial bootstrap state is not persisted.
 * Failure leaves the system uninitialized.
 
-### 5.3 User provisioning and User Graph creation
+### 3.3 User provisioning and User Graph creation
 
 #### Inputs
 
@@ -154,14 +123,14 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * No partial user identity or User Graph state is persisted.
 * No events are emitted on failure.
 
-## 6. Local read flow
+## 4. Local read flow
 
-### 6.1 Inputs
+### 4.1 Inputs
 
 * Read request from frontend app or backend service defined in [02-architecture/services-and-apps/**](services-and-apps/).
 * [OperationContext](services-and-apps/05-operation-context.md) containing requester identity, app identity, and domain scope.
 
-### 6.2 Flow
+### 4.2 Flow
 
 * API layer receives request through [04-interfaces/**](../04-interfaces/).
 * [OperationContext](services-and-apps/05-operation-context.md) is constructed.
@@ -171,14 +140,14 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * Service or app backend extension applies deterministic visibility suppression based on accessible Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) where defined.
 * Results are returned to caller.
 
-### 6.3 Allowed behavior
+### 4.3 Allowed behavior
 
 * Visibility filtering based on ACL and domain rules.
 * Deterministic suppression based on Rating interpretation.
 * Read optimization using derived or cached data that is non-authoritative.
 * Read only access to authoritative graph state through [Storage Manager](managers/02-storage-manager.md).
 
-### 6.4 Forbidden behavior
+### 4.4 Forbidden behavior
 
 * Reads that bypass [ACL Manager](managers/06-acl-manager.md) or domain checks.
 * Direct database access by apps or services.
@@ -186,22 +155,22 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * Read optimizations that introduce new authoritative state.
 * Visibility suppression that mutates state.
 
-### 6.5 Failure behavior
+### 4.5 Failure behavior
 
 * Unauthorized reads are rejected without partial results.
 * Domain violations are rejected.
 * Storage failures propagate as read failures without side effects.
 * Cache or derived data failures degrade performance only.
 
-## 7. Local write flow
+## 5. Local write flow
 
-### 7.1 Inputs
+### 5.1 Inputs
 
 * Write request from frontend app or backend service defined in [02-architecture/services-and-apps/**](services-and-apps/).
 * Envelope containing one or more graph operations defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
 * [OperationContext](services-and-apps/05-operation-context.md) containing requester identity, app identity, and domain scope.
 
-### 7.2 Flow
+### 5.2 Flow
 
 * API layer receives request through [04-interfaces/**](../04-interfaces/).
 * [OperationContext](services-and-apps/05-operation-context.md) is constructed.
@@ -213,36 +182,36 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * [Graph Manager](managers/07-graph-manager.md) releases write access.
 * [Event Manager](managers/11-event-manager.md) is notified of committed changes.
 
-### 7.3 Allowed behavior
+### 5.3 Allowed behavior
 
 * Batched graph operations within a single envelope.
 * Deterministic ordering of all writes.
 * Event emission after commit only.
 
-### 7.4 Forbidden behavior
+### 5.4 Forbidden behavior
 
 * Writes outside [Graph Manager](managers/07-graph-manager.md).
 * Writes without schema or ACL validation by [Schema Manager](managers/05-schema-manager.md) or [ACL Manager](managers/06-acl-manager.md).
 * Writes crossing domain boundaries.
 * Concurrent or parallel write paths.
 
-### 7.5 Failure behavior
+### 5.5 Failure behavior
 
 * Validation or authorization failure rejects the envelope.
 * Storage failure rolls back the entire operation.
 * Rejected writes produce no events.
 
-## 8. Visibility suppression via Ratings
+## 6. Visibility suppression via Ratings
 
-### 8.1 Scope
+### 6.1 Scope
 
 Visibility suppression replaces delete semantics in the PoC and is implemented using Rating graph objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
-### 8.2 Inputs
+### 6.2 Inputs
 
 * Write request creating or updating a Rating object targeting another graph object defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
-### 8.3 Flow
+### 6.3 Flow
 
 * Rating enters standard local or remote write flow defined in this document.
 * Rating is validated by [Schema Manager](managers/05-schema-manager.md).
@@ -250,7 +219,7 @@ Visibility suppression replaces delete semantics in the PoC and is implemented u
 * Rating is serialized, sequenced, and persisted like any other object per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
 * [Event Manager](managers/11-event-manager.md) emits rating related events after commit.
 
-### 8.4 Interpretation rules
+### 6.4 Interpretation rules
 
 * Ratings do not remove or alter target objects.
 * Ratings are interpreted at read time by services or apps defined in [02-architecture/services-and-apps/**](services-and-apps/).
@@ -261,57 +230,57 @@ This Rating contains a vote value, where a value of zero represents a suppressio
 
 Additional fields may be present to represent scoring, reactions, comments, or other annotations, with interpretation defined entirely by the consuming app or service.
 
-### 8.5 Allowed behavior
+### 6.5 Allowed behavior
 
 * Per identity private suppression using private Ratings.
 * Shared suppression using Ratings visible to a group or domain.
 * Threshold or aggregate based suppression defined by the app.
 
-### 8.6 Forbidden behavior
+### 6.6 Forbidden behavior
 
 * Physical deletion of objects.
 * Implicit suppression without an explicit Rating.
 * Visibility rules that bypass ACL visibility of Ratings enforced by [ACL Manager](managers/06-acl-manager.md).
 
-### 8.7 Failure behavior
+### 6.7 Failure behavior
 
 * Rating write failures behave as write failures.
 * Invalid Ratings are rejected without affecting target objects.
 
-## 9. Event emission flow
+## 7. Event emission flow
 
-### 9.1 Inputs
+### 7.1 Inputs
 
 * Committed graph mutations.
 * Internal system signals.
 
-### 9.2 Flow
+### 7.2 Flow
 
 * Domain events are emitted.
 * [Event Manager](managers/11-event-manager.md) dispatches events to subscribers.
 * WebSocket layer delivers notifications through [04-interfaces/02-websocket-events.md](../04-interfaces/02-websocket-events.md).
 
-### 9.3 Allowed behavior
+### 7.3 Allowed behavior
 
 * Asynchronous delivery independent of write correctness.
 
-### 9.4 Forbidden behavior
+### 7.4 Forbidden behavior
 
 * Events that mutate state.
 * Direct WebSocket access by non-Event components outside [Event Manager](managers/11-event-manager.md).
 
-### 9.5 Failure behavior
+### 7.5 Failure behavior
 
 * Event delivery failure does not affect state.
 * Dropped connections do not trigger retries.
 
-## 10. Remote ingress flow
+## 8. Remote ingress flow
 
-### 10.1 Inputs
+### 8.1 Inputs
 
 * Signed and encrypted package from remote peer defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 
-### 10.2 Flow
+### 8.2 Flow
 
 * [Network Manager](managers/10-network-manager.md) accepts or rejects the peer connection per [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
 * [DoS Guard Manager](managers/14-dos-guard-manager.md) applies admission control using dynamic difficulty challenges and rate limits per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
@@ -324,32 +293,32 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 * Envelopes are forwarded to [Graph Manager](managers/07-graph-manager.md).
 * Standard local write flow is applied.
 
-### 10.3 Allowed behavior
+### 8.3 Allowed behavior
 
 * Acceptance of remote data only via standard pipelines.
 * Replication of Rating objects by domain and ACL visibility.
 * Rejection of unauthorized or out-of-domain data.
 
-### 10.4 Forbidden behavior
+### 8.4 Forbidden behavior
 
 * Remote writes bypassing [Network Manager](managers/10-network-manager.md) or [DoS Guard Manager](managers/14-dos-guard-manager.md).
 * Remote writes bypassing [State Manager](managers/09-state-manager.md) or [Graph Manager](managers/07-graph-manager.md).
 * Trust based on transport properties alone.
 
-### 10.5 Failure behavior
+### 8.5 Failure behavior
 
 * Invalid signatures or revoked keys cause rejection per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 * Sequence violations cause rejection without partial application per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Rejections are recorded in peer sync state.
 
-## 11. Remote egress flow
+## 9. Remote egress flow
 
-### 11.1 Inputs
+### 9.1 Inputs
 
 * Locally committed graph changes.
 * Per peer sync state tracked by [State Manager](managers/09-state-manager.md).
 
-### 11.2 Flow
+### 9.2 Flow
 
 * [State Manager](managers/09-state-manager.md) selects eligible graph objects by domain and sequence per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Envelopes are constructed per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
@@ -359,56 +328,56 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 * [Network Manager](managers/10-network-manager.md) encrypts the payload for the remote peer per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [Network Manager](managers/10-network-manager.md) transmits the encrypted package over the established connection.
 
-### 11.3 Allowed behavior
+### 9.3 Allowed behavior
 
 * Selective and incremental sync.
 * Propagation of visibility suppression state via Ratings.
 
-### 11.4 Forbidden behavior
+### 9.4 Forbidden behavior
 
 * Sending uncommitted state.
 * Sending data outside declared domains.
 
-### 11.5 Failure behavior
+### 9.5 Failure behavior
 
 * Transmission failure does not affect local state.
 * Retry behavior is controlled exclusively by [State Manager](managers/09-state-manager.md).
 
-## 12. Derived and cached data flow
+## 10. Derived and cached data flow
 
-### 12.1 Scope
+### 10.1 Scope
 
 Derived data includes in-memory indices, caches, and precomputed query results.
 
-### 12.2 Allowed behavior
+### 10.2 Allowed behavior
 
 * Performance optimization only.
 * Rebuild from authoritative graph state.
 
-### 12.3 Forbidden behavior
+### 10.3 Forbidden behavior
 
 * Treating derived data as authoritative.
 * Persisting or syncing derived data.
 
-### 12.4 Failure behavior
+### 10.4 Failure behavior
 
 * Loss degrades performance only.
 * Rebuild requires no network access.
 
-## 13. Rejection propagation and observability
+## 11. Rejection propagation and observability
 
-### 13.1 Guarantees
+### 11.1 Guarantees
 
 * All rejections propagate to the original caller.
 * Remote rejections are reflected in peer sync state.
 * Rejections are observable by [Log Manager](managers/12-log-manager.md) and audit systems.
 
-### 13.2 Forbidden behavior
+### 11.2 Forbidden behavior
 
 * Silent rejection without caller visibility.
 * Partial acceptance of rejected operations.
 
-## 14. Trust boundaries
+## 12. Trust boundaries
 
 The following trust boundaries are explicitly crossed as defined in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md):
 
@@ -423,7 +392,7 @@ At each boundary:
 * Authorization is enforced.
 * Data is validated before acceptance.
 
-## 15. Summary of guarantees
+## 13. Summary of guarantees
 
 This data flow model guarantees:
 
