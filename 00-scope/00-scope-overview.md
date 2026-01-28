@@ -4,46 +4,13 @@
 
 # 00 Scope Overview
 
-## 1. Purpose and scope
+Defines repository-wide invariants and trust boundaries for 2WAY implementations.
+Specifies mandatory enforcement boundaries and sequencing/persistence constraints.
+Constrains handling of invalid input across all interaction surfaces.
 
-This document defines the scope boundary, document authority, and cross-document invariants for the 2WAY system design repository. It establishes what this repository specifies, what it explicitly excludes, and how the contained documents are to be interpreted and reviewed. This document does not define protocol wire formats, storage schemas, or component-level behavior beyond global constraints and invariants; those details live in [01-protocol](../01-protocol/), [02-architecture](../02-architecture/), and [03-data](../03-data/). Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
+## 1. Global invariants and guarantees
 
-This document is normative for determining whether a concern, requirement, or design decision belongs in this repository.
-
-## 2. Responsibilities
-
-This specification is responsible for:
-
-* Defining the scope and authority of the 2WAY design repository.
-* Defining global invariants that apply across protocol, architecture, data, and security specifications.
-* Defining mandatory enforcement boundaries between components, including write paths and trust boundaries.
-* Defining repository-wide guarantees related to sequencing, validation, authorization, and persistence effects.
-* Defining deterministic rejection and failure handling requirements at the scope level.
-* Defining how conflicts between documents in this repository are identified and resolved.
-
-This specification is not responsible for:
-
-* Defining protocol wire formats, envelopes, or serialization rules.
-* Defining detailed component behavior, manager APIs, or service logic.
-* Defining schema meaning, type validation, or value interpretation.
-* Defining authorization rules or ACL evaluation logic.
-* Defining persistence schemas, indexes, migrations, or query behavior.
-* Defining sync ordering, conflict resolution algorithms, or domain selection rules.
-* Defining user interface behavior or frontend interaction design.
-
-## 3. Document authority and consistency
-
-This repository is internally authoritative. All documents contained within it are expected to be mutually consistent and collectively sufficient to implement and review the PoC.
-
-Consistency requirements:
-
-* Apparent conflicts between documents are treated as correctness failures until resolved.
-* More specific documents override more general documents, unless doing so violates invariants defined in this file.
-* No document may introduce behavior that weakens or bypasses the invariants defined here.
-
-## 4. Global invariants and guarantees
-
-### 4.1 Invariants across all interaction surfaces
+### 1.1 Invariants across all interaction surfaces
 
 Across all interaction surfaces, including local HTTP, WebSocket, backend extensions, and remote sync, the following invariants hold:
 
@@ -60,7 +27,7 @@ Across all interaction surfaces, including local HTTP, WebSocket, backend extens
 * All request-scoped work is bound to a complete [`OperationContext`](../02-architecture/services-and-apps/05-operation-context.md).
 * Client-side signing does not bypass backend validation or authorization.
 
-### 4.2 Process and persistence guarantees required by the PoC
+### 1.2 Process and persistence guarantees required by the PoC
 
 The PoC design requires the following guarantees:
 
@@ -69,29 +36,7 @@ The PoC design requires the following guarantees:
 * Write serialization preserves strict monotonic sequencing and prevents write-write races.
 * Rejected operations do not result in any persistent state change.
 
-These guarantees are mandatory for correctness and must not be weakened by implementation choices.
-
-## 5. Allowed behaviors
-
-The design documents in this repository may:
-
-* Define normative constraints that restrict component behavior.
-* Specify validation, authorization, and sequencing rules as correctness requirements.
-* Define failure and rejection behavior where it materially affects correctness or security.
-* Define the PoC inclusion boundary and acceptance definition.
-* Reference other documents in this repository as authoritative sources.
-
-## 6. Forbidden behaviors
-
-The design documents in this repository must not:
-
-* Define any alternate write path that bypasses Graph Manager.
-* Define any direct database write access outside Storage Manager and Graph Manager.
-* Define permission checks outside ACL Manager as a substitute for ACL enforcement.
-* Rely on implicit trust derived from transport properties, network location, or UI context.
-* Introduce protocol or security behavior that materially changes correctness or security without full specification.
-
-## 7. Trust boundaries and interaction constraints
+## 2. Trust boundaries and interaction constraints
 
 This scope definition constrains interactions strictly in terms of inputs, outputs, and trust boundaries.
 
@@ -102,7 +47,7 @@ Normative trust boundaries for the PoC:
 * Backend extension services are untrusted relative to core manager invariants and must not bypass validation, authorization, or sequencing.
 * Debug and inspection interfaces are administrative, read-only, and subject to explicit authorization.
 
-## 8. Failure, rejection, and invalid input handling
+## 3. Failure, rejection, and invalid input handling
 
 This repository requires deterministic rejection behavior for invalid or unauthorized input.
 
@@ -115,16 +60,3 @@ Scope level requirements:
 * Remote sync inputs that are malformed, replayed, unauthorized, or inconsistent with expected sync state are rejected without altering local state.
 
 Error representation and transport specific signaling are defined elsewhere. This document constrains effects only.
-
-## 9. Relationship to other scope documents
-
-This file defines repository level scope and invariants.
-
-Other scope documents define details:
-
-* `01-scope-and-goals.md` defines PoC goals and deliverables.
-* `02-non-goals-and-out-of-scope.md` defines explicit exclusions.
-* `03-definitions-and-terminology.md` defines normative terminology.
-* `04-assumptions-and-constraints.md` defines environmental assumptions and hard constraints.
-
-If a more specific scope document conflicts with this file, the conflict must be resolved by aligning with the invariants defined here.
