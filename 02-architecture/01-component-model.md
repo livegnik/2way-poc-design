@@ -4,24 +4,11 @@
 
 # 01 Component model
 
-## 1. Purpose and scope
+Defines backend component categories, responsibilities, and interaction rules.
+Specifies manager/service boundaries, allowed interactions, and trust posture.
+Defines failure handling and guarantees for component behavior.
 
-This document defines the backend component model of the 2WAY system as implemented in the proof of concept (PoC). It specifies component categories, responsibilities, invariants, allowed and forbidden interactions, trust boundaries, and failure behavior.
-
-This document is normative for backend structure and behavior. It does not define APIs, wire formats, schemas, storage layout, or runtime topology except where required to establish component correctness and boundaries. Frontend components are out of scope except as external callers.
-
-This specification references:
-
-* [01-protocol/**](../01-protocol/)
-* [02-architecture/00-architecture-overview.md](00-architecture-overview.md)
-* [02-architecture/02-runtime-topologies.md](02-runtime-topologies.md)
-* [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md)
-* [02-architecture/04-data-flow-overview.md](04-data-flow-overview.md)
-* [02-architecture/managers/**](managers/)
-* [02-architecture/services-and-apps/**](services-and-apps/)
-* [04-interfaces/**](../04-interfaces/)
-
-## 2. Component model overview
+## 1. Component model overview
 
 The 2WAY backend is composed of managers and services running within a single long-lived backend process as described in [00-architecture-overview.md](00-architecture-overview.md).
 
@@ -36,15 +23,15 @@ The component model enforces the following system-wide rules:
 - Services may coordinate behavior but cannot weaken or override manager guarantees.
 - No component accesses another component's internal state directly.
 
-## 3. Component categories
+## 2. Component categories
 
-### 3.1 Managers
+### 2.1 Managers
 
 Managers are singleton backend components. Each manager owns exactly one conceptual domain and is authoritative for that domain.
 
 Managers are stable, long-lived, and loaded at process startup.
 
-### 3.2 Services
+### 2.2 Services
 
 Services are backend components that implement domain-specific workflows.
 
@@ -55,9 +42,9 @@ Two service classes exist:
 
 Both classes use managers exclusively to interact with system state. The taxonomy is defined in [02-architecture/services-and-apps/01-services-vs-apps.md](services-and-apps/01-services-vs-apps.md).
 
-## 4. Manager responsibilities and boundaries
+## 3. Manager responsibilities and boundaries
 
-### 4.1 Global manager invariants
+### 3.1 Global manager invariants
 
 All managers collectively enforce the following invariants:
 
@@ -77,7 +64,7 @@ All managers collectively enforce the following invariants:
 
 These invariants are mandatory. Violations invalidate correctness and security guarantees.
 
-### 4.2 Individual manager responsibility domains
+### 3.2 Individual manager responsibility domains
 
 Each manager owns a single responsibility domain:
 
@@ -98,7 +85,7 @@ Each manager owns a single responsibility domain:
 
 Managers may call other managers only through explicit, validated inputs. Circular dependencies are forbidden.
 
-### 4.3 Manager non-responsibilities
+### 3.3 Manager non-responsibilities
 
 Managers explicitly do not perform the following:
 
@@ -108,9 +95,9 @@ Managers explicitly do not perform the following:
 - Cross-domain policy decisions not encoded in schema or ACL rules.
 - Implicit retries or compensating actions outside their domain.
 
-## 5. Service responsibilities and boundaries
+## 4. Service responsibilities and boundaries
 
-### 5.1 Service responsibilities
+### 4.1 Service responsibilities
 
 Services implement domain workflows using managers. Services are not authoritative.
 
@@ -124,7 +111,7 @@ Services may perform the following:
 
 Services must supply complete [OperationContext](services-and-apps/05-operation-context.md) to all manager calls.
 
-### 5.2 Service non-responsibilities
+### 4.2 Service non-responsibilities
 
 Services must not perform the following:
 
@@ -136,7 +123,7 @@ Services must not perform the following:
 - Perform network transport.
 - Persist state outside the graph.
 
-### 5.3 System services
+### 4.3 System services
 
 System services are backend services that exist independently of installed apps, as defined in [02-architecture/services-and-apps/02-system-services.md](services-and-apps/02-system-services.md).
 
@@ -149,7 +136,7 @@ System services:
 
 System services depend on managers but are not depended on by managers.
 
-### 5.4 App extension services
+### 4.4 App extension services
 
 App extension services are optional backend services tied to a single app identity, as defined in [02-architecture/services-and-apps/03-app-backend-extensions.md](services-and-apps/03-app-backend-extensions.md).
 
@@ -162,9 +149,9 @@ Additional constraints apply:
 
 App extension services interact with managers only through allowed manager APIs.
 
-## 6. Allowed interactions
+## 5. Allowed interactions
 
-### 6.1 Manager to manager interactions
+### 5.1 Manager to manager interactions
 
 Allowed interactions are limited to:
 
@@ -174,7 +161,7 @@ Allowed interactions are limited to:
 
 Managers must not mutate state owned by another manager.
 
-### 6.2 Service to manager interactions
+### 5.2 Service to manager interactions
 
 Services may interact with managers as follows:
 
@@ -187,7 +174,7 @@ Services may interact with managers as follows:
 
 All interactions require a valid OperationContext.
 
-### 6.3 External interactions
+### 5.3 External interactions
 
 Frontend clients and remote peers are external to the component model:
 
@@ -195,7 +182,7 @@ Frontend clients and remote peers are external to the component model:
 - External input enters the system only through Auth Manager, Network Manager, or [service interfaces](../04-interfaces/).
 - No external actor interacts directly with managers.
 
-## 7. Forbidden interactions
+## 6. Forbidden interactions
 
 The following interactions are explicitly forbidden:
 
@@ -209,7 +196,7 @@ The following interactions are explicitly forbidden:
 - Services calling other services without manager mediation.
 - Cross-app data mutation without explicit ACL allowance.
 
-## 8. Trust boundaries
+## 7. Trust boundaries
 
 Each component defines a strict trust boundary as detailed in [02-architecture/03-trust-boundaries.md](03-trust-boundaries.md):
 
@@ -221,9 +208,9 @@ Each component defines a strict trust boundary as detailed in [02-architecture/0
 
 Trust does not propagate implicitly across components.
 
-## 9. Failure and rejection behavior
+## 8. Failure and rejection behavior
 
-### 9.1 Invalid input
+### 8.1 Invalid input
 
 If a component receives invalid input:
 
@@ -233,7 +220,7 @@ If a component receives invalid input:
 - An error is returned to the caller.
 - No implicit retries are performed.
 
-### 9.2 Authorization failure
+### 8.2 Authorization failure
 
 If authorization fails:
 
@@ -242,7 +229,7 @@ If authorization fails:
 - The failure is logged by the Log Manager.
 - A permission error is returned.
 
-### 9.3 Storage failure
+### 8.3 Storage failure
 
 If a storage operation fails:
 
@@ -252,7 +239,7 @@ If a storage operation fails:
 - The failure is logged by the Log Manager.
 - The error is surfaced to the caller.
 
-### 9.4 Network failure
+### 8.4 Network failure
 
 If a network operation fails:
 
@@ -262,7 +249,7 @@ If a network operation fails:
 - Retry behavior is explicit and bounded.
 - The failure is logged by the Log Manager.
 
-### 9.5 Component crash
+### 8.5 Component crash
 
 If a component crashes:
 
@@ -272,7 +259,7 @@ If a component crashes:
 - In-memory state is discarded.
 - The crash is logged by the Log Manager if able.
 
-## 10. Guarantees
+## 9. Guarantees
 
 This component model guarantees the following:
 
