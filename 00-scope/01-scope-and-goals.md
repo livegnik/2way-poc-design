@@ -4,15 +4,11 @@
 
 # 01 Scope and goals
 
-## 1. Purpose and scope of this document
+Defines system-level scope, goals, and required guarantees for the 2WAY PoC.
+Specifies global invariants, trust boundaries, and failure handling requirements.
+Defines allowed and forbidden behaviors at the system level.
 
-This document defines the scope and goals of the 2WAY system design repository. It specifies what the system is intended to do, what properties it must guarantee, and which behaviors are explicitly allowed or forbidden at the design level.
-
-This document is normative. All other design documents in this repository must conform to the constraints, invariants, and boundaries defined here. Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
-
-This document defines scope and intent only. It does not define wire formats, schemas, APIs, or concrete implementations except where required to constrain correctness or security. Those details live in protocol and architecture specifications under [01-protocol](../01-protocol/) and [02-architecture](../02-architecture/), with storage details under [03-data](../03-data/).
-
-## 2. System scope
+## 1. System scope
 
 2WAY is a local-first, graph-based system for identity-anchored data ownership, access control, incentive-mediated interaction, and peer-to-peer synchronization over untrusted networks.
 
@@ -40,18 +36,18 @@ Out of scope:
 - Any behavior that requires implicit trust in peers, transports, or infrastructure.
 - Production-scale multi-node consensus or cluster management.
 
-## 3. Design goals
+## 2. Design goals
 
 The goals in this section are mandatory constraints on the design.
 
-### 3.1 Correctness
+### 2.1 Correctness
 
 - All persistent state mutations are validated before storage.
 - Unauthorized mutations are structurally impossible.
 - Historical state cannot be silently rewritten.
 - Invalid input is rejected deterministically.
 
-### 3.2 Security
+### 2.2 Security
 
 - Every operation is attributable to exactly one cryptographic identity.
 - Identity verification is explicit and never inferred from context.
@@ -59,45 +55,28 @@ The goals in this section are mandatory constraints on the design.
 - Sync inputs are validated for integrity, ordering, and authorization.
 - Key compromise is recoverable without rewriting history.
 
-### 3.3 Local authority and autonomy
+### 2.3 Local authority and autonomy
 
 - Each node enforces its own validation and authorization rules.
 - Nodes do not depend on external services to remain correct.
 - Nodes can operate offline without losing consistency.
 - Peer participation is optional and explicitly scoped.
 
-### 3.4 Isolation and containment
+### 2.4 Isolation and containment
 
 - App domains are isolated by schema and access control rules.
 - App-specific logic cannot mutate foreign domains without explicit authorization.
 - Backend core logic is isolated from app logic.
 - Frontend code cannot directly access backend Managers.
 
-### 3.5 Incentive enforcement
+### 2.5 Incentive enforcement
 
 - Incentive mechanisms are represented as graph objects.
 - Incentive enforcement occurs locally through schema and access control.
 - Incentives do not bypass ownership, validation, or authorization rules.
 - Incentives do not require global agreement to be meaningful.
 
-## 4. Responsibilities of this specification
-
-This specification is responsible for defining:
-
-- The boundaries of the 2WAY system.
-- Global invariants that apply to all components.
-- Required guarantees for correctness and security.
-- Allowed and forbidden behaviors at the system level.
-- Expected behavior on failure or invalid input.
-
-This specification is not responsible for defining:
-
-- Detailed protocol encoding.
-- Concrete database schemas.
-- Application-specific semantics.
-- Deployment or operational policy.
-
-## 5. Invariants and guarantees
+## 3. Invariants and guarantees
 
 The following invariants apply globally:
 
@@ -122,7 +101,7 @@ The system guarantees that:
 - Partial compromise does not imply total compromise.
 - State evolution is auditable from local data alone.
 
-## 6. Allowed behaviors
+## 4. Allowed behaviors
 
 The following behaviors are explicitly allowed:
 
@@ -132,7 +111,7 @@ The following behaviors are explicitly allowed:
 - App-defined economic and incentive models within enforced boundaries.
 - Delegation of limited authority encoded in graph structure.
 
-## 7. Forbidden behaviors
+## 5. Forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
@@ -143,7 +122,7 @@ The following behaviors are explicitly forbidden:
 - Silent mutation or deletion of historical state.
 - Bypassing validation for performance or convenience.
 
-## 8. Trust boundaries and interactions
+## 6. Trust boundaries and interactions
 
 This document defines trust boundaries without defining interfaces.
 
@@ -164,7 +143,7 @@ Trust boundaries:
 - Network to persistence is mediated by network handling, sync logic, and graph validation.
 - App logic to core state is mediated exclusively by Managers.
 
-## 9. Failure and rejection behavior
+## 7. Failure and rejection behavior
 
 On failure or invalid input:
 
@@ -176,7 +155,7 @@ On failure or invalid input:
 
 Silent acceptance, partial mutation, or best-effort processing are not permitted.
 
-## 10. Non-goals
+## 8. Non-goals
 
 The following are explicitly not goals:
 
