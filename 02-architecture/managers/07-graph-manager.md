@@ -4,66 +4,18 @@
 
 # 07 Graph Manager
 
-## 1. Purpose and scope
+Defines graph read and write coordination, validation ordering, and sequencing.
+Specifies internal engines, concurrency rules, and graph traversal constraints.
+Defines manager interactions, startup/shutdown behavior, and failure handling.
 
-The Graph Manager is the authoritative component responsible for the scope described below. The Graph Manager is the authoritative coordinator for graph state access within the local node. It is the only permitted write path for graph objects, and it provides the canonical read surface for graph objects where access control, application context, traversal constraints, consistency guarantees, and default visibility filtering must be enforced.
 
-This document defines responsibilities, boundaries, invariants, guarantees, allowed and forbidden behaviors, concurrency rules, component interactions, startup and shutdown behavior, internal execution engines, and failure handling for the Graph Manager. This file specifies graph level access behavior only. It does not define schema content, access control policy logic, synchronization protocol behavior, network transport, cryptographic verification, peer discovery, or storage internals, except where interaction boundaries are required.
-
-This specification consumes the protocol contracts defined in:
-
-* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
-* [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md)
-* [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
-* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
-* [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
-* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
-* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
-* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
-
-Those files remain normative for all behaviors described here.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Acting as the single entry point for all persisted mutations of Parents, Attributes, Edges, Ratings, and ACL structures per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md), matching the canonical object definitions in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md). ACL data is represented as Parent and Attribute objects exactly as defined there.
-* Accepting graph envelopes only from trusted in process components, including local services and [State Manager](09-state-manager.md) for remote application after [Network Manager](10-network-manager.md) verification, exactly as allowed by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and constrained by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
-* Validating envelope structure and operation shape at the graph layer, including supervised operation identifiers, the required `ops` array, `type_key` and `type_id` exclusivity, declared `owner_identity`, and rejection of forbidden fields such as `global_seq` or `sync_flags` per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Enforcing namespace isolation and object reference rules defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md), as well as the single-app reference constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Delegating type resolution and schema validation to [Schema Manager](05-schema-manager.md) so that schemas remain authoritative per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Delegating authorization decisions for reads and writes to [ACL Manager](06-acl-manager.md) per the ordering defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and the enforcement rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Enforcing application context for all operations so [OperationContext](../services-and-apps/05-operation-context.md) semantics and app isolation described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) remain intact.
-* Enforcing serialized write ordering and global sequencing for all accepted mutations per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Persisting accepted envelopes atomically through [Storage Manager](02-storage-manager.md), upholding the transactional guarantees described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Publishing semantic graph events after commit through [Event Manager](11-event-manager.md) so downstream consumers see only committed state, matching the ordering posture in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Providing canonical read operations for graph objects, with authorization, application context, consistency guarantees, and default visibility filtering enforced per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Providing bounded traversal primitives required to support authorization checks that depend on graph distance, as required by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Enforcing bounded read and traversal budgets consistent with the resource safety posture of [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
-* Defining the concurrency contract for graph reads and writes at the manager boundary so sequencing and consistency guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) hold.
-* Enforcing strict separation between graph access logic and storage implementation per the manager boundaries laid out in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Remaining cryptographically agnostic by never performing signing, verification, encryption, or decryption, and by rejecting any remote sourced envelope that bypasses the [Network Manager](10-network-manager.md) and [State Manager](09-state-manager.md) path, per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
-* Defining startup, readiness, and shutdown behavior for safe operation.
-* Defining internal execution engines and their ownership of behavior.
-
-This specification does not cover the following:
-
-* Schema definition, migration, or versioning behavior.
-* The meaning of types, fields, or application semantics beyond what is required to enforce visibility defaults defined in this file.
-* The content of access control policies, rule evaluation, or policy storage.
-* Construction of sync packages, per peer sync state, or inbound and outbound sync flows.
-* Network transport, encryption, signature verification, or peer management.
-* Storage schemas, SQL details, or indexing strategies.
-* Application specific query engines, search, ranking, analytics, denormalized views, or aggregates.
-
-## 3. Internal engines and ownership model
+## 1. Internal engines and ownership model
 
 The [Graph Manager](07-graph-manager.md) is internally composed of explicit execution engines. These engines are logical ownership boundaries within the manager. They do not expose independent public interfaces and are not standalone managers.
 
 Introducing engines does not replace or abstract existing behavior. Each engine is defined as the owner of behavior already specified elsewhere in this document.
 
-### 3.1 Graph Write Engine
+### 1.1 Graph Write Engine
 
 The Graph Write Engine owns the complete persisted mutation path.
 
@@ -82,7 +34,7 @@ It is responsible for:
 
 All behavior described in Sections 7 and 10 with respect to writes is owned by the Graph Write Engine.
 
-### 3.2 Graph Read Engine
+### 1.2 Graph Read Engine
 
 The Graph Read Engine owns all read entry points.
 
@@ -99,7 +51,7 @@ It is responsible for:
 
 All behavior described in Sections 8 and 9 with respect to reads is owned by the Graph Read Engine.
 
-### 3.3 RAM Graph Engine
+### 1.3 RAM Graph Engine
 
 The RAM Graph Engine maintains transient in memory representations of graph relationships required for authorization.
 
@@ -113,7 +65,7 @@ It is responsible for:
 
 The RAM Graph Engine is never authoritative. It never persists state directly and must tolerate restart without recovery beyond reconstruction from persisted graph data.
 
-### 3.4 Traversal Engine
+### 1.4 Traversal Engine
 
 The Traversal Engine performs bounded graph traversal strictly to support authorization decisions.
 
@@ -127,7 +79,7 @@ It is responsible for:
 
 Traversal results are never returned directly to external callers.
 
-### 3.5 Sequencing Engine
+### 1.5 Sequencing Engine
 
 The Sequencing Engine manages global ordering of mutations.
 
@@ -137,7 +89,7 @@ It is responsible for:
 * Isolation of sequencing from caller influence.
 * Operation only inside the serialized write context.
 
-## 4. Invariants and guarantees
+## 2. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
@@ -162,9 +114,9 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 5. Startup, readiness, and shutdown
+## 3. Startup, readiness, and shutdown
 
-### 5.1 Startup behavior
+### 3.1 Startup behavior
 
 On startup the [Graph Manager](07-graph-manager.md):
 
@@ -174,7 +126,7 @@ On startup the [Graph Manager](07-graph-manager.md):
 * Rebuilds RAM Graph Engine state from persisted graph data.
 * Rejects all requests until initialization completes successfully.
 
-### 5.2 Readiness
+### 3.2 Readiness
 
 The [Graph Manager](07-graph-manager.md) is considered ready only when:
 
@@ -183,7 +135,7 @@ The [Graph Manager](07-graph-manager.md) is considered ready only when:
 * Global sequence state is initialized.
 * RAM Graph Engine has completed reconstruction.
 
-### 5.3 Shutdown behavior
+### 3.3 Shutdown behavior
 
 On shutdown the [Graph Manager](07-graph-manager.md):
 
@@ -192,9 +144,9 @@ On shutdown the [Graph Manager](07-graph-manager.md):
 * Releases internal resources.
 * Performs no in memory recovery beyond persistence guarantees.
 
-## 6. Concurrency and execution model
+## 4. Concurrency and execution model
 
-### 6.1 Write serialization
+### 4.1 Write serialization
 
 The [Graph Manager](07-graph-manager.md) enforces a single serialized write path:
 
@@ -202,7 +154,7 @@ The [Graph Manager](07-graph-manager.md) enforces a single serialized write path
 * Sequence allocation and persistence occur inside the serialized context.
 * The serialized context spans only the minimum required work.
 
-### 6.2 Read concurrency
+### 4.2 Read concurrency
 
 The [Graph Manager](07-graph-manager.md) permits concurrent reads:
 
@@ -210,13 +162,13 @@ The [Graph Manager](07-graph-manager.md) permits concurrent reads:
 * Reads may execute concurrently with writes.
 * Reads may or may not observe a concurrent write depending on commit timing.
 
-### 6.3 Storage coordination assumptions
+### 4.3 Storage coordination assumptions
 
 The [Graph Manager](07-graph-manager.md) assumes [Storage Manager](02-storage-manager.md) provides transactional commits for write envelopes and a concurrency model where readers do not require explicit coordination with the writer.
 
-## 7. Inputs, outputs, and trust boundaries
+## 5. Inputs, outputs, and trust boundaries
 
-### 7.1 Inputs
+### 5.1 Inputs
 
 The [Graph Manager](07-graph-manager.md) accepts:
 
@@ -237,7 +189,7 @@ The [Graph Manager](07-graph-manager.md) accepts:
 
 All inputs are treated as untrusted.
 
-### 7.2 Outputs
+### 5.2 Outputs
 
 The [Graph Manager](07-graph-manager.md) returns:
 
@@ -248,7 +200,7 @@ The [Graph Manager](07-graph-manager.md) returns:
 
 Side effects include persisted state mutations, post commit events, and audit logging.
 
-### 7.3 Trust boundaries
+### 5.3 Trust boundaries
 
 The [Graph Manager](07-graph-manager.md) relies on:
 
@@ -258,9 +210,9 @@ The [Graph Manager](07-graph-manager.md) relies on:
 * [Storage Manager](02-storage-manager.md) for transactional persistence and sequencing.
 * [Event Manager](11-event-manager.md) and [Log Manager](12-log-manager.md) for delivery and logging.
 
-## 8. Allowed and forbidden behaviors
+## 6. Allowed and forbidden behaviors
 
-### 8.1 Explicitly allowed behaviors
+### 6.1 Explicitly allowed behaviors
 
 The [Graph Manager](07-graph-manager.md) allows:
 
@@ -272,7 +224,7 @@ The [Graph Manager](07-graph-manager.md) allows:
 * Default visibility filtering.
 * Snapshot bounded reads when supported.
 
-### 8.2 Explicitly forbidden behaviors
+### 6.2 Explicitly forbidden behaviors
 
 The [Graph Manager](07-graph-manager.md) forbids:
 
@@ -286,9 +238,9 @@ The [Graph Manager](07-graph-manager.md) forbids:
 * Accepting remote envelopes that bypass [State Manager](09-state-manager.md), which would conflict with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Issuing direct storage calls, which would bypass the manager boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
-## 9. Write path behavior
+## 7. Write path behavior
 
-### 9.1 Processing order
+### 7.1 Processing order
 
 For each write envelope:
 
@@ -299,7 +251,7 @@ For each write envelope:
 * Atomic commit.
 * Post commit event emission.
 
-### 9.2 Structural validation
+### 7.2 Structural validation
 
 The [Graph Manager](07-graph-manager.md) validates:
 
@@ -310,15 +262,15 @@ The [Graph Manager](07-graph-manager.md) validates:
 * Absence of storage controlled fields such as `global_seq` and `sync_flags`.
 * Absence of unknown envelope or operation keys defined outside [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
-### 9.3 Schema validation
+### 7.3 Schema validation
 
 Schema validation is delegated to [Schema Manager](05-schema-manager.md) so that schema compilation and enforcement remain authoritative per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
-### 9.4 Authorization evaluation
+### 7.4 Authorization evaluation
 
 Authorization is delegated to [ACL Manager](06-acl-manager.md), preserving the access control sequencing defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-### 9.5 Sequencing and persistence
+### 7.5 Sequencing and persistence
 
 For accepted envelopes:
 
@@ -326,13 +278,13 @@ For accepted envelopes:
 * All operations persist in one transaction, satisfying the atomicity rules in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Storage controlled metadata is computed internally to preserve the storage ownership boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
-### 9.6 Post commit events
+### 7.6 Post commit events
 
 Events are emitted only after commit, following the ordering guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). Event failure never rolls back committed state.
 
-## 10. Read semantics and behavior
+## 8. Read semantics and behavior
 
-### 10.1 Read surface
+### 8.1 Read surface
 
 Supported reads include:
 
@@ -342,19 +294,19 @@ Supported reads include:
 
 Direct identifier reads observe the resolution guarantees defined by [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and do not leak unauthorized data per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-### 10.2 Read consistency model
+### 8.2 Read consistency model
 
 Reads observe committed state only per [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). Snapshot binding is optional and explicit.
 
-### 10.3 Authorization and visibility
+### 8.3 Authorization and visibility
 
 Authorization is mandatory per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Visibility filtering applies after authorization.
 
-### 10.4 Resource limits
+### 8.4 Resource limits
 
   All reads enforce fixed budgets per the fail-closed resource constraints defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-## 11. Bounded traversal support
+## 9. Bounded traversal support
 
 Traversal exists solely to support authorization, as required by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -365,7 +317,7 @@ Constraints:
 * Fixed visited count.
 * No exposure of intermediate nodes.
 
-## 12. Failure and rejection handling
+## 10. Failure and rejection handling
 
 Failures fail closed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
@@ -373,47 +325,47 @@ Failures fail closed per [01-protocol/10-errors-and-failure-modes.md](../../01-p
 * Serialized context is released.
 * Errors follow protocol precedence rules defined by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), including structural failures taking precedence over schema and ACL failures.
 
-## 13. Object lifecycle assumptions
+## 11. Object lifecycle assumptions
 
 * Objects may be created and mutated following the category semantics in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Removal is implemented via Rating based visibility suppression consistent with application schemas defined atop [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Lifecycle semantics are schema defined and enforced via [Schema Manager](05-schema-manager.md) per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
-## 14. Minimal state and caching constraints
+## 12. Minimal state and caching constraints
 
-### 14.1 Permitted state
+### 12.1 Permitted state
 
 * System identity Parents required to fulfill graph level responsibilities defined in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Transient request scoped caches that do not violate the manager boundary rules defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
-### 14.2 Forbidden state
+### 12.2 Forbidden state
 
 * Long lived semantic indices that would conflict with [Storage Manager](02-storage-manager.md) ownership in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Recovery critical in memory state, which would break the failure posture in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-## 15. Component interactions
+## 13. Component interactions
 
-### 15.1 Schema Manager
+### 13.1 Schema Manager
 
 Provides validation, mapping, and domain membership per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
-### 15.2 ACL Manager
+### 13.2 ACL Manager
 
 Provides authorization, masking, and distance rules per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-### 15.3 Storage Manager
+### 13.3 Storage Manager
 
 Provides transactional persistence and sequencing required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
-### 15.4 Event Manager and Log Manager
+### 13.4 Event Manager and Log Manager
 
 Deliver post commit events and logs in the order required by [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 
-### 15.5 State Manager
+### 13.5 State Manager
 
 Delivers verified remote envelopes and constructs [OperationContext](../services-and-apps/05-operation-context.md), preserving the remote ingestion posture in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 
-## 16. Interface stability
+## 14. Interface stability
 
 The [Graph Manager](07-graph-manager.md) is an internal system component. It is not a public API.
 
