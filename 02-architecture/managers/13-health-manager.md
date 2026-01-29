@@ -4,23 +4,12 @@
 
 # 13 Health Manager
 
-## 1. Purpose and scope
+Defines health signal aggregation, readiness/liveness evaluation, and publication.
+Specifies inputs, thresholds, snapshots, and admin access constraints.
+Defines configuration, failure handling, and manager interactions for health.
 
-The Health Manager is the authoritative component that evaluates, aggregates, and publishes the liveness and readiness state of the 2WAY node runtime. It collects health signals from all managers, internal services, and runtime subsystems; enforces the fail-closed posture defined in the protocol; and exposes a single source of truth to operators, diagnostic tools, and optionally Event Manager when critical transitions occur. Health Manager does not mutate graph state or perform remediation. Its role is detection, classification, and publication.
 
-This specification defines the health classification model, responsibilities, input and output contracts, internal engines, configuration surface, and interactions with other managers. It references only the protocol contracts defined in:
-
-* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
-* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
-* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
-* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
-* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
-
-Those files remain normative for all behaviors described here.
-
-## 2. Responsibilities and boundaries
+## 1. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
@@ -38,7 +27,7 @@ This specification does not cover the following:
 * Service-specific diagnostics or deep metrics (e.g., [Graph Manager](07-graph-manager.md) internal counters). [Health Manager](13-health-manager.md) references only the signals that other managers emit.
 * UI dashboards, notification routing outside [Event Manager](11-event-manager.md), or long-term metrics retention.
 
-## 3. Invariants and guarantees
+## 2. Invariants and guarantees
 
 Across all relevant contexts defined here, the following invariants hold:
 
@@ -50,9 +39,9 @@ Across all relevant contexts defined here, the following invariants hold:
 * Publishing `ready=false` or `alive=false` triggers [Event Manager](11-event-manager.md) and [Log Manager](12-log-manager.md) notifications exactly once per transition.
 * Health state is queryable even when the node runtime transitions to `not_ready`, ensuring operators can observe the cause of failure.
 
-## 4. Health classification and structure
+## 3. Health classification and structure
 
-### 4.1 Component states
+### 3.1 Component states
 
 Each monitored subsystem reports one of the following states:
 
@@ -63,12 +52,12 @@ Each monitored subsystem reports one of the following states:
 | `failed`   | Hard failure. Subsystem is not functioning.                                           |
 | `unknown`  | No recent data within timeout window. Treated as `degraded` for readiness evaluation. |
 
-### 4.2 Readiness and liveness evaluation
+### 3.2 Readiness and liveness evaluation
 
 * **Readiness** (`ready`/`not_ready`). The node runtime is ready only if all critical subsystems ([Config Manager](01-config-manager.md), [Storage Manager](02-storage-manager.md), [Graph Manager](07-graph-manager.md), [Schema Manager](05-schema-manager.md), [ACL Manager](06-acl-manager.md), [Key Manager](03-key-manager.md), [Auth Manager](04-auth-manager.md), [State Manager](09-state-manager.md), [Network Manager](10-network-manager.md), [Event Manager](11-event-manager.md), [Log Manager](12-log-manager.md), [DoS Guard Manager](14-dos-guard-manager.md)) report `healthy`. Subsystems marked `degraded` force `ready=false`, honoring the fail-closed guidance in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). `unknown` subsystems force `ready=false` until a signal arrives. Optional subsystems (app extensions) do not block readiness unless flagged as critical in configuration.
 * **Liveness** (`alive`/`dead`). Liveness remains `alive` until the [Health Manager](13-health-manager.md) becomes unreachable or explicitly marked `dead`. Long-term inability to collect signals (e.g., scheduler stalled) transitions to `dead`. `dead` implies `ready=false`.
 
-### 4.3 Health snapshot structure
+### 3.3 Health snapshot structure
 
 Each published snapshot contains:
 
@@ -82,23 +71,23 @@ Each published snapshot contains:
 | `last_transition` | `{ from: {readiness, liveness}, to: {readiness, liveness}, cause }`.   |
 | `outputs`         | List of sinks notified ([Log Manager](12-log-manager.md), [Event Manager](11-event-manager.md), in-process).       |
 
-## 5. Inputs and outputs
+## 4. Inputs and outputs
 
-### 5.1 Inputs
+### 4.1 Inputs
 
 * Periodic heartbeats sent by managers over an in-process channel containing `{ component, state, metrics, timestamp }`.
 * Event-driven alerts (e.g., `operational.log_sink_failed`, `network.transport_failed`) forwarded by emitting managers.
 * Config snapshots from [Config Manager](01-config-manager.md) (`health.*` namespace) specifying thresholds, sampling intervals, and component criticality.
 * Operator-triggered commands (force re-evaluation, dump last snapshot) authenticated via administrative [OperationContext](../services-and-apps/05-operation-context.md) per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 
-### 5.2 Outputs
+### 4.2 Outputs
 
 * Current health snapshot accessible via in-process API (`HealthManager.get_snapshot()`).
 * Admin HTTP endpoint (`/admin/health`) returning the snapshot with optional component filters. The endpoint enforces [OperationContext](../services-and-apps/05-operation-context.md) and ACL semantics defined by [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * [Event Manager](11-event-manager.md) notifications on transitions (`system.health_state_changed`, `security.health_degraded`).
 * Structured log records describing component state changes and global readiness and liveness transitions, routed through [Log Manager](12-log-manager.md).
 
-## 6. Health signal ingestion pipeline
+## 5. Health signal ingestion pipeline
 
 [Health Manager](13-health-manager.md) processes signals through the following phases:
 
@@ -108,7 +97,7 @@ Each published snapshot contains:
 4. **Evaluation**: A deterministic evaluator aggregates all component states, applies thresholds, and determines global readiness and liveness according to Section 4.2.
 5. **Publication**: If the computed readiness and liveness differs from the current snapshot, a new snapshot is emitted, [Event Manager](11-event-manager.md) and [Log Manager](12-log-manager.md) are notified, and `health_seq` increments. Even when the global state is unchanged, component-level deltas are published to interested subscribers.
 
-## 7. Configuration surface (`health.*`)
+## 6. Configuration surface (`health.*`)
 
 Key configuration entries owned by [Health Manager](13-health-manager.md) include:
 
@@ -125,11 +114,11 @@ Key configuration entries owned by [Health Manager](13-health-manager.md) includ
 
 Configuration reloads follow [Config Manager](01-config-manager.md)'s prepare/commit flow. [Health Manager](13-health-manager.md) validates that thresholds are non-negative and that all listed components are registered.
 
-## 8. Internal engines and data paths
+## 7. Internal engines and data paths
 
 [Health Manager](13-health-manager.md) is composed of four mandatory engines:
 
-### 8.1 Signal Intake Engine
+### 7.1 Signal Intake Engine
 
 Responsibilities:
 
@@ -141,7 +130,7 @@ Failure behavior:
 
 * If the queue is saturated, emit `health.signal_queue_full` logs and drop lowest-priority optional components first before affecting critical components.
 
-### 8.2 Validation Engine
+### 7.2 Validation Engine
 
 Responsibilities:
 
@@ -153,7 +142,7 @@ Failure behavior:
 
 * Invalid signals are logged as `health.signal_invalid` and counted toward component failure metrics. Repeated invalid signals mark the component `failed`.
 
-### 8.3 Evaluation Engine
+### 7.3 Evaluation Engine
 
 Responsibilities:
 
@@ -165,7 +154,7 @@ Failure behavior:
 
 * If evaluation fails (e.g., due to internal error), [Health Manager](13-health-manager.md) marks readiness false, emits `critical` logs, and requests operator intervention in accordance with the fail-closed posture defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 8.4 Publication Engine
+### 7.4 Publication Engine
 
 Responsibilities:
 
@@ -177,7 +166,7 @@ Failure behavior:
 
 * Publication failures trigger retries with exponential backoff. After `health.publication.max_retries` failures, readiness is set to false and a `critical` log is emitted per the same fail-closed rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-## 9. Component interactions
+## 8. Component interactions
 
 * **[Config Manager](01-config-manager.md)**: Provides `health.*` snapshots. [Health Manager](13-health-manager.md) observes the prepare/commit flow and applies new thresholds atomically.
 * **[Log Manager](12-log-manager.md)**: Receives structured logs for every component transition and global readiness and liveness change.
@@ -186,20 +175,20 @@ Failure behavior:
 * **[Network Manager](10-network-manager.md)**: Supplies transport-level telemetry (connection counts, listener status) as part of its heartbeat, following the signaling guarantees and trust boundaries defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * **[State Manager](09-state-manager.md) / [Graph Manager](07-graph-manager.md) / [Storage Manager](02-storage-manager.md) / [Schema Manager](05-schema-manager.md) / [ACL Manager](06-acl-manager.md) / [Key Manager](03-key-manager.md) / [Auth Manager](04-auth-manager.md) / [App Manager](08-app-manager.md) / [Event Manager](11-event-manager.md) / [Log Manager](12-log-manager.md)**: Each emits health signals. [Health Manager](13-health-manager.md) enforces that all critical managers participate.
 
-## 10. Failure handling and rejection behavior
+## 9. Failure handling and rejection behavior
 
 * [Health Manager](13-health-manager.md) follows the precedence rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Validation failures are classified as structural; evaluator failures are resource-level; sink notification failures are environmental.
 * When [Health Manager](13-health-manager.md) itself encounters a fatal error, it emits `health.manager_failed` logs, sets liveness to `dead`, readiness to `not_ready`, and signals [Event Manager](11-event-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md) to halt admissions, ensuring [DoS Guard Manager](14-dos-guard-manager.md) follows its fail-closed requirements in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Missing signals for a component cause escalation: `unknown` after the timeout; `degraded` after two timeouts; `failed` after three consecutive timeouts or an explicit `failed` signal.
 
-## 11. Security and trust boundaries
+## 10. Security and trust boundaries
 
 * Health queries via HTTP require an [OperationContext](../services-and-apps/05-operation-context.md) whose identity carries the admin ACL role defined in `health.admin_acl_role`, enforcing [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and binding to the identity primitives in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Health snapshots do not expose raw metrics for components unless the requester is authorized. Unprivileged callers receive only aggregate readiness and liveness state.
 * All health data is transient. Persistent storage occurs only through [Log Manager](12-log-manager.md) (structured logs) and optional [Event Manager](11-event-manager.md) notifications.
 * [Health Manager](13-health-manager.md) treats incoming signals as untrusted. Spoofed or malformed signals cannot change global state without passing validation.
 
-## 12. Observability and telemetry
+## 11. Observability and telemetry
 
 [Health Manager](13-health-manager.md) emits telemetry counters:
 
@@ -211,7 +200,7 @@ Failure behavior:
 
 Telemetry is emitted via [Log Manager](12-log-manager.md) (operational logs) and optionally aggregated by [Event Manager](11-event-manager.md) subscribers. [Health Manager](13-health-manager.md) also exposes an in-process subscription API for other managers that need to react quickly to state changes (e.g., [DoS Guard Manager](14-dos-guard-manager.md) adjusting admission difficulty).
 
-## 13. Forbidden behaviors and compliance checklist
+## 12. Forbidden behaviors and compliance checklist
 
 The following actions violate this specification:
 
