@@ -4,50 +4,12 @@
 
 # 01 Config Manager
 
-## 1. Purpose and scope
+Defines configuration ingestion, validation, snapshot publication, and mutation control for node-local settings.
+Specifies configuration sources, precedence, schema registration, and change propagation semantics.
+Defines APIs, security posture, and failure handling for configuration management.
 
-The Config Manager is the authoritative component responsible for the scope described below. This specification defines the authoritative responsibilities, invariants, and interfaces of the Config Manager within the 2WAY backend.
 
-Config Manager owns configuration ingestion, layering, validation, publication, controlled mutation, and change propagation for all runtime configuration that affects manager and service behavior. This specification covers configuration sources, precedence rules, storage model, consumer APIs, trust boundaries, startup and shutdown behavior, reload semantics, and fail closed behavior. This specification does not redefine protocol objects, graph schemas, ACL rules, transport encodings, or key custody beyond what is required to define configuration handling boundaries.
-
-This specification consumes the protocol contracts defined in:
-
-* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
-* [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
-* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
-* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
-* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
-* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
-* [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md)
-
-Those files remain normative for all behaviors described here.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Load boot critical configuration from `.env` into an immutable in memory snapshot for the life of the process so bootstrap dependencies described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) can initialize deterministically.
-* Load persistent configuration from SQLite `settings` and merge it with defaults and `.env` according to deterministic precedence rules.
-* Provide a single typed read interface for managers, services, and app backends to consume configuration, keeping all [OperationContext](../services-and-apps/05-operation-context.md) consumers aligned with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Provide a single controlled mutation interface for authorized callers to update SQLite backed configuration.
-* Validate configuration values and structure before they become visible to any consumer.
-* Maintain a schema registry for known keys, including types, constraints, defaults, reloadability, and export rules.
-* Publish per namespace immutable snapshots to managers during startup and during approved reloads.
-* Coordinate safe change propagation via a two phase prepare and commit sequence with veto support by owning managers.
-* Emit a monotonic configuration version identifier (`cfg_seq`) and associated provenance metadata for every committed snapshot.
-* Supply DoS Guard policy snapshots (rate limits, burst windows, difficulty caps, abuse thresholds, telemetry verbosity) exactly as defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md), ensuring atomic visibility to [DoS Guard Manager](14-dos-guard-manager.md).
-* Supply the canonical locally declared protocol version tuple required by [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
-
-This specification does not cover the following:
-
-* Creating the database file, database migrations, or general storage lifecycle, these are owned by [Storage Manager](02-storage-manager.md) per the persistence boundaries in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Creating, storing, or exporting cryptographic secret material, these are owned by [Key Manager](03-key-manager.md) or a dedicated secret store per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
-* Defining graph schemas or ACL policies for protocol objects, these are owned by [Graph Manager](07-graph-manager.md) and [ACL Manager](06-acl-manager.md) per [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) and [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Network transport behavior, onion service lifecycle, peer discovery, or message routing, these are owned by [Network Manager](10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Installation flows, admin account creation, or plugin installation, these are owned by Installation and App related components. [Config Manager](01-config-manager.md) only provides a controlled settings interface used by those components.
-
-## 3. Invariants and guarantees
+## 1. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
@@ -64,7 +26,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 
 These guarantees must hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 4. Configuration model and storage
+## 2. Configuration model and storage
 
 The configuration layer exists to keep node local operational state self describing, auditable, and accessible through one interface.
 
@@ -73,7 +35,7 @@ Configuration follows a strict split:
 * Values required before the backend can reliably open SQLite or locate key material live in `.env`.
 * All other configuration lives in SQLite in the `settings` table and is accessed only through [Config Manager](01-config-manager.md).
 
-### 4.1 Boot critical configuration in `.env`
+### 2.1 Boot critical configuration in `.env`
 
 `.env` holds only values needed to reach a minimally functioning backend process, open SQLite, locate keys, configure Tor wiring, and expose the HTTP entrypoint.
 
@@ -97,7 +59,7 @@ Rules:
 * `.env` is immutable after startup. Any change requires process restart.
 * `PROTOCOL_VERSION` is validated and published as `node.protocol.version`.
 
-### 4.2 SQLite backed settings table
+### 2.2 SQLite backed settings table
 
 All non boot configuration is stored in SQLite in a single key value table.
 
@@ -115,7 +77,7 @@ Rules:
 * [Config Manager](01-config-manager.md) is the sole reader and writer of this table. [Storage Manager](02-storage-manager.md) provides the transaction and query primitives, but does not interpret keys.
 * Updates are atomic and recorded as a new committed snapshot with a new `cfg_seq`.
 
-### 4.3 Namespaces and separation of concerns
+### 2.3 Namespaces and separation of concerns
 
 [Config Manager](01-config-manager.md) partitions configuration keys into namespaces. Namespaces determine ownership, access rules, and reload contracts.
 
@@ -138,7 +100,7 @@ Rules:
 * A manager may only request its own namespace snapshot, unless an explicit export contract exists.
 * Frontend code never reads configuration directly. Frontend visible settings are obtained via services which call [Config Manager](01-config-manager.md) export APIs under [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) filtering.
 
-### 4.4 Configuration is not stored in the graph
+### 2.4 Configuration is not stored in the graph
 
 [Config Manager](01-config-manager.md) must not store node local operational configuration in the graph.
 
@@ -149,7 +111,7 @@ Reasons:
 * Syncing node local host parameters or operational secrets to peers is a confidentiality and integrity violation.
 * Keeping configuration out of the graph preserves protocol authority boundaries and prevents circular dependencies.
 
-### 4.5 Protocol version tuple
+### 2.5 Protocol version tuple
 
 [Config Manager](01-config-manager.md) is the sole owner of the locally configured protocol version required by [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 
@@ -160,7 +122,7 @@ Rules:
 * The version cannot be overridden by SQLite settings, environment overrides, or runtime update APIs.
 * Startup fails if the version is missing, malformed, or advertises a version newer than the running build supports.
 
-## 5. Configuration sources and precedence
+## 3. Configuration sources and precedence
 
 [Config Manager](01-config-manager.md) enforces a deterministic precedence stack:
 
@@ -176,11 +138,11 @@ Rules:
 * Unknown keys cause validation failure unless registered in the schema registry before load or reload.
 * `PROTOCOL_VERSION` and `node.protocol.version` are exempt from all overrides. Only `.env` may set them.
 
-## 6. Internal engines and lifecycle
+## 4. Internal engines and lifecycle
 
 [Config Manager](01-config-manager.md) is implemented as a set of internal engines with strict sequencing.
 
-### 6.1 Internal engines
+### 4.1 Internal engines
 
 * Schema Registry Engine
   * Accepts key registrations from managers and app backends.
@@ -205,7 +167,7 @@ Rules:
   * Produces filtered views for services and frontend exposure based on [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) decisions.
   * Applies key level export policies declared in the schema registry.
 
-### 6.2 Startup sequencing
+### 4.2 Startup sequencing
 
 Startup is fail closed and must be deterministic.
 
@@ -219,7 +181,7 @@ Startup is fail closed and must be deterministic.
 8. Each manager must acknowledge acceptance. Failure to acknowledge halts startup. Partial initialization is forbidden.
 9. [Health Manager](13-health-manager.md) is notified that [Config Manager](01-config-manager.md) is ready only after publication acknowledgements succeed.
 
-### 6.3 Shutdown behavior
+### 4.3 Shutdown behavior
 
 [Config Manager](01-config-manager.md) shutdown is passive and must not mutate state.
 
@@ -230,7 +192,7 @@ Rules:
 * [Config Manager](01-config-manager.md) stops delivering change notifications once shutdown begins.
 * The last committed snapshot remains available for in process reads until process termination, unless the process is already in teardown.
 
-### 6.4 Readiness and liveness
+### 4.4 Readiness and liveness
 
 [Config Manager](01-config-manager.md) exposes readiness and liveness signals consumed by [Health Manager](13-health-manager.md).
 
@@ -243,11 +205,11 @@ Liveness:
 * Live while the [Config Manager](01-config-manager.md) event loop can service read requests and can serialize update or reload requests.
 * Repeated reload failures do not make [Config Manager](01-config-manager.md) non live, but they mark it degraded.
 
-## 7. Schema registration contract
+## 5. Schema registration contract
 
 [Config Manager](01-config-manager.md) requires explicit registration for all keys that may appear in SQLite, overrides, or exports.
 
-### 7.1 Registration fields
+### 5.1 Registration fields
 
 A registration for a key includes:
 
@@ -263,19 +225,19 @@ A registration for a key includes:
 * Optional validation hook to be invoked during Validation Engine execution.
 * Optional prepare and commit hooks for the owning manager.
 
-### 7.2 Registration timing rules
+### 5.2 Registration timing rules
 
 * Built in manager registrations occur before `.env` parsing and before reading SQLite.
 * App registrations occur only during app load, coordinated by [App Manager](08-app-manager.md), and must complete before app configuration can be read or exported.
 * After initial publication, new registrations are rejected unless they are part of an explicit app load window.
 
-### 7.3 Ownership rules
+### 5.3 Ownership rules
 
 * Only the owning manager may register keys in its namespace.
 * Only the owning manager may mark a key reloadable.
 * Only the owning manager may receive prepare and commit notifications for changes in its namespace.
 
-## 8. Runtime APIs and consumption model
+## 6. Runtime APIs and consumption model
 
 [Config Manager](01-config-manager.md) exposes a strict API surface. All call paths that can mutate state require an [OperationContext](../services-and-apps/05-operation-context.md).
 
@@ -329,15 +291,15 @@ API rules:
 * Read APIs must never perform database reads on the hot path once the snapshot is in memory, except for diagnostics explicitly documented as database backed.
 * Mutation APIs must never allow writing `.env` sourced keys.
 
-## 9. Change handling and immutability rules
+## 7. Change handling and immutability rules
 
-### 9.1 Immutability
+### 7.1 Immutability
 
 * `node.*` is immutable after startup.
 * `node.protocol.version` is immutable and cannot be reloaded or overridden.
 * Keys not marked reloadable may be updated in SQLite, but the update must not take effect until restart if the owning manager declares that behavior. In that case, [Config Manager](01-config-manager.md) must record the value but must not publish it as active.
 
-### 9.2 Two phase change propagation
+### 7.2 Two phase change propagation
 
 [Config Manager](01-config-manager.md) delivers change notifications in two phases:
 
@@ -356,13 +318,13 @@ Rules:
 * Change notifications must be delivered in deterministic order, based on a fixed manager ordering, and must be consistent across runs.
 * `dos.*` policy updates must be committed atomically so that [DoS Guard Manager](14-dos-guard-manager.md) never observes partial policies, satisfying the policy update rule in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-### 9.3 Serialization
+### 7.3 Serialization
 
 * Concurrent updates and reloads are serialized.
 * A second request is queued behind the active request.
 * The queue is bounded. On overflow, [Config Manager](01-config-manager.md) rejects requests with a fail closed error.
 
-### 9.4 Installation and bootstrap mode
+### 7.4 Installation and bootstrap mode
 
 Some configuration must be set during initial node setup before normal administrative identity and permissions exist.
 
@@ -375,7 +337,7 @@ Some configuration must be set during initial node setup before normal administr
 
 [Config Manager](01-config-manager.md) does not create admin identities and does not own the installation state machine. It only enforces the capability and key allowlist rules for configuration writes.
 
-## 10. Security, secrecy, and trust boundaries
+## 8. Security, secrecy, and trust boundaries
 
 * `.env`, environment overrides, and SQLite contents are untrusted until validated.
 * [Config Manager](01-config-manager.md) must treat all loaded text as hostile input, including values sourced locally.
@@ -385,7 +347,7 @@ Some configuration must be set during initial node setup before normal administr
 * Managers and services cannot escalate by editing files. Direct file edits are outside protocol guarantees and must not be relied upon for authorized change paths.
 * [Config Manager](01-config-manager.md) must log configuration source usage per load and reload attempt, enabling audit and drift detection.
 
-## 11. Failure posture and observability
+## 9. Failure posture and observability
 
 Failure posture is fail closed.
 
@@ -415,9 +377,9 @@ Observability:
   * which sources contributed to the new snapshot
   * whether a veto occurred and by whom
 
-## 12. Allowed and forbidden behaviors
+## 10. Allowed and forbidden behaviors
 
-### 12.1 Allowed
+### 10.1 Allowed
 
 * Reading configuration exclusively through [Config Manager](01-config-manager.md) APIs.
 * Registering keys and schemas during the permitted registration windows.
@@ -426,7 +388,7 @@ Observability:
 * Exporting configuration only through `exportConfig` with explicit export policies and ACL authorization.
 * Using bootstrap mode only for the limited installation allowlist and only before installation completes.
 
-### 12.2 Forbidden
+### 10.2 Forbidden
 
 * Any component reading `.env` directly.
 * Any component reading or writing the `settings` table directly.
