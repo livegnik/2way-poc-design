@@ -4,50 +4,12 @@
 
 # 08 App Manager
 
-## 1. Purpose and scope
+Defines application registration, identity binding, and backend extension wiring.
+Specifies app registry invariants, lifecycle ordering, and isolation constraints.
+Defines startup/shutdown behavior and manager interactions for applications.
 
-The App Manager is the authoritative component responsible for the scope described below. This document specifies the App Manager component. The App Manager is responsible for defining, registering, resolving, and wiring applications within the backend. It establishes applications as first class system entities, assigns them stable identifiers, binds them to cryptographic identities, initializes their storage namespaces, and controls the loading and isolation of backend extension services.
 
-This specification applies strictly to backend application lifecycle management and application identity resolution. It defines no frontend behavior, no schemas, no access control rules, no network behavior, and no application domain logic.
-
-This specification consumes the protocol contracts defined in:
-
-* [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)
-* [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md)
-* [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md)
-* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
-* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
-* [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)
-
-Those files remain normative for all behaviors described here.
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Maintaining the authoritative registry of locally installed applications, providing the declaration-before-use guarantees required by [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
-* Assigning stable, monotonic numeric `app_id` values exactly as mandated by [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
-* Binding application slugs to application identities in the graph so that identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) remain enforceable.
-* Initializing per application storage structures without violating the per-app isolation constraints in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Ensuring application identity presence and consistency in the system graph according to the identity and key rules in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Loading, wiring, and isolating backend extension services without letting them bypass the authorization posture defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Providing application metadata and resolution services to other backend components so the `app_id` semantics required by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the [OperationContext](../services-and-apps/05-operation-context.md) construction rules in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) stay deterministic.
-* Enforcing strict application isolation at the manager wiring level, restating the namespace isolation guarantees in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Declaring application identifiers before they may appear in schemas, [OperationContext](../services-and-apps/05-operation-context.md) instances, or graph envelopes, satisfying [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md), [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md), and [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Ensuring application lifecycle ordering relative to other managers during startup and shutdown so [OperationContext](../services-and-apps/05-operation-context.md) binding and request handling stay consistent with [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-
-This specification does not cover the following:
-
-* Schema definition, compilation, or validation, which remain the responsibility of [Schema Manager](05-schema-manager.md) and the object and schema semantics referenced by [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Access control evaluation or policy definition, which are governed by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Graph mutation logic.
-* HTTP or WebSocket routing logic.
-* Network transport or peer interaction.
-* Cryptographic operations beyond delegation to [Key Manager](03-key-manager.md), which remain governed by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Frontend application lifecycle, UI, or user workflows.
-* Application business logic or domain semantics.
-
-## 3. Conceptual model
+## 1. Conceptual model
 
 An application is a locally registered system entity that defines a namespace, authorship scope, and isolation boundary. An application is identified by:
 
@@ -60,9 +22,9 @@ Applications are namespaces and authority scopes only. They do not define protoc
 
 Application boundaries enforce the cross object isolation defined by the protocol object model. No application may implicitly access or mutate another application's data per the application domain isolation rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
-## 4. App registry
+## 2. App registry
 
-### 4.1 Persistent registry
+### 2.1 Persistent registry
 
 The [App Manager](08-app-manager.md) maintains a persistent registry stored in the backend database. Each registry entry includes:
 
@@ -76,7 +38,7 @@ The registry is the sole authoritative source of application existence and ident
 
 The registry represents the local instantiation of the Application Identifier concept defined by the protocol identifier and namespace rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 
-### 4.2 Registry invariants
+### 2.2 Registry invariants
 
 The following invariants apply to the application registry:
 
@@ -90,7 +52,7 @@ The following invariants apply to the application registry:
 
 Violation of these invariants is a fatal configuration error. These guarantees restate the declaration-before-use, uniqueness, and isolation rules from [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and ensure that every `app_id` referenced by envelopes in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and by objects in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) refers to a registered application.
 
-## 5. Application identity binding
+## 3. Application identity binding
 
 Each application has a corresponding identity represented in the system graph.
 
@@ -113,9 +75,9 @@ Application identities are used for:
 
 Registration is not complete until the identity Parent and pubkey Attribute are persisted.
 
-## 6. Application registration lifecycle
+## 4. Application registration lifecycle
 
-### 6.1 Registration
+### 4.1 Registration
 
 During application registration, the [App Manager](08-app-manager.md) performs the following actions in strict order:
 
@@ -129,7 +91,7 @@ During application registration, the [App Manager](08-app-manager.md) performs t
 
 Registration is idempotent per slug. Re registration of an existing slug must resolve to the same app_id and identity.
 
-### 6.2 Resolution and lookup
+### 4.2 Resolution and lookup
 
 The [App Manager](08-app-manager.md) provides lookup facilities for:
 
@@ -141,15 +103,15 @@ Registry backed lookup is the only valid mechanism for binding slugs to app_id v
 
 Failure to resolve an application is treated as a configuration or routing error and must fail closed.
 
-## 7. Backend extension services
+## 5. Backend extension services
 
-### 7.1 Definition
+### 5.1 Definition
 
 An application may provide an optional backend extension service. A backend extension service is a backend module bound to exactly one application slug and app_id.
 
 Backend extension services exist to perform backend only tasks such as indexing, heavy computation, or secure validation. They do not define protocol behavior.
 
-### 7.2 Loading and wiring
+### 5.2 Loading and wiring
 
 At backend startup, the [App Manager](08-app-manager.md) performs the following steps:
 
@@ -163,7 +125,7 @@ At backend startup, the [App Manager](08-app-manager.md) performs the following 
 
 Backend extension services are inactive unless explicitly registered and wired.
 
-### 7.3 Permitted interactions
+### 5.3 Permitted interactions
 
 Backend extension services may interact only through the following managers:
 
@@ -184,7 +146,7 @@ The following interactions are explicitly forbidden:
 
 These boundaries preserve the authorization layering rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-### 7.4 Isolation guarantees
+### 5.4 Isolation guarantees
 
 The [App Manager](08-app-manager.md) guarantees:
 
@@ -195,7 +157,7 @@ The [App Manager](08-app-manager.md) guarantees:
 
 These guarantees restate the app domain and isolation rules defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md), [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md), and the authorization posture in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-## 8. OperationContext integration
+## 6. OperationContext integration
 
 For any request originating from an application, the [App Manager](08-app-manager.md) ensures:
 
@@ -205,9 +167,9 @@ For any request originating from an application, the [App Manager](08-app-manage
 
 The [App Manager](08-app-manager.md) does not construct [OperationContext](../services-and-apps/05-operation-context.md) instances. [OperationContext](../services-and-apps/05-operation-context.md) creation occurs in the HTTP layer per [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [04-interfaces/**](../../04-interfaces/). The [App Manager](08-app-manager.md) validates and enforces correct application binding before the context defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) is consumed by other managers.
 
-## 9. Startup and shutdown behavior
+## 7. Startup and shutdown behavior
 
-### 9.1 Startup ordering
+### 7.1 Startup ordering
 
 The [App Manager](08-app-manager.md) must initialize before:
 
@@ -220,7 +182,7 @@ The [App Manager](08-app-manager.md) must initialize after:
 * [Storage Manager](02-storage-manager.md) is ready.
 * [Key Manager](03-key-manager.md) is ready.
 
-### 9.2 Shutdown behavior
+### 7.2 Shutdown behavior
 
 During shutdown, the [App Manager](08-app-manager.md):
 
@@ -231,9 +193,9 @@ During shutdown, the [App Manager](08-app-manager.md):
 
 Shutdown must not delete registry entries or application data.
 
-## 10. Interactions with other components
+## 8. Interactions with other components
 
-### 10.1 Inputs
+### 8.1 Inputs
 
 The [App Manager](08-app-manager.md) consumes:
 
@@ -243,7 +205,7 @@ The [App Manager](08-app-manager.md) consumes:
 
 These inputs allow the [App Manager](08-app-manager.md) to satisfy the identifier guarantees in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and the identity requirements in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 
-### 10.2 Outputs
+### 8.2 Outputs
 
 The [App Manager](08-app-manager.md) provides:
 
@@ -253,7 +215,7 @@ The [App Manager](08-app-manager.md) provides:
 
 These outputs satisfy the envelope construction requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the authorization inputs that rely on `app_id` and identity context defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-### 10.3 Trust boundaries
+### 8.3 Trust boundaries
 
 The [App Manager](08-app-manager.md) is trusted to:
 
@@ -264,7 +226,7 @@ Backend extension services are untrusted and sandboxed.
 
 These trust boundaries mirror the authorization posture documented in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-## 11. Failure and rejection behavior
+## 9. Failure and rejection behavior
 
 The [App Manager](08-app-manager.md) must reject or fail when:
 
@@ -282,7 +244,7 @@ Failure handling rules:
 
   All failures must fail closed, consistent with the error handling posture mandated by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-## 12. Invariants and guarantees
+## 10. Invariants and guarantees
 
 Across all components and boundaries defined in this file, the following invariants and rememberable guarantees hold:
 
@@ -296,7 +258,7 @@ Across all components and boundaries defined in this file, the following invaria
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
-## 13. Explicitly allowed behaviors
+## 11. Explicitly allowed behaviors
 
 The following behaviors are explicitly allowed:
 
@@ -305,7 +267,7 @@ The following behaviors are explicitly allowed:
 * Applications participating in multiple sync domains when defined elsewhere, provided the sync semantics in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) are followed.
 * Application identities being referenced in ACL rules, honoring the identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and the ACL semantics in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-## 14. Explicitly forbidden behaviors
+## 12. Explicitly forbidden behaviors
 
 The following behaviors are explicitly forbidden:
 
