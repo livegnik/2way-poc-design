@@ -4,32 +4,15 @@
 
 # 14 DoS Guard Manager
 
+Defines admission decisions, puzzle issuance and verification, and abuse mitigation.
+Specifies telemetry inputs, decision outputs, policy evaluation, and engine behavior.
+Defines failure handling, configuration, and trust boundaries for DoS protection.
+
 Defines admission control, puzzle issuance, and abuse mitigation for network connections.
 Specifies inputs, decisions, telemetry, and integration with Network and Health Managers.
 Defines configuration, failure handling, and trust boundaries for DoS protection.
 
-
-## 1. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Owning the admission decision loop for inbound and outbound connections, in accordance with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
-* Issuing, validating, and expiring client puzzles (proof-of-work challenges) without exposing puzzle secrets or private keys.
-* Tracking request rates, connection counts, and transport-level telemetry to detect abusive behavior.
-* Communicating `allow`, `deny`, and `require_challenge` decisions defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md) to [Network Manager](10-network-manager.md)'s Bastion Engine without revealing backend implementation details.
-* Ensuring `deny` directives cause [Network Manager](10-network-manager.md) to terminate the relevant connection immediately, consistent with Section 8 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
-* Publishing DoS telemetry and critical events to [Log Manager](12-log-manager.md) and [Event Manager](11-event-manager.md).
-* Adjusting difficulty dynamically based on [Health Manager](13-health-manager.md) signals and configured limits (`dos.*` namespace).
-
-This specification does not cover the following:
-
-* Cryptographic key management for puzzles. [Key Manager](03-key-manager.md) owns all private keys per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Authorization decisions or [OperationContext](../services-and-apps/05-operation-context.md) construction. Those remain with [Auth Manager](04-auth-manager.md) and [ACL Manager](06-acl-manager.md).
-* Application-level rate limiting or QoS policies beyond what is mandated in the protocol.
-* Any graph mutation, sync state mutation, or schema enforcement. Those remain with [Graph Manager](07-graph-manager.md), [State Manager](09-state-manager.md), [Schema Manager](05-schema-manager.md), and [ACL Manager](06-acl-manager.md).
-* Inferring identity from transport metadata, puzzle metadata, or telemetry. Identity binding remains governed exclusively by [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-
-## 2. Invariants and guarantees
+## 1. Invariants and guarantees
 
 Across all relevant contexts defined here, the following invariants and guarantees hold:
 
@@ -44,7 +27,7 @@ Across all relevant contexts defined here, the following invariants and guarante
 
 These guarantees must hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 3. Admission lifecycle
+## 2. Admission lifecycle
 
 [DoS Guard Manager](14-dos-guard-manager.md) enforces a fixed admission lifecycle aligned with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md):
 
@@ -57,9 +40,9 @@ These guarantees must hold regardless of caller, execution context, input source
 
 In addition to the fixed lifecycle above, DoS Guard shifts posture toward `deny` or `require_challenge` if telemetry or [Health Manager](13-health-manager.md) signals indicate the node cannot safely continue admitting traffic.
 
-## 4. Inputs and outputs
+## 3. Inputs and outputs
 
-### 4.1 Inputs
+### 3.1 Inputs
 
 * Connection telemetry from [Network Manager](10-network-manager.md) defined in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md): `{ connection_id, transport_type, advisory_peer_reference, bytes_in, bytes_out, message_rate, throughput_samples, pressure_indicators, outstanding_challenges }`.
 * [Health Manager](13-health-manager.md) readiness, liveness, and capacity signals to adjust global policy (for example, more aggressive throttling when the node is `not_ready`).
@@ -67,7 +50,7 @@ In addition to the fixed lifecycle above, DoS Guard shifts posture toward `deny`
 * Puzzle responses from [Network Manager](10-network-manager.md) containing `{ challenge_id, solution, connection_id, opaque_payload }` so DoS Guard can replay the validation defined in Section 7.2 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Resource pressure signals from [Network Manager](10-network-manager.md) (CPU saturation, memory pressure, socket pool usage) that inform adaptive throttling but never provide identity binding ([01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)).
 
-### 4.2 Outputs
+### 3.2 Outputs
 
 * Admission decision objects: `{ connection_id, decision, throttle_params?, challenge_spec? }` returned to [Network Manager](10-network-manager.md)'s Bastion Engine per Sections 6 and 8 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * `deny` directives that require [Network Manager](10-network-manager.md) to terminate the connection immediately (no payload forwarding).
@@ -75,7 +58,7 @@ In addition to the fixed lifecycle above, DoS Guard shifts posture toward `deny`
 * [Event Manager](11-event-manager.md) notifications for critical security events (`security.dos_abuse_detected`, `security.dos_policy_changed`) when enabled by configuration.
 * Configuration acknowledgements to [Config Manager](01-config-manager.md) (success or veto).
 
-## 5. Policy evaluation model
+## 4. Policy evaluation model
 
 DoS Guard evaluates policies using a hierarchy of heuristics:
 
@@ -87,7 +70,7 @@ DoS Guard evaluates policies using a hierarchy of heuristics:
 
 Policies are configured via `dos.*` keys and must align with the invariants in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-## 6. Puzzle generation and verification
+## 5. Puzzle generation and verification
 
 Puzzles follow the structure defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md):
 
@@ -103,7 +86,7 @@ Puzzle issuance and verification rules:
 * Puzzle validation must confirm `challenge_id`, expiration, `context_binding`, payload fidelity, declared algorithm, and replay status before checking difficulty per Section 7.2 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Puzzle validation must be cheap compared to the work the puzzle imposes, and must run before any admitted routing.
 
-## 7. Configuration surface (`dos.*`)
+## 6. Configuration surface (`dos.*`)
 
 Key configuration entries include:
 
@@ -122,40 +105,40 @@ Key configuration entries include:
 
 Configuration reloads use [Config Manager](01-config-manager.md)'s prepare and commit flow. DoS Guard must verify that new values are within safe ranges before acknowledging, and it must apply or reject the entire snapshot atomically per Section 5.2 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-## 8. Internal engines
+## 7. Internal engines
 
 DoS Guard is implemented as coordinated engines:
 
-### 8.1 Telemetry Intake Engine
+### 7.1 Telemetry Intake Engine
 
 * Receives connection telemetry from [Network Manager](10-network-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Enforces queue limits and drops oldest anonymous telemetry if the queue overflows, biasing future decisions toward `require_challenge`.
 * Tags telemetry with receipt timestamps for SLA tracking.
 * Consumes resource pressure indicators surfaced by [Network Manager](10-network-manager.md) (CPU saturation flags, memory pressure, socket pool usage).
 
-### 8.2 Policy Engine
+### 7.2 Policy Engine
 
 * Evaluates global and per-identity thresholds.
 * Determines whether to issue `allow`, `deny`, or `require_challenge`.
 * Computes puzzle difficulty based on current abuse signals and configuration.
 * Escalates to `deny` when puzzle generation fails or telemetry indicates abuse, matching Section 10 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-### 8.3 Puzzle Engine
+### 7.3 Puzzle Engine
 
 * Generates puzzles using [Key Manager](03-key-manager.md) seeds.
 * Tracks outstanding puzzles and expiration.
 * Verifies puzzle solutions and informs the Policy Engine of outcomes.
 
-### 8.4 Publication Engine
+### 7.4 Publication Engine
 
 * Communicates decisions to [Network Manager](10-network-manager.md) using the interface defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Emits telemetry to [Log Manager](12-log-manager.md) and [Event Manager](11-event-manager.md) when enabled.
 * Applies health-aware throttling by consuming [Health Manager](13-health-manager.md) signals.
 * Attaches the correct reason codes (for example, `ERR_RESOURCE_PUZZLE_FAILED`) to `deny` directives before [Network Manager](10-network-manager.md) closes the connection.
 
-## 9. Startup and shutdown responsibilities
+## 8. Startup and shutdown responsibilities
 
-### 9.1 Startup
+### 8.1 Startup
 
 On startup, [DoS Guard Manager](14-dos-guard-manager.md) must:
 
@@ -169,7 +152,7 @@ On startup, [DoS Guard Manager](14-dos-guard-manager.md) must:
 * Register its decision interface with [Network Manager](10-network-manager.md)'s Bastion Engine so all admitted surfaces route through DoS Guard, as mandated by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Default to a conservative posture until initial [Health Manager](13-health-manager.md) state is available. If [Health Manager](13-health-manager.md) state is unavailable, DoS Guard must behave as if the node is `not_ready`.
 
-### 9.2 Shutdown
+### 8.2 Shutdown
 
 On shutdown, [DoS Guard Manager](14-dos-guard-manager.md) must:
 
@@ -178,7 +161,7 @@ On shutdown, [DoS Guard Manager](14-dos-guard-manager.md) must:
 * Emit a final telemetry snapshot to [Log Manager](12-log-manager.md).
 * Instruct [Network Manager](10-network-manager.md) to stop admitting new connections on protected surfaces so admission remains fail-closed per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-## 10. Readiness, liveness, and operational guarantees
+## 9. Readiness, liveness, and operational guarantees
 
 [DoS Guard Manager](14-dos-guard-manager.md) must provide the following signals for consumption by [Health Manager](13-health-manager.md):
 
@@ -195,7 +178,7 @@ On shutdown, [DoS Guard Manager](14-dos-guard-manager.md) must:
 
 If DoS Guard is not ready, [Network Manager](10-network-manager.md) must treat protected surfaces as not admissible and must not bypass DoS Guard.
 
-## 11. Component interactions
+## 10. Component interactions
 
 * **[Network Manager](10-network-manager.md)**: Provides telemetry and transports puzzles and responses. [Network Manager](10-network-manager.md) must obey `allow`, `deny`, and `require_challenge` directives immediately and is the sole runtime caller of the DoS Guard API per Section 9 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * **[Key Manager](03-key-manager.md)**: Supplies seeds or HMAC keys for puzzle generation. Private keys never leave [Key Manager](03-key-manager.md).
@@ -204,7 +187,7 @@ If DoS Guard is not ready, [Network Manager](10-network-manager.md) must treat p
 * **[Log Manager](12-log-manager.md)**: Receives structured logs for every decision, puzzle issuance, puzzle failure, and associated throttle parameters.
 * **[Event Manager](11-event-manager.md)**: Receives notifications when abuse is detected or policy changes occur.
 
-## 12. Failure handling
+## 11. Failure handling
 
 * If Telemetry Intake fails (queue overflow), DoS Guard logs the event and treats new connections as `require_challenge` until capacity returns, matching Section 10 of [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * If Policy Engine encounters an error, decisions default to `deny` and [Network Manager](10-network-manager.md) terminates the connection.
@@ -215,7 +198,7 @@ Additional failure rules:
 
 * If DoS Guard cannot obtain [Health Manager](13-health-manager.md) state, DoS Guard must apply the readiness multiplier as if the node is `not_ready`.
 
-## 13. Security and trust boundaries
+## 12. Security and trust boundaries
 
 * DoS Guard treats all connection telemetry as untrusted until validated.
 * Puzzles are opaque to other managers and clients. Only DoS Guard verifies solutions.
@@ -229,7 +212,7 @@ Forbidden behaviors:
 * DoS Guard using graph state, schema state, or ACL state as an input to admission decisions.
 * DoS Guard inferring identity from telemetry, transport metadata, or puzzle payloads ([01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)).
 
-## 14. Observability
+## 13. Observability
 
 DoS Guard emits:
 
@@ -242,7 +225,7 @@ DoS Guard emits:
 
 These metrics are delivered to [Log Manager](12-log-manager.md) and optionally to [Event Manager](11-event-manager.md) for real-time monitoring.
 
-## 15. Compliance checklist
+## 14. Compliance checklist
 
 Implementations must demonstrate:
 
