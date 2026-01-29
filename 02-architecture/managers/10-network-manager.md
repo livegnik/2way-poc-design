@@ -4,27 +4,12 @@
 
 # 10 Network Manager
 
-## 1. Purpose and scope
+Defines peer network I/O, admission, cryptographic binding, and transport lifecycle control.
+Specifies internal engines, discovery, scheduling, and DoS Guard integration.
+Defines failure handling, limits, and trust boundaries for network operations.
 
-The Network Manager is the authoritative component responsible for the scope described below. This document specifies the Network Manager.
 
-The Network Manager owns all peer-to-peer network I/O for a 2WAY node. It is the only component allowed to touch raw transport data. It defines transport abstraction, ordered startup and shutdown of network surfaces, staged admission through a bastion boundary, cryptographic binding at the network edge, peer discovery and outbound connection scheduling, reachability tracking, and integration with DoS Guard for abuse containment. This specification defines internal engines and phases that together constitute the Network Manager. These engines, phases, and boundaries are normative and required for correct implementation.
-
-This specification consumes the protocol contracts defined in:
-
-* [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)
-* [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)
-* [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)
-* [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md)
-* [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md)
-* [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)
-* [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)
-
-Those files remain normative for all behaviors described here.
-
-This document does not define synchronization policy, graph semantics, authorization decisions, or DoS policy logic.
-
-## 2. Responsibilities and boundaries
+## 1. Responsibilities and boundaries
 
 This specification is responsible for the following:
 
@@ -60,7 +45,7 @@ This specification does not cover the following:
 * Multi-hop relay policy, overlay routing, or topology optimization beyond direct peer connectivity.
 * Any user-facing APIs, UI behavior, or admin workflows.
 
-## 3. Invariants and guarantees
+## 2. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
@@ -79,13 +64,13 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Failures at any trust boundary fail closed. When a required check cannot be performed, the input is rejected and not forwarded, matching the failure posture defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
-## 4. Internal engine structure
+## 3. Internal engine structure
 
 The [Network Manager](10-network-manager.md) is composed of four mandatory internal engines. These engines define strict phase boundaries and must not be collapsed, reordered, or bypassed.
 
 In addition, the Network Startup Engine owns two mandatory background phases, Peer Discovery and Reachability Tracking. These phases are internal to the [Network Manager](10-network-manager.md) and must run under the same hard-limit and fail-closed constraints defined in this file.
 
-### 4.1 Network Startup Engine
+### 3.1 Network Startup Engine
 
 The Network Startup Engine governs ordered initialization, readiness gating, runtime loops, and teardown of all network subsystems.
 
@@ -132,7 +117,7 @@ Constraints:
 * The Startup Engine must not trigger graph mutations to publish endpoint changes. It may only emit events and hand off endpoint facts to the appropriate manager.
 * Partial initialization must not result in readiness. Startup failure must fail closed and prevent new admissions.
 
-### 4.2 Bastion Engine
+### 3.2 Bastion Engine
 
 The Bastion Engine owns all unauthenticated and unadmitted connections. It is the only engine permitted to interact with unadmitted sessions.
 
@@ -161,7 +146,7 @@ Constraints:
 * A session is not admitted unless [DoS Guard Manager](14-dos-guard-manager.md) explicitly allows it, satisfying [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * If DoS Guard is unavailable, the Bastion Engine must fail closed for new admissions.
 
-### 4.3 Incoming Engine
+### 3.3 Incoming Engine
 
 The Incoming Engine owns all inbound communication after successful bastion admission.
 
@@ -186,7 +171,7 @@ Constraints:
 * Authorization, schema validation, graph evaluation, reconciliation, and state mutation are forbidden.
 * The Incoming Engine must not implement retry, reordering, or deduplication.
 
-### 4.4 Outgoing Engine
+### 3.4 Outgoing Engine
 
 The Outgoing Engine owns all outbound communication after successful bastion admission.
 
@@ -208,11 +193,11 @@ Constraints:
 * Implicit retry, replay, or backoff behavior is forbidden unless explicitly defined in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and invoked by the [State Manager](09-state-manager.md), because transports remain best-effort per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 * Cryptographic failure or transport failure must fail closed for that envelope. The envelope is not modified and not retried by this manager.
 
-## 5. Transport surfaces and onion service lifecycle
+## 4. Transport surfaces and onion service lifecycle
 
 Transport surface behavior must remain consistent with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 
-### 5.1 Transport surface types
+### 4.1 Transport surface types
 
 The [Network Manager](10-network-manager.md) may expose one or more transport surfaces, depending on configuration:
 
@@ -226,7 +211,7 @@ If distinct surfaces are configured:
 * The admitted data surface must not accept unauthenticated traffic.
 * The bastion ingress surface must not carry admitted payload traffic.
 
-### 5.2 Onion service lifecycle
+### 4.2 Onion service lifecycle
 
 Where onion services are used, the Network Startup Engine and transport adapter must support the following lifecycle operations as required by configuration and failure handling:
 
@@ -243,11 +228,11 @@ Rules:
 * Service lifecycle changes must be emitted as explicit events and reflected in [Health Manager](13-health-manager.md) readiness signals.
 * Publishing new reachable endpoints to peers is not owned by the [Network Manager](10-network-manager.md). The [Network Manager](10-network-manager.md) may only surface endpoint facts to the [State Manager](09-state-manager.md) for persistence and publication decisions.
 
-## 6. Peer discovery, endpoint resolution, and reachability
+## 5. Peer discovery, endpoint resolution, and reachability
 
 Peer discovery is a [Network Manager](10-network-manager.md) responsibility. It identifies candidate peers and attempts connectivity. It does not decide what data to sync, what to trust, or what to authorize.
 
-### 6.1 Discovery scope and inputs
+### 5.1 Discovery scope and inputs
 
 Discovery scope is limited to first-degree known peers.
 
@@ -262,7 +247,7 @@ Rules:
 * The [Network Manager](10-network-manager.md) must not mutate graph state or persist discovered endpoint data.
 * The [Network Manager](10-network-manager.md) must not expand discovery beyond first-degree peers.
 
-### 6.2 Endpoint structural validation
+### 5.2 Endpoint structural validation
 
 The [Network Manager](10-network-manager.md) performs structural validation only:
 
@@ -276,7 +261,7 @@ The [Network Manager](10-network-manager.md) must not:
 * infer identity from endpoint
 * interpret endpoints as proof of peer availability
 
-### 6.3 Endpoint selection and deterministic ordering
+### 5.3 Endpoint selection and deterministic ordering
 
 When multiple endpoints exist for a peer identity, the [Network Manager](10-network-manager.md) must apply deterministic ordering.
 
@@ -290,7 +275,7 @@ Ordering inputs may include:
 
 Ordering must not depend on non-deterministic timing.
 
-### 6.4 Fallback and cooldown
+### 5.4 Fallback and cooldown
 
 When dialing a peer:
 
@@ -304,7 +289,7 @@ Cooldown rules:
 * Cooldown must increase under repeated failure, but must have a maximum cap.
 * Cooldown state must not be treated as a trust signal.
 
-### 6.5 Reachability states
+### 5.5 Reachability states
 
 The [Network Manager](10-network-manager.md) maintains a reachability state per peer identity and per endpoint:
 
@@ -324,7 +309,7 @@ Reachability rules:
 * Reachability must never affect authorization, ACL evaluation, or sync decisions.
 * Reachability may be emitted as events and may be surfaced to [State Manager](09-state-manager.md) as advisory telemetry, without graph writes.
 
-### 6.6 Probing and liveness
+### 5.6 Probing and liveness
 
 The [Network Manager](10-network-manager.md) may perform bounded probing, limited to:
 
@@ -333,9 +318,9 @@ The [Network Manager](10-network-manager.md) may perform bounded probing, limite
 
 Probing must be bounded by hard rate limits and must not be used to generate additional traffic under load.
 
-## 7. Outbound connection scheduling, fairness, and session reuse
+## 6. Outbound connection scheduling, fairness, and session reuse
 
-### 7.1 Dial scheduler ownership
+### 6.1 Dial scheduler ownership
 
 The [Network Manager](10-network-manager.md) owns the dial scheduler.
 
@@ -348,7 +333,7 @@ Scheduler inputs:
 * reconnect needs due to disconnects
 * cooldown and reachability state
 
-### 7.2 Concurrency and fairness
+### 6.2 Concurrency and fairness
 
 The scheduler must enforce:
 
@@ -363,7 +348,7 @@ Fairness requirements:
 * Reconnect attempts must not starve discovery dials indefinitely, and vice versa.
 * Under resource pressure, the scheduler must reduce outbound dialing before shedding admitted sessions.
 
-### 7.3 Session reuse and affinity
+### 6.3 Session reuse and affinity
 
 Rules:
 
@@ -372,7 +357,7 @@ Rules:
 * Session affinity is keyed by verified peer identity, not endpoint or transport-provided identifiers.
 * Endpoint churn is permitted without changing peer identity. Identity remains cryptographically bound.
 
-### 7.4 Preventing connection storms
+### 6.4 Preventing connection storms
 
 The scheduler must include storm prevention:
 
@@ -381,11 +366,11 @@ The scheduler must include storm prevention:
 * jittered scheduling when many peers enter eligible state simultaneously
 * strict backoff on repeated failure
 
-## 8. Admission and DoS Guard integration
+## 7. Admission and DoS Guard integration
 
 Admission control semantics are defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md). The [Network Manager](10-network-manager.md) acts as the transport boundary that supplies telemetry to [DoS Guard Manager](14-dos-guard-manager.md) and executes DoS Guard directives.
 
-### 8.1 Bastion to DoS Guard inputs
+### 7.1 Bastion to DoS Guard inputs
 
 The Bastion Engine must provide, at minimum:
 
@@ -399,7 +384,7 @@ The Bastion Engine must provide, at minimum:
 * Advisory peer references and observed routing metadata.
 * Scheduler context for outbound attempts, when applicable, including whether the attempt is discovery-driven or State-driven.
 
-### 8.2 DoS Guard to Bastion outputs
+### 7.2 DoS Guard to Bastion outputs
 
 The [DoS Guard Manager](14-dos-guard-manager.md) returns one of:
 
@@ -421,7 +406,7 @@ Constraints:
 * Puzzle ownership resides exclusively with the [DoS Guard Manager](14-dos-guard-manager.md).
 * Telemetry and directives must not be repurposed as identity evidence.
 
-## 9. Connection lifecycle and state transitions
+## 8. Connection lifecycle and state transitions
 
 Each network session must exist in exactly one state:
 
@@ -456,11 +441,11 @@ Additional constraints:
 * A single underlying transport session must not be concurrently treated as both bastion-held and admitted.
 * If the transport reuses a single TCP-like connection for admission and then admitted traffic, the transition from bastion-held to admitted must include an explicit internal state flip, and any pre-admission buffers must be cleared or strictly bounded before admitted traffic is accepted.
 
-## 10. Manager interactions
+## 9. Manager interactions
 
 This section defines integration contracts in terms of inputs, outputs, and trust boundaries, without importing responsibilities from other managers.
 
-### 10.1 Key Manager interaction
+### 9.1 Key Manager interaction
 
 Inbound:
 
@@ -483,7 +468,7 @@ Rules:
 
 These interactions implement the cryptographic boundary described in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and uphold the identity rules in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 
-### 10.2 State Manager interaction
+### 9.2 State Manager interaction
 
 Inbound delivery:
 
@@ -514,14 +499,14 @@ Rules:
 * The [State Manager](09-state-manager.md) does not dictate immediate dialing or bypass scheduler constraints.
 * Any retry or resend policy belongs to [State Manager](09-state-manager.md).
 
-### 10.3 DoS Guard interaction
+### 9.3 DoS Guard interaction
 
 * Bastion emits telemetry for admission decisions and executes directives for allow, deny, and challenge.
 * DoS Guard unavailability causes fail-closed behavior for new admissions.
 
 All telemetry exchanges and directives must match the API defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-### 10.4 Event Manager interaction
+### 9.4 Event Manager interaction
 
 The [Network Manager](10-network-manager.md) emits events for:
 
@@ -538,7 +523,7 @@ Event rules:
 
 * Events must not leak private key material, decrypted payloads, raw payload bytes, or sensitive internal topology details beyond what is necessary for operators.
 
-### 10.5 Health Manager interaction
+### 9.5 Health Manager interaction
 
 The [Network Manager](10-network-manager.md) exposes two signals:
 
@@ -561,9 +546,9 @@ Readiness may be degraded, but not true, when:
 
 * existing admitted sessions are maintained but new admissions are fail-closed due to dependency failure
 
-## 11. Inputs and outputs
+## 10. Inputs and outputs
 
-### 11.1 Inputs
+### 10.1 Inputs
 
 The [Network Manager](10-network-manager.md) accepts:
 
@@ -576,7 +561,7 @@ The [Network Manager](10-network-manager.md) accepts:
 
 All inbound transport data is untrusted.
 
-### 11.2 Outputs
+### 10.2 Outputs
 
 The [Network Manager](10-network-manager.md) produces:
 
@@ -590,9 +575,9 @@ The [Network Manager](10-network-manager.md) produces:
 * Admission telemetry emitted to DoS Guard.
 * Advisory reachability telemetry surfaced to [State Manager](09-state-manager.md).
 
-## 12. Allowed and forbidden behaviors
+## 11. Allowed and forbidden behaviors
 
-### 12.1 Explicitly allowed behaviors
+### 11.1 Explicitly allowed behaviors
 
 The [Network Manager](10-network-manager.md) may:
 
@@ -604,7 +589,7 @@ The [Network Manager](10-network-manager.md) may:
 * Perform bounded probing for reachability and liveness, under strict rate limits.
 * Reorder endpoint dialing attempts for a peer deterministically based on reachability state.
 
-### 12.2 Explicitly forbidden behaviors
+### 11.2 Explicitly forbidden behaviors
 
 The [Network Manager](10-network-manager.md) must not:
 
@@ -619,11 +604,11 @@ The [Network Manager](10-network-manager.md) must not:
 * Expand discovery beyond first-degree peers.
 * Treat reachability as an authorization or trust input.
 
-## 13. Failure and rejection behavior
+## 12. Failure and rejection behavior
 
 Failure handling maps each condition to symbolic error classes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md) and must preserve the fail-closed posture described there.
 
-### 13.1 Invalid input and malformed framing
+### 12.1 Invalid input and malformed framing
 
 On malformed input:
 
@@ -632,7 +617,7 @@ On malformed input:
 * Do not forward downstream.
 * Emit a bounded event and increment counters, without logging raw payload bytes.
 
-### 13.2 Admission failure and challenge timeout
+### 12.2 Admission failure and challenge timeout
 
 On deny or challenge timeout:
 
@@ -640,7 +625,7 @@ On deny or challenge timeout:
 * Emit an admission failure event.
 * Apply throttling if instructed, bounded by hard limits.
 
-### 13.3 DoS Guard unavailability
+### 12.3 DoS Guard unavailability
 
 If DoS Guard is unavailable:
 
@@ -649,7 +634,7 @@ If DoS Guard is unavailable:
 * Mark readiness false or degraded as specified in [Health Manager](13-health-manager.md) interaction.
 * Emit a critical failure event.
 
-### 13.4 Onion service or listener failure
+### 12.4 Onion service or listener failure
 
 On listener or onion service startup failure:
 
@@ -663,7 +648,7 @@ On runtime listener or onion service failure:
 * Fail closed for new admissions on the affected surface.
 * Preserve admitted sessions on unaffected surfaces if configured separately and if limits allow.
 
-### 13.5 Resource exhaustion
+### 12.5 Resource exhaustion
 
 On resource pressure:
 
@@ -674,7 +659,7 @@ On resource pressure:
 * If limits are exceeded, shed lowest-trust sessions first, with lowest-trust defined purely by lifecycle state:
   * bastion-held and challenged are lower than admitted
 
-### 13.6 Cryptographic failure
+### 12.6 Cryptographic failure
 
 On verification or decryption failure:
 
@@ -682,7 +667,7 @@ On verification or decryption failure:
 * Do not forward it.
 * Emit a bounded event and counters, without leaking plaintext or key material.
 
-### 13.7 Discovery and reachability failure
+### 12.7 Discovery and reachability failure
 
 Discovery failures must not affect readiness.
 
@@ -698,7 +683,7 @@ On repeated dial failures:
 * Do not increase dial rate under failure.
 * Do not attempt all peers simultaneously, enforce fairness and jitter.
 
-## 14. Configuration and mandatory limits
+## 13. Configuration and mandatory limits
 
 The [Network Manager](10-network-manager.md) enforces mandatory limits, including:
 
@@ -721,7 +706,7 @@ These limits are mandatory and cannot be disabled.
 
 They enforce hard-cap guidance from [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), preserve resource-failure semantics described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), and feed telemetry inputs consumed by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
-## 15. Security considerations
+## 14. Security considerations
 
 * The [Network Manager](10-network-manager.md) is a primary external attack surface and must be implemented to fail fast and fail closed.
 * Bastion isolation must prevent amplification, resource pinning, and unbounded buffering.
