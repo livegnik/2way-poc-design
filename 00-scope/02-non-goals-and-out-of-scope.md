@@ -4,7 +4,7 @@
 
 # 02 Non-goals and out-of-scope
 
-Defines excluded behaviors, assumptions, and guarantees for the 2WAY PoC, specifies non-goals, forbidden interactions, and rejection expectations, and constrains trust dependencies and enforcement boundaries for excluded features.
+Defines excluded behaviors, assumptions, and guarantees for the 2WAY PoC. Specifies non-goals, forbidden interactions, and rejection expectations. Constrains trust dependencies and enforcement boundaries for excluded features.
 
 For the meta specifications, see [02-non-goals-and-out-of-scope meta](../09-appendix/meta/00-scope/02-non-goals-and-out-of-scope-meta.md).
 
