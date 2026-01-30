@@ -4,9 +4,9 @@
 
 # 04 Frontend Apps
 
-Defines frontend app responsibilities for identity, [OperationContext](05-operation-context.md) contributions, and interface consumption.
-Specifies storage, sync, error handling, observability, release, and security requirements.
-Defines backend integration, configuration, and lifecycle obligations for frontend implementations.
+Defines frontend app responsibilities for identity, [OperationContext](05-operation-context.md) contributions, and interface consumption. Specifies storage, sync, error handling, observability, release, and security requirements. Defines backend integration, configuration, and lifecycle obligations for frontend implementations.
+
+For the meta specifications, see [04-frontend-apps meta](../09-appendix/meta/02-architecture/services-and-apps/04-frontend-apps-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -348,4 +348,3 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 10. **Distribution**: Signed packages, auto-update policies, rollback capability, and manifest embedding to ensure compatibility enforcement.
 11. **Integration**: Service-specific behaviors implemented per system service specs, extension manifests respected, and [OperationContext](05-operation-context.md) hashes verified end to end.
 12. **Testing**: Automated tests cover [OperationContext](05-operation-context.md) assembly, capability gating, schema validation, pending write ordering, sync conflict handling, admission-feedback handling, and error rendering.
-

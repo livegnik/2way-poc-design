@@ -4,9 +4,9 @@
 
 # 03 App Backend Extensions
 
-Defines how app-owned backend extensions integrate with managers and trust boundaries.
-Specifies lifecycle, capability, configuration, and observability requirements for extensions.
-Defines failure handling, packaging, and isolation guarantees for extension services.
+Defines how app-owned backend extensions integrate with managers and trust boundaries. Specifies lifecycle, capability, configuration, and observability requirements for extensions. Defines failure handling, packaging, and isolation guarantees for extension services.
+
+For the meta specifications, see [03-app-backend-extensions meta](../09-appendix/meta/02-architecture/services-and-apps/03-app-backend-extensions-meta.md).
 
 ## 1. Invariants and guarantees
 

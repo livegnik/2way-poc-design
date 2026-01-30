@@ -4,9 +4,9 @@
 
 # 00 Services and Apps Overview
 
-Defines how services and apps fit into the manager-centric 2WAY architecture.
-Specifies shared invariants, trust boundaries, and lifecycle ordering for services and apps.
-Summarizes end-to-end flows for local requests and remote sync packages.
+Defines how services and apps fit into the manager-centric 2WAY architecture. Specifies shared invariants, trust boundaries, and lifecycle ordering for services and apps. Summarizes end-to-end flows for local requests and remote sync packages.
+
+For the meta specifications, see [00-services-and-apps-overview meta](../09-appendix/meta/02-architecture/services-and-apps/00-services-and-apps-overview-meta.md).
 
 ## 1. Service and application taxonomy
 

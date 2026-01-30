@@ -4,9 +4,9 @@
 
 # 01 Services vs Apps
 
-Defines how services and applications are separated in the 2WAY backend architecture.
-Specifies invariants for service/app isolation, OperationContext usage, and manager-only authority.
-Defines service classes, app responsibilities, and interaction rules across trust boundaries.
+Defines how services and applications are separated in the 2WAY backend architecture. Specifies invariants for service/app isolation, OperationContext usage, and manager-only authority. Defines service classes, app responsibilities, and interaction rules across trust boundaries.
+
+For the meta specifications, see [01-services-vs-apps meta](../09-appendix/meta/02-architecture/services-and-apps/01-services-vs-apps-meta.md).
 
 ## 1. Terminology and classification
 

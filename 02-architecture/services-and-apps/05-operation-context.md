@@ -4,9 +4,9 @@
 
 # 05 Operation Context
 
-Defines the OperationContext structure and field semantics used by managers and services.
-Specifies construction rules, lifecycle behavior, and local vs remote context variants.
-Defines validation, failure handling, and consumption requirements across the system.
+Defines the OperationContext structure and field semantics used by managers and services. Specifies construction rules, lifecycle behavior, and local vs remote context variants. Defines validation, failure handling, and consumption requirements across the system.
+
+For the meta specifications, see [05-operation-context meta](../09-appendix/meta/02-architecture/services-and-apps/05-operation-context-meta.md).
 
 ## 1. Invariants and guarantees
 

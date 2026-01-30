@@ -4,9 +4,9 @@
 
 # 02 System Services
 
-Defines the mandatory system services and their required behaviors in the 2WAY backend.
-Specifies capability, OperationContext, and manager interaction requirements for system services.
-Defines lifecycle sequencing, configuration obligations, and fail-closed handling for service workflows.
+Defines the mandatory system services and their required behaviors in the 2WAY backend. Specifies capability, OperationContext, and manager interaction requirements for system services. Defines lifecycle sequencing, configuration obligations, and fail-closed handling for service workflows.
+
+For the meta specifications, see [02-system-services meta](../09-appendix/meta/02-architecture/services-and-apps/02-system-services-meta.md).
 
 ## 1. Invariants and guarantees
 
