@@ -4,9 +4,9 @@
 
 # 04 Data flow overview
 
-Defines authoritative data flow paths for 2WAY, including bootstrap, read/write, sync, and rejection handling.
-Specifies ordering, validation, authorization, and persistence boundaries for all flows.
-Defines visibility suppression and event emission semantics.
+Defines authoritative data flow paths for 2WAY, including bootstrap, read/write, sync, and rejection handling. Specifies ordering, validation, authorization, and persistence boundaries for all flows. Defines visibility suppression and event emission semantics.
+
+For the meta specifications, see [04-data-flow-overview meta](../09-appendix/meta/02-architecture/04-data-flow-overview-meta.md).
 
 ## 1. Invariants and guarantees
 

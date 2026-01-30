@@ -4,9 +4,9 @@
 
 # 00 Architecture overview
 
-Defines architectural invariants and data-flow sequencing for the 2WAY backend.
-Specifies manager/service boundaries, trust posture, and allowed interaction paths.
-Summarizes runtime topologies, data flows, and failure posture requirements.
+Defines architectural invariants and data-flow sequencing for the 2WAY backend. Specifies manager/service boundaries, trust posture, and allowed interaction paths. Summarizes runtime topologies, data flows, and failure posture requirements.
+
+For the meta specifications, see [00-architecture-overview meta](../09-appendix/meta/02-architecture/00-architecture-overview-meta.md).
 
 ## 1. Architectural posture and guiding principles
 

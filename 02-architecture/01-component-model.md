@@ -4,9 +4,9 @@
 
 # 01 Component model
 
-Defines backend component categories, responsibilities, and interaction rules.
-Specifies manager/service boundaries, allowed interactions, and trust posture.
-Defines failure handling and guarantees for component behavior.
+Defines backend component categories, responsibilities, and interaction rules. Specifies manager/service boundaries, allowed interactions, and trust posture. Defines failure handling and guarantees for component behavior.
+
+For the meta specifications, see [01-component-model meta](../09-appendix/meta/02-architecture/01-component-model-meta.md).
 
 ## 1. Component model overview
 
