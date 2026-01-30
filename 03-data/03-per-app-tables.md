@@ -3,43 +3,10 @@
 
 # 03 Per-app tables
 
-## 1. Purpose and scope
+Defines per-app SQLite table families for graph objects and derived indices.
+Specifies table contents, immutability, access rules, and failure behavior.
 
-This document defines the per-app table families stored in the 2WAY backend SQLite database. These tables store canonical graph objects for a single application domain and are created once per registered app under the `app_N_` prefix. It does not define global system tables or storage engine behavior outside app-scoped graph data. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
-
-This specification consumes and is constrained by the protocol contracts defined in:
-
-- [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
-- [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
-- [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
-- [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
-- [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-- [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-- [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
-- [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Defining the per-app table family naming scheme and lifecycle
-* Defining all per-app tables used to store graph objects and derived indices
-* Defining shared metadata columns and immutability constraints
-* Defining app-scoped isolation rules and reference constraints
-* Defining failure posture for per app table corruption or inconsistency
-
-This specification does not cover the following:
-
-* Global system tables, which are defined in [03-data/02-system-tables.md](02-system-tables.md)
-* Schema compilation and type mapping semantics, which are owned by [Schema Manager](../02-architecture/managers/05-schema-manager.md)
-* ACL rule evaluation, which is owned by [ACL Manager](../02-architecture/managers/06-acl-manager.md) and defined in [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-* Envelope validation and acceptance rules, which are owned by [Graph Manager](../02-architecture/managers/07-graph-manager.md)
-* Sync envelope construction or validation, which is owned by [State Manager](../02-architecture/managers/09-state-manager.md)
-* Network transport behavior, which is owned by [Network Manager](../02-architecture/managers/10-network-manager.md)
-
-All tables defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may access them directly.
-
-## 3. Invariants and guarantees
+## 1. Invariants and guarantees
 
 Across all per app tables defined in this file, the following invariants and guarantees hold:
 
@@ -56,7 +23,9 @@ Across all per app tables defined in this file, the following invariants and gua
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
-## 4. Table ownership and access rules
+## 2. Table ownership and access rules
+
+All tables defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may access them directly.
 
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all per app tables
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) is the only component permitted to write graph object tables
@@ -68,11 +37,11 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 Violation of these rules is a fatal implementation error.
 
-## 5. Per app table catalog
+## 3. Per app table catalog
 
 Per-app tables store the canonical graph objects for a single application domain. Each table family is scoped to one `app_id`, using a stable `app_N_` prefix derived from the registry defined in [03-data/02-system-tables.md](02-system-tables.md). The tables below are created for every app. All object rows include the shared metadata set defined by [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) and are subject to the same immutability rules.
 
-### 5.1 app_N_type
+### 3.1 app_N_type
 
 #### Purpose
 
@@ -98,7 +67,7 @@ Each row includes:
 * `app_N_type` is not part of sync and is never replicated
 * schema changes that invalidate the type registry cause fail closed behavior
 
-### 5.2 app_N_parent
+### 3.2 app_N_parent
 
 #### Purpose
 
@@ -124,7 +93,7 @@ Each row includes:
 * `owner_identity` must resolve to a valid identity per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
 * Parent rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 
-### 5.3 app_N_attr
+### 3.3 app_N_attr
 
 #### Purpose
 
@@ -151,7 +120,7 @@ Each row includes:
 * immutable metadata fields never change after insertion
 * Attribute rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 
-### 5.4 app_N_edge
+### 3.4 app_N_edge
 
 #### Purpose
 
@@ -178,7 +147,7 @@ Each row includes:
 * immutable metadata fields never change after insertion
 * Edge rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 
-### 5.5 app_N_rating
+### 3.5 app_N_rating
 
 #### Purpose
 
@@ -205,7 +174,7 @@ Each row includes:
 * immutable metadata fields never change after insertion
 * Rating rows are syncable and replicated per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
 
-### 5.6 app_N_log
+### 3.6 app_N_log
 
 #### Purpose
 
@@ -228,7 +197,7 @@ Each row may include:
 * log rows must not affect graph object evaluation, ACLs, or schema logic
 * deletion or truncation is permitted only by explicit operator action
 
-## 6. Common column requirements
+## 4. Common column requirements
 
 All graph object tables (`app_N_parent`, `app_N_attr`, `app_N_edge`, `app_N_rating`) include the shared metadata columns defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md). These fields are immutable and assigned exclusively by [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [Storage Manager](../02-architecture/managers/02-storage-manager.md). Callers must never supply or override them.
 
@@ -243,13 +212,13 @@ The minimum required metadata set includes:
 
 Any mutation of these fields is a fatal error.
 
-## 7. ACL and schema representation
+## 5. ACL and schema representation
 
 ACL structures are persisted as Parents and Attributes within the app-scoped tables. There is no dedicated ACL table. ACL evaluation semantics are defined by [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md) and enforced by [ACL Manager](../02-architecture/managers/06-acl-manager.md).
 
 Schema definitions live in `app_0` graph objects. Per-app tables store only derived type mappings in `app_N_type`. This prevents schema definition drift and ensures deterministic type resolution across nodes per [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md).
 
-## 8. Startup behavior
+## 6. Startup behavior
 
 During app registration:
 
@@ -259,7 +228,7 @@ During app registration:
 
 Startup fails closed if per-app table creation fails or results in partial state.
 
-## 9. Failure posture
+## 7. Failure posture
 
 The system fails closed under the following conditions:
 
@@ -271,7 +240,7 @@ The system fails closed under the following conditions:
 
 Automatic repair is forbidden per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
-## 10. Explicitly forbidden behavior
+## 8. Explicitly forbidden behavior
 
 The following behavior is forbidden:
 
