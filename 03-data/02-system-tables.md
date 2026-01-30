@@ -4,8 +4,9 @@
 
 # 02 System tables
 
-Defines required global system tables and their contents in the backend SQLite database.
-Specifies access rules, invariants, sequencing state, and operational behavior for system tables.
+Defines required global system tables and their contents in the backend SQLite database. Specifies access rules, invariants, and sequencing state for system tables. Defines operational behavior for system tables.
+
+For the meta specifications, see [02-system-tables meta](../09-appendix/meta/03-data/02-system-tables-meta.md).
 
 ## 1. Responsibilities and boundaries
 

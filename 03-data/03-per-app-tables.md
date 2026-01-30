@@ -1,10 +1,12 @@
 
 
 
+
 # 03 Per-app tables
 
-Defines per-app SQLite table families for graph objects and derived indices.
-Specifies table contents, immutability, access rules, and failure behavior.
+Defines per-app SQLite table families for graph objects and derived indices. Specifies table contents, immutability, and access rules. Defines failure behavior.
+
+For the meta specifications, see [03-per-app-tables meta](../09-appendix/meta/03-data/03-per-app-tables-meta.md).
 
 ## 1. Invariants and guarantees
 

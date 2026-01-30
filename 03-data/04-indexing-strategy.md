@@ -1,10 +1,12 @@
 
 
 
+
 # 04 Indexing strategy
 
-Defines required index families and access patterns for backend SQLite tables.
-Specifies indexing guarantees, ownership, and operational constraints.
+Defines required index families and access patterns for backend SQLite tables. Specifies indexing guarantees, ownership, and operational constraints. Defines index maintenance expectations for query performance.
+
+For the meta specifications, see [04-indexing-strategy meta](../09-appendix/meta/03-data/04-indexing-strategy-meta.md).
 
 ## 1. Invariants and guarantees
 

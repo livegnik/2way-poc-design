@@ -4,8 +4,9 @@
 
 # 01 SQLite layout
 
-Defines SQLite storage topology, table families, and required columns for the 2WAY backend.
-Specifies sequencing, sync-state persistence, and startup/shutdown/failure handling rules.
+Defines SQLite storage topology, table families, and required columns for the 2WAY backend. Specifies sequencing and sync-state persistence rules. Defines startup, shutdown, and failure handling rules.
+
+For the meta specifications, see [01-sqlite-layout meta](../09-appendix/meta/03-data/01-sqlite-layout-meta.md).
 
 ## 1. Purpose and scope
 
