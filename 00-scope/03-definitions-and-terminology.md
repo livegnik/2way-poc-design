@@ -4,9 +4,9 @@
 
 # 03 Definitions and terminology
 
-Defines canonical terms used across the 2WAY design repository.
-Specifies normative meanings for core entities, graph objects, and validation concepts.
-Defines constraints and usage rules for terminology.
+Defines canonical terms used across the 2WAY design repository, specifies normative meanings for core entities, graph objects, and validation concepts, and defines constraints and usage rules for terminology.
+
+For the meta specifications, see [03-definitions-and-terminology meta](../09-appendix/meta/00-scope/03-definitions-and-terminology-meta.md).
 
 ## 1. Invariants and guarantees
 
