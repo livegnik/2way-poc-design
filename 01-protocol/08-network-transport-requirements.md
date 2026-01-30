@@ -4,9 +4,9 @@
 
 # 08 Network transport requirements
 
-Defines transport-layer responsibilities and envelope handling for 2WAY.
-Specifies transport invariants, permitted behavior, and failure signaling.
-Defines boundaries, trust assumptions, and compliance criteria for transport implementations.
+Defines transport-layer responsibilities and envelope handling for 2WAY. Specifies transport invariants, permitted behavior, and failure signaling. Defines boundaries, trust assumptions, and compliance criteria for transport implementations.
+
+For the meta specifications, see [08-network-transport-requirements meta](../09-appendix/meta/01-protocol/08-network-transport-requirements-meta.md).
 
 ## 1. Position in the system
 

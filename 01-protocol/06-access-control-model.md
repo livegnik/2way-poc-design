@@ -4,9 +4,9 @@
 
 # 06 Access Control Model
 
-Defines authorization evaluation rules and enforcement layers for 2WAY graph operations.
-Specifies authorization inputs, decision ordering, and rejection conditions.
-Defines required isolation constraints and security properties for access control.
+Defines authorization evaluation rules and enforcement layers for 2WAY graph operations. Specifies authorization inputs, decision ordering, and rejection conditions. Defines required isolation constraints and security properties for access control.
+
+For the meta specifications, see [06-access-control-model meta](../09-appendix/meta/01-protocol/06-access-control-model-meta.md).
 
 ## 1. Invariants and guarantees
 

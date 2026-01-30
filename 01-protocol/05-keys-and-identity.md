@@ -4,9 +4,9 @@
 
 # 05 Keys and Identity
 
-Defines protocol identity and key representations for 2WAY.
-Specifies key binding, authorship assertion, and signature verification rules.
-Defines identity invariants, allowed/forbidden behaviors, and rejection conditions.
+Defines protocol identity and key representations for 2WAY. Specifies key binding, authorship assertion, and signature verification rules. Defines identity invariants, allowed/forbidden behaviors, and rejection conditions.
+
+For the meta specifications, see [05-keys-and-identity meta](../09-appendix/meta/01-protocol/05-keys-and-identity-meta.md).
 
 ## 1. Identity model
 

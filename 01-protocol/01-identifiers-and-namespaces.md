@@ -4,9 +4,9 @@
 
 # 01 Identifiers and Namespaces
 
-Defines identifier classes and namespace rules for the 2WAY protocol.
-Specifies identifier invariants, uniqueness, immutability, and resolution rules.
-Enumerates allowed/forbidden identifier behaviors and failure handling.
+Defines identifier classes and namespace rules for the 2WAY protocol. Specifies identifier invariants, uniqueness, immutability, and resolution rules. Enumerates allowed/forbidden identifier behaviors and failure handling.
+
+For the meta specifications, see [01-identifiers-and-namespaces meta](../09-appendix/meta/01-protocol/01-identifiers-and-namespaces-meta.md).
 
 ## 1. Identifier classes
 

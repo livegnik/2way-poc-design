@@ -4,9 +4,9 @@
 
 # 09 DoS Guard and client puzzle requirements
 
-Defines admission control behavior, client puzzle lifecycle, and decision outputs for the 2WAY DoS Guard Manager.
-Specifies required inputs, validation rules, and failure handling for puzzle-based admission control.
-Defines invariants, integration boundaries, and compliance criteria for DoS Guard processing.
+Defines admission control behavior, client puzzle lifecycle, and decision outputs for the 2WAY DoS Guard Manager. Specifies required inputs, validation rules, and failure handling for puzzle-based admission control. Defines invariants, integration boundaries, and compliance criteria for DoS Guard processing.
+
+For the meta specifications, see [09-dos-guard-and-client-puzzles meta](../09-appendix/meta/01-protocol/09-dos-guard-and-client-puzzles-meta.md).
 
 ## 1. Invariants and guarantees
 

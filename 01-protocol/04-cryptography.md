@@ -4,9 +4,9 @@
 
 # 04 Cryptography
 
-Defines cryptographic algorithms and rules for signing, verification, encryption, and decryption of 2WAY messages and envelopes.
-Specifies signature coverage, visibility constraints, and validation ordering for cryptographic processing.
-Defines component responsibilities for cryptographic operations and failure handling.
+Defines cryptographic algorithms and rules for signing, verification, encryption, and decryption of 2WAY messages and envelopes. Specifies signature coverage, visibility constraints, and validation ordering for cryptographic processing. Defines component responsibilities for cryptographic operations and failure handling.
+
+For the meta specifications, see [04-cryptography meta](../09-appendix/meta/01-protocol/04-cryptography-meta.md).
 
 ## 1. Cryptographic algorithms
 

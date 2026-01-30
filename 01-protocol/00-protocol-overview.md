@@ -4,9 +4,9 @@
 
 # 00 Protocol overview
 
-Defines the protocol posture and lifecycle for 2WAY graph mutations and sync.
-Specifies validation ordering, authorization gates, and sync sequencing requirements.
-Summarizes required guarantees, forbidden paths, and compatibility rules.
+Defines the protocol posture and lifecycle for 2WAY graph mutations and sync. Specifies validation ordering, authorization gates, and sync sequencing requirements. Summarizes required guarantees, forbidden paths, and compatibility rules.
+
+For the meta specifications, see [00-protocol-overview meta](../09-appendix/meta/01-protocol/00-protocol-overview-meta.md).
 
 ## 1. Protocol posture and guiding principles
 

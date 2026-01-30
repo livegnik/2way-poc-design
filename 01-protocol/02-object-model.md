@@ -4,9 +4,9 @@
 
 # 02 Object model
 
-Defines the canonical graph object categories for 2WAY and their required fields.
-Specifies object invariants, reference rules, and application-domain isolation constraints.
-Defines acceptance and rejection conditions for object mutations.
+Defines the canonical graph object categories for 2WAY and their required fields. Specifies object invariants, reference rules, and application-domain isolation constraints. Defines acceptance and rejection conditions for object mutations.
+
+For the meta specifications, see [02-object-model meta](../09-appendix/meta/01-protocol/02-object-model-meta.md).
 
 ## 1. Invariants and guarantees
 

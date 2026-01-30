@@ -4,9 +4,9 @@
 
 # 03 Serialization and envelopes
 
-Defines the envelope formats used for 2WAY graph mutations and sync packages.
-Specifies required fields, naming rules, signing scope, and validation requirements.
-Defines rejection conditions for malformed or invalid envelopes.
+Defines the envelope formats used for 2WAY graph mutations and sync packages. Specifies required fields, naming rules, signing scope, and validation requirements. Defines rejection conditions for malformed or invalid envelopes.
+
+For the meta specifications, see [03-serialization-and-envelopes meta](../09-appendix/meta/01-protocol/03-serialization-and-envelopes-meta.md).
 
 ## 1. Invariants and guarantees
 

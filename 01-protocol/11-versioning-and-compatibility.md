@@ -4,9 +4,9 @@
 
 # 11 Versioning and compatibility
 
-Defines protocol version identifiers and compatibility rules for 2WAY peers.
-Specifies compatibility validation boundaries and rejection behavior.
-Defines allowed/forbidden cross-version interactions and guarantees.
+Defines protocol version identifiers and compatibility rules for 2WAY peers. Specifies compatibility validation boundaries and rejection behavior. Defines allowed/forbidden cross-version interactions and guarantees.
+
+For the meta specifications, see [11-versioning-and-compatibility meta](../09-appendix/meta/01-protocol/11-versioning-and-compatibility-meta.md).
 
 ## 1. Protocol version identifier
 
