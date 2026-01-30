@@ -13,23 +13,23 @@ treat this folder as the authoritative source for backend enforcement behavior.
 
 ## What lives here
 
-- `00-architecture-overview.md` - Architectural posture, invariants, and data-flow sequencing.
-- `01-component-model.md` - Manager and service boundaries and responsibilities.
-- `02-runtime-topologies.md` - Conforming deployment topologies and constraints.
-- `03-trust-boundaries.md` - Trust boundary definitions and fail-closed posture.
-- `04-data-flow-overview.md` - The only permitted runtime data flows.
-- `managers/` - Normative specifications for each manager and its authority.
-- `services-and-apps/` - Service, app, and `OperationContext` specifications.
+- [`00-architecture-overview.md`](00-architecture-overview.md) - Architectural posture, invariants, and data-flow sequencing.
+- [`01-component-model.md`](01-component-model.md) - Manager and service boundaries and responsibilities.
+- [`02-runtime-topologies.md`](02-runtime-topologies.md) - Conforming deployment topologies and constraints.
+- [`03-trust-boundaries.md`](03-trust-boundaries.md) - Trust boundary definitions and fail-closed posture.
+- [`04-data-flow-overview.md`](04-data-flow-overview.md) - The only permitted runtime data flows.
+- [`managers/`](managers/) - Normative specifications for each manager and its authority.
+- [`services-and-apps/`](services-and-apps/) - Service, app, and `OperationContext` specifications.
 
-Each document has a corresponding meta specification in `09-appendix/meta/02-architecture/`.
+Each document has a corresponding meta specification in [`09-appendix/meta/02-architecture/`](../09-appendix/meta/02-architecture/).
 
 ## How to read
 
-1. Start with `00-architecture-overview.md` for posture and invariants.
-2. Read `01-component-model.md` to learn manager and service boundaries.
-3. Use `03-trust-boundaries.md` for fail-closed trust posture.
-4. Read `04-data-flow-overview.md` to understand the only permitted flows.
-5. Reference `managers/` and `services-and-apps/` for component-level detail.
+1. Start with [`00-architecture-overview.md`](00-architecture-overview.md) for posture and invariants.
+2. Read [`01-component-model.md`](01-component-model.md) to learn manager and service boundaries.
+3. Use [`03-trust-boundaries.md`](03-trust-boundaries.md) for fail-closed trust posture.
+4. Read [`04-data-flow-overview.md`](04-data-flow-overview.md) to understand the only permitted flows.
+5. Reference [`managers/`](managers/) and [`services-and-apps/`](services-and-apps/) for component-level detail.
 
 ## Key guarantees this folder enforces
 
@@ -41,7 +41,7 @@ Each document has a corresponding meta specification in `09-appendix/meta/02-arc
 - Network access is owned by Network Manager, gated by DoS Guard Manager admission control.
 - State Manager is the only producer and consumer of sync packages.
 - Services are untrusted, cannot bypass managers, and never touch storage, keys, or sockets directly.
-- All request-scoped work is bound to a complete, immutable `OperationContext`.
+- All request-scoped work is bound to a complete, immutable [`OperationContext`](services-and-apps/05-operation-context.md).
 - Trust boundaries fail closed; violations are rejected without side effects.
 - Accepted writes are sequenced monotonically and applied atomically.
 - Ratings provide suppression semantics; there is no delete path.
