@@ -4,9 +4,9 @@
 
 # 13 Health Manager
 
-Defines health signal ingestion, evaluation, and readiness/liveness publication.
-Specifies component states, thresholds, snapshots, and notification behavior.
-Defines failure handling, access control, and telemetry outputs for health.
+Defines health signal ingestion, evaluation, and readiness/liveness publication. Specifies component states, thresholds, snapshots, and notification behavior. Defines failure handling, access control, and telemetry outputs for health.
+
+For the meta specifications, see [13-health-manager meta](../09-appendix/meta/02-architecture/managers/13-health-manager-meta.md).
 
 Defines health signal aggregation, readiness/liveness evaluation, and publication.
 Specifies inputs, thresholds, snapshots, and admin access constraints.

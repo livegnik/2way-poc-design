@@ -4,9 +4,9 @@
 
 # 02 Storage Manager
 
-Defines SQLite lifecycle, schema provisioning, and persistence primitives for the backend.
-Specifies storage invariants, transaction boundaries, sequencing, and concurrency behavior.
-Defines APIs, startup/shutdown, and failure posture for durable storage.
+Defines SQLite lifecycle, schema provisioning, and persistence primitives for the backend. Specifies storage invariants, transaction boundaries, sequencing, and concurrency behavior. Defines APIs, startup/shutdown, and failure posture for durable storage.
+
+For the meta specifications, see [02-storage-manager meta](../09-appendix/meta/02-architecture/managers/02-storage-manager-meta.md).
 
 
 ## 1. Invariants and guarantees

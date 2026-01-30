@@ -4,9 +4,9 @@
 
 # 07 Graph Manager
 
-Defines graph read and write coordination, validation ordering, and sequencing.
-Specifies internal engines, concurrency rules, and graph traversal constraints.
-Defines manager interactions, startup/shutdown behavior, and failure handling.
+Defines graph read and write coordination, validation ordering, and sequencing. Specifies internal engines, concurrency rules, and graph traversal constraints. Defines manager interactions, startup/shutdown behavior, and failure handling.
+
+For the meta specifications, see [07-graph-manager meta](../09-appendix/meta/02-architecture/managers/07-graph-manager-meta.md).
 
 
 ## 1. Internal engines and ownership model

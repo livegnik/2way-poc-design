@@ -4,9 +4,9 @@
 
 # 10 Network Manager
 
-Defines peer network I/O, admission, cryptographic binding, and transport lifecycle control.
-Specifies internal engines, discovery, scheduling, and DoS Guard integration.
-Defines failure handling, limits, and trust boundaries for network operations.
+Defines peer network I/O, admission, cryptographic binding, and transport lifecycle control. Specifies internal engines, discovery, scheduling, and DoS Guard integration. Defines failure handling, limits, and trust boundaries for network operations.
+
+For the meta specifications, see [10-network-manager meta](../09-appendix/meta/02-architecture/managers/10-network-manager-meta.md).
 
 ## 1. Invariants and guarantees
 

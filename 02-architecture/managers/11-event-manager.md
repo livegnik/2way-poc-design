@@ -4,9 +4,9 @@
 
 # 11 Event Manager
 
-Defines the Event Manager publication pipeline, envelope normalization, and WebSocket delivery.
-Specifies event classes, ordering anchors, subscription gating, and resume behavior.
-Defines failure handling, limits, and telemetry outputs for event delivery.
+Defines the Event Manager publication pipeline, envelope normalization, and WebSocket delivery. Specifies event classes, ordering anchors, subscription gating, and resume behavior. Defines failure handling, limits, and telemetry outputs for event delivery.
+
+For the meta specifications, see [11-event-manager meta](../09-appendix/meta/02-architecture/managers/11-event-manager-meta.md).
 
 
 ## 1. Invariants and guarantees
@@ -491,4 +491,4 @@ The following actions violate this specification:
 * Allowing resume tokens to be accepted without cryptographic validation and retention window checks, violating [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Growing buffers beyond configured caps instead of failing closed, breaking [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-Implementations must demonstrate that all guarantees, limits, ordering rules, and fail closed behaviors described above are enforced before the [Event Manager](11-event-manager.md) surface is considered complete. 
+Implementations must demonstrate that all guarantees, limits, ordering rules, and fail closed behaviors described above are enforced before the [Event Manager](11-event-manager.md) surface is considered complete.

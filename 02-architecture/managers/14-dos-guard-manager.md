@@ -4,9 +4,9 @@
 
 # 14 DoS Guard Manager
 
-Defines admission decisions, puzzle issuance and verification, and abuse mitigation.
-Specifies telemetry inputs, decision outputs, policy evaluation, and engine behavior.
-Defines failure handling, configuration, and trust boundaries for DoS protection.
+Defines admission decisions, puzzle issuance and verification, and abuse mitigation. Specifies telemetry inputs, decision outputs, policy evaluation, and engine behavior. Defines failure handling, configuration, and trust boundaries for DoS protection.
+
+For the meta specifications, see [14-dos-guard-manager meta](../09-appendix/meta/02-architecture/managers/14-dos-guard-manager-meta.md).
 
 Defines admission control, puzzle issuance, and abuse mitigation for network connections.
 Specifies inputs, decisions, telemetry, and integration with Network and Health Managers.

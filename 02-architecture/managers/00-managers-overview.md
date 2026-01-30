@@ -4,9 +4,9 @@
 
 # 00 Managers Overview
 
-Defines system-wide manager invariants, dependencies, and execution flows for the 2WAY backend.
-Specifies manager responsibilities, ordering, and failure posture across the manager fabric.
-Defines startup, sync, observability, and trust-boundary handling requirements for managers.
+Defines system-wide manager invariants, dependencies, and execution flows for the 2WAY backend. Specifies manager responsibilities, ordering, and failure posture across the manager fabric. Defines startup, sync, observability, and trust-boundary handling requirements for managers.
+
+For the meta specifications, see [00-managers-overview meta](../09-appendix/meta/02-architecture/managers/00-managers-overview-meta.md).
 
 ## 1. System-wide invariants owned collectively by the managers
 

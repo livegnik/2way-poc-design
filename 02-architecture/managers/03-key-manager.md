@@ -4,9 +4,9 @@
 
 # 03 Key Manager
 
-Defines key generation, storage, and cryptographic operations for backend private keys.
-Specifies key scopes, storage layout, and interfaces for signing and encryption.
-Defines lifecycle, failure handling, and operational constraints for key management.
+Defines key generation, storage, and cryptographic operations for backend private keys. Specifies key scopes, storage layout, and interfaces for signing and encryption. Defines lifecycle, failure handling, and operational constraints for key management.
+
+For the meta specifications, see [03-key-manager meta](../09-appendix/meta/02-architecture/managers/03-key-manager-meta.md).
 
 
 ## 1. Invariants and guarantees

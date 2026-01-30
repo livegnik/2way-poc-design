@@ -4,9 +4,9 @@
 
 # 08 App Manager
 
-Defines application registration, identity binding, and backend extension wiring.
-Specifies app registry invariants, lifecycle ordering, and isolation constraints.
-Defines startup/shutdown behavior and manager interactions for applications.
+Defines application registration, identity binding, and backend extension wiring. Specifies app registry invariants, lifecycle ordering, and isolation constraints. Defines startup/shutdown behavior and manager interactions for applications.
+
+For the meta specifications, see [08-app-manager meta](../09-appendix/meta/02-architecture/managers/08-app-manager-meta.md).
 
 
 ## 1. Conceptual model

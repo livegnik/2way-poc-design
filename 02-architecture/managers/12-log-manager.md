@@ -4,9 +4,9 @@
 
 # 12 Log Manager
 
-Defines log record ingestion, validation, normalization, routing, and sink delivery.
-Specifies log classes, record schema, retention, and query behavior.
-Defines failure handling, limits, and trust boundaries for logging.
+Defines log record ingestion, validation, normalization, routing, and sink delivery. Specifies log classes, record schema, retention, and query behavior. Defines failure handling, limits, and trust boundaries for logging.
+
+For the meta specifications, see [12-log-manager meta](../09-appendix/meta/02-architecture/managers/12-log-manager-meta.md).
 
 Defines structured log ingestion, normalization, routing, and retention for backend records.
 Specifies log classes, required metadata, sink behavior, and query constraints.

@@ -4,9 +4,9 @@
 
 # 01 Config Manager
 
-Defines configuration ingestion, validation, snapshot publication, and mutation control for node-local settings.
-Specifies configuration sources, precedence, schema registration, and change propagation semantics.
-Defines APIs, security posture, and failure handling for configuration management.
+Defines configuration ingestion, validation, snapshot publication, and mutation control for node-local settings. Specifies configuration sources, precedence, schema registration, and change propagation semantics. Defines APIs, security posture, and failure handling for configuration management.
+
+For the meta specifications, see [01-config-manager meta](../09-appendix/meta/02-architecture/managers/01-config-manager-meta.md).
 
 
 ## 1. Invariants and guarantees

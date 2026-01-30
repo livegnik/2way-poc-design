@@ -4,9 +4,9 @@
 
 # 05 Schema Manager
 
-Defines schema loading, validation, compilation, and type resolution for graph data.
-Specifies schema inputs, type_id mappings, sync domain metadata, and validation helpers.
-Defines startup, reload, and failure handling for schema enforcement.
+Defines schema loading, validation, compilation, and type resolution for graph data. Specifies schema inputs, type_id mappings, sync domain metadata, and validation helpers. Defines startup, reload, and failure handling for schema enforcement.
+
+For the meta specifications, see [05-schema-manager meta](../09-appendix/meta/02-architecture/managers/05-schema-manager-meta.md).
 
 
 ## 1. Invariants and guarantees
@@ -329,4 +329,3 @@ Any detected inconsistency between schema declarations and persisted indices is 
 * [Health Manager](13-health-manager.md) consumes readiness and failure signals so system posture matches [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 No cyclic dependencies are permitted.
-

@@ -4,9 +4,9 @@
 
 # 04 Auth Manager
 
-Defines local authentication resolution for HTTP and WebSocket entrypoints.
-Specifies authentication outputs used to construct [OperationContext](../services-and-apps/05-operation-context.md).
-Defines auth lifecycle, rejection categories, and audit requirements.
+Defines local authentication resolution for HTTP and WebSocket entrypoints. Specifies authentication outputs used to construct [OperationContext](../services-and-apps/05-operation-context.md). Defines auth lifecycle, rejection categories, and audit requirements.
+
+For the meta specifications, see [04-auth-manager meta](../09-appendix/meta/02-architecture/managers/04-auth-manager-meta.md).
 
 
 ## 1. Invariants and guarantees

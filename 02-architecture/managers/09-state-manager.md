@@ -4,9 +4,9 @@
 
 # 09 State Manager
 
-Defines state progression, sync metadata tracking, and ordering enforcement across peers.
-Specifies inbound/outbound sync coordination, persistence, and recovery behavior.
-Defines startup/shutdown behavior, failure handling, and trust boundaries for state.
+Defines state progression, sync metadata tracking, and ordering enforcement across peers. Specifies inbound/outbound sync coordination, persistence, and recovery behavior. Defines startup/shutdown behavior, failure handling, and trust boundaries for state.
+
+For the meta specifications, see [09-state-manager meta](../09-appendix/meta/02-architecture/managers/09-state-manager-meta.md).
 
 
 ## 1. State domain and ownership

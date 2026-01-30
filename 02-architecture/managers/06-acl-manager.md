@@ -4,9 +4,9 @@
 
 # 06 ACL Manager
 
-Defines authorization evaluation for graph access based on identity, app, and schema policy.
-Specifies ACL engines, inputs, decision ordering, and remote constraints.
-Defines failure behavior and manager interactions for access control.
+Defines authorization evaluation for graph access based on identity, app, and schema policy. Specifies ACL engines, inputs, decision ordering, and remote constraints. Defines failure behavior and manager interactions for access control.
+
+For the meta specifications, see [06-acl-manager meta](../09-appendix/meta/02-architecture/managers/06-acl-manager-meta.md).
 
 
 ## 1. Invariants and guarantees
