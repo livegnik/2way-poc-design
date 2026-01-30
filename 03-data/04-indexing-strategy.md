@@ -3,40 +3,10 @@
 
 # 04 Indexing strategy
 
-## 1. Purpose and scope
+Defines required index families and access patterns for backend SQLite tables.
+Specifies indexing guarantees, ownership, and operational constraints.
 
-This document defines the indexing strategy for the 2WAY backend SQLite database. It specifies which indexes Storage Manager must provide to support protocol and manager guarantees, and which query patterns those indexes exist to accelerate. It does not define SQL schemas, query plans, or application-specific optimizations. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
-
-This specification consumes and is constrained by the protocol contracts defined in:
-
-- [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
-- [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
-- [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
-- [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-- [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-- [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
-- [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Defining the mandatory index families required for manager SLAs
-* Defining index scope across global tables and per-app table families
-* Defining index stability requirements during upgrades and maintenance
-* Defining failure posture for index corruption or mismatch
-
-This specification does not cover the following:
-
-* Table schemas or column definitions, which are defined in [03-data/01-sqlite-layout.md](01-sqlite-layout.md)
-* Graph validation or query semantics, which are owned by [Graph Manager](../02-architecture/managers/07-graph-manager.md)
-* Schema compilation or type mapping, which are owned by [Schema Manager](../02-architecture/managers/05-schema-manager.md)
-* ACL rule evaluation, which is owned by [ACL Manager](../02-architecture/managers/06-acl-manager.md) and defined in [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-* Sync policy and peer eligibility, which are owned by [State Manager](../02-architecture/managers/09-state-manager.md)
-
-All indexes defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may create, drop, or modify indexes directly.
-
-## 3. Invariants and guarantees
+## 1. Invariants and guarantees
 
 Across all indexes defined in this file, the following invariants and guarantees hold:
 
@@ -49,7 +19,9 @@ Across all indexes defined in this file, the following invariants and guarantees
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
-## 4. Ownership and access rules
+## 2. Ownership and access rules
+
+All indexes defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may create, drop, or modify indexes directly.
 
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all indexes
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) may request index presence checks but may not create or drop indexes
@@ -59,11 +31,11 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 Violation of these rules is a fatal implementation error.
 
-## 5. Index catalog
+## 3. Index catalog
 
 Indexes are grouped by table family. All index names and SQL definitions are implementation details managed by [Storage Manager](../02-architecture/managers/02-storage-manager.md). This catalog defines required index purposes, not explicit DDL.
 
-### 5.1 Global table indexes
+### 3.1 Global table indexes
 
 #### identities
 
@@ -119,7 +91,7 @@ Indexes must support:
 
 * lookup by migration identifier
 
-### 5.2 Per app graph object indexes
+### 3.2 Per app graph object indexes
 
 For every `app_N_` family, indexes must support the following access patterns on the graph object tables.
 
@@ -163,7 +135,7 @@ Indexes must support:
 * lookup by `owner_identity` for ACL evaluation
 * lookup by `global_seq` for ordered sync scans
 
-### 5.3 Per app derived and operational indexes
+### 3.3 Per app derived and operational indexes
 
 #### `app_N_type`
 
@@ -183,7 +155,7 @@ Indexes must support:
 
 These indexes are operational only and must not be relied on for protocol correctness.
 
-## 6. Indexing posture and correctness
+## 4. Indexing posture and correctness
 
 Indexes exist solely to accelerate read and sync scan workloads. All correctness constraints remain enforced by the protocol and manager layers, not by index presence or SQL constraints.
 
@@ -191,14 +163,14 @@ Indexes exist solely to accelerate read and sync scan workloads. All correctness
 * Cross-app references are rejected by [Graph Manager](../02-architecture/managers/07-graph-manager.md) per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md).
 * Sync ordering and replay protection are enforced by [State Manager](../02-architecture/managers/09-state-manager.md) per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 
-## 7. Creation, rebuild, and migration
+## 5. Creation, rebuild, and migration
 
 * Index creation is owned by [Storage Manager](../02-architecture/managers/02-storage-manager.md) and occurs idempotently during startup or maintenance windows.
 * Index rebuilds may be triggered after migrations or detected corruption.
 * Index changes must preserve column contracts defined in [03-data/01-sqlite-layout.md](01-sqlite-layout.md).
 * Index creation or rebuild must never expose partial acceptance or advance any sequence cursor.
 
-## 8. Failure posture
+## 6. Failure posture
 
 The system fails closed under the following conditions:
 
@@ -208,7 +180,7 @@ The system fails closed under the following conditions:
 
 Automatic repair is permitted only for index rebuilds. Any detected corruption in base tables remains a fatal error per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
-## 9. Explicitly forbidden behavior
+## 7. Explicitly forbidden behavior
 
 The following behavior is forbidden:
 
