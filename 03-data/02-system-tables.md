@@ -4,42 +4,14 @@
 
 # 02 System tables
 
-## 1. Purpose and scope
+Defines required global system tables and their contents in the backend SQLite database.
+Specifies access rules, invariants, sequencing state, and operational behavior for system tables.
 
-This document defines the global system tables stored in the 2WAY backend SQLite database. These tables exist exactly once per node and are created during bootstrap before any application data is written. It does not define per-app graph tables or schema semantics. Terminology is defined in [00-scope/03-definitions-and-terminology.md](../00-scope/03-definitions-and-terminology.md).
-
-This specification consumes and is constrained by the protocol contracts defined in:
-
-- [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md)
-- [01-protocol/02-object-model.md](../01-protocol/02-object-model.md)
-- [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
-- [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md)
-- [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-- [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md)
-- [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)
-- [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
-
-## 2. Responsibilities and boundaries
-
-This specification is responsible for the following:
-
-* Defining all global system tables that exist outside app-scoped graph storage
-* Defining invariants for identity, sequencing, sync tracking, configuration, and peer state
-* Defining when tables may be written, updated, or read
-* Defining fail-closed behavior for corruption or inconsistency
-* Defining startup and shutdown expectations related to system tables
-
-This specification does not cover the following:
-
-* Graph object persistence, which is owned by [Graph Manager](../02-architecture/managers/07-graph-manager.md)
-* Schema compilation and type mapping, which is owned by [Schema Manager](../02-architecture/managers/05-schema-manager.md)
-* ACL rule evaluation, which is owned by [ACL Manager](../02-architecture/managers/06-acl-manager.md) and defined in [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md)
-* Sync envelope construction or validation, which is owned by [State Manager](../02-architecture/managers/09-state-manager.md) and defined in [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md)
-* Network connectivity and transport, which is owned by [Network Manager](../02-architecture/managers/10-network-manager.md)
+## 1. Responsibilities and boundaries
 
 All tables defined here are owned exclusively by [Storage Manager](../02-architecture/managers/02-storage-manager.md). No other manager or service may access them directly.
 
-## 3. Invariants and guarantees
+## 2. Invariants and guarantees
 
 Across all system tables defined in this file, the following invariants and guarantees hold:
 
@@ -55,7 +27,7 @@ Across all system tables defined in this file, the following invariants and guar
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
-## 4. Table ownership and access rules
+## 3. Table ownership and access rules
 
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all system tables
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) may request sequence values but may not update tables directly
@@ -67,11 +39,11 @@ These guarantees hold regardless of caller, execution context, input source, or 
 
 Violation of these rules is a fatal implementation error.
 
-## 5. System table catalog
+## 4. System table catalog
 
 System tables are not graph objects. They exist outside the graph to store node-local state that must be available before graph access is possible, or state that must never be replicated to peers. Graph objects are the source of truth for application data and identities, while system tables are operational registries, counters, and local policy state owned by Storage Manager. Each table below exists only because its data is required for startup, sequencing, sync tracking, or configuration, and because storing it in the graph would either violate the protocol boundaries or create circular dependencies during bootstrap.
 
-### 5.1 identities
+### 4.1 identities
 
 #### Purpose
 
@@ -108,7 +80,7 @@ Typical fields include:
 
 Failure to resolve an identity registry entry to a graph identity is fatal.
 
-### 5.2 apps
+### 4.2 apps
 
 #### Purpose
 
@@ -137,7 +109,7 @@ This table is the authoritative source of app existence.
 
 If an envelope references an unknown app_id, it is rejected per [01-protocol/01-identifiers-and-namespaces.md](../01-protocol/01-identifiers-and-namespaces.md) and [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
 
-### 5.3 peers
+### 4.3 peers
 
 #### Purpose
 
@@ -163,7 +135,7 @@ Each row may include:
 * removal requires explicit operator action or policy decision
 * peers table is never synced
 
-### 5.4 settings
+### 4.4 settings
 
 #### Purpose
 
@@ -190,7 +162,7 @@ Values are opaque to Storage Manager.
 
 Invalid settings cause Config Manager to signal degraded health.
 
-### 5.5 sync_state
+### 4.5 sync_state
 
 #### Purpose
 
@@ -217,7 +189,7 @@ Each row tracks:
 
 This table is authoritative for sync replay protection.
 
-### 5.6 domain_seq
+### 4.6 domain_seq
 
 #### Purpose
 
@@ -242,7 +214,7 @@ Each row includes:
 
 Domain sequence inconsistency is a fatal error.
 
-### 5.7 global_seq
+### 4.7 global_seq
 
 #### Purpose
 
@@ -270,7 +242,7 @@ Typical fields:
 
 Violation of these rules invalidates sync correctness.
 
-### 5.8 schema_migrations
+### 4.8 schema_migrations
 
 #### Purpose
 
@@ -293,7 +265,7 @@ Each row records:
 * partial migration execution causes startup failure
 * migration failure results in fail-closed behavior
 
-## 6. Startup behavior
+## 5. Startup behavior
 
 During startup:
 
@@ -306,7 +278,7 @@ During startup:
 
 No manager may proceed until system tables are validated.
 
-## 7. Shutdown behavior
+## 6. Shutdown behavior
 
 During shutdown:
 
@@ -317,7 +289,7 @@ During shutdown:
 
 No best effort repair occurs on shutdown.
 
-## 8. Failure posture
+## 7. Failure posture
 
 The system fails closed under the following conditions:
 
@@ -333,7 +305,7 @@ Recovery requires operator intervention.
 
 Automatic repair is forbidden per [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md).
 
-## 9. Explicitly forbidden behavior
+## 8. Explicitly forbidden behavior
 
 The following behavior is forbidden:
 
