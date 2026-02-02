@@ -2,47 +2,57 @@
 
 
 
-* Identity as the root of trust, Parents plus pubkey Attributes
-  → `02-identity-authorship-and-keys.md`
+# 00 Security overview
 
-* Authorship, immutable ownership, append-only domains
-  → `02` and `04`
+This section defines the security posture of the 2WAY PoC. It describes how trust is established, how state changes are protected, and how the system resists abuse, censorship, and data tampering. The security posture assumes the PoC already operates as specified.
 
-* Validation pipeline, Graph, Schema, ACL enforcement order
-  → `04-authorization-acl-and-graph-boundaries.md` (plus overview)
+References:
 
-* Signed envelopes, replay protection, global_seq ordering
-  → `05-signed-transport-sync-integrity-and-metadata.md`
+* [01-protocol/**](../01-protocol/)
+* [02-architecture/**](../02-architecture/)
+* [03-data/**](../03-data/)
+* [04-interfaces/**](../04-interfaces/)
+* [06-flows/**](../06-flows/)
 
-* Sync integrity, sequence ranges, rejection rules
-  → `05`
+For the meta specifications, see [00-security-overview-meta.md](../09-appendix/meta/05-security/00-security-overview-meta.md).
 
-* ACL layering, degrees of separation, trust radius
-  → `04`
+## 1. Security objectives
 
-* App isolation, domain containment, cross-app non-interference
-  → `04` and `09`
+* **Autonomy**: Nodes operate without central trust dependencies.
+* **Censorship resistance**: No single intermediary can rewrite or suppress accepted history.
+* **Integrity**: All accepted state changes are authenticated, ordered, and replayable.
+* **Containment**: App domains and trust boundaries prevent cross-app interference.
+* **Availability**: Early rejection and admission controls protect the kernel from abuse.
+* **Auditability**: All accepted changes are traceable and verifiable.
 
-* Sybil resistance through graph structure, ratings, membership
-  → `04` and `01-threat-model-poc.md`
+## 2. Root of trust
 
-* DoS resistance, early rejection, rate limits, puzzles
-  → `08-dos-resilience-and-abuse-controls.md`
+Identity is the root of trust. All authorship, authorization, and sync acceptance trace back to identity keys and their graph representation. Parents and attributes bind identity identifiers to public key material and delegation state.
 
-* Selective sync, visibility rules, metadata minimization
-  → `09-privacy-selective-sync-and-domain-scoping.md`
+## 3. Kernel boundary
 
-* Auditability, provenance, global ordering, forensics
-  → `10-auditability-provenance-and-tamper-detection.md`
+Managers form the kernel. They enforce the validation pipeline, persist state, and define the only allowed mutation paths. Services and interfaces are untrusted clients of the kernel and cannot bypass validation or storage controls.
 
-* Key rotation, revocation precedence, alarm keys
-  → `07-rotation-revocation-recovery-and-delegation.md`
+## 4. Data integrity posture
 
-* Multi-device keys, scoped authority, delegated signing
-  → `02` and `07`
+* All writes are represented as graph message envelopes.
+* Schema and ACL checks execute before any write commits.
+* Global ordering is enforced via `global_seq` and is monotonic.
 
-* Autonomy, censorship resistance, offline survivability
-  → `00-security-overview.md` and `01-threat-model-poc.md`
+## 5. Availability posture
 
-* Backend isolation, managers as kernel
-  → `04` and overview
+* DoS Guard and Network Manager enforce admission control.
+* Early rejection prevents expensive processing for invalid inputs.
+* Rate limits and puzzles protect ingress surfaces.
+
+## 6. Privacy posture
+
+* Selective sync prevents over-sharing.
+* Visibility rules are enforced by ACL and domain scoping.
+* Metadata exposure is minimized by design.
+
+## 7. Auditability posture
+
+* Accepted operations are globally ordered and replayable.
+* Provenance links each object to its author and operation context.
+* Forensics rely on deterministic replay rather than mutable state.
