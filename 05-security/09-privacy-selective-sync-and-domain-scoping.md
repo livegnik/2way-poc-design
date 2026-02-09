@@ -6,7 +6,7 @@
 
 This document defines how privacy is preserved through selective sync, visibility rules, and metadata minimization.
 
-For the meta specifications, see [09-privacy-selective-sync-and-domain-scoping-meta.md](../09-appendix/meta/05-security/09-privacy-selective-sync-and-domain-scoping-meta.md).
+For the meta specifications, see [09-privacy-selective-sync-and-domain-scoping-meta.md](../10-appendix/meta/05-security/09-privacy-selective-sync-and-domain-scoping-meta.md).
 
 ## 1. Domain scoping
 

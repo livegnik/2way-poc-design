@@ -6,7 +6,7 @@
 
 These scenarios demonstrate that the PoC meets its core goals. They are intended for manual walkthroughs or scripted demos.
 
-For the meta specifications, see [05-demo-scenarios-meta.md](../09-appendix/meta/07-poc/05-demo-scenarios-meta.md).
+For the meta specifications, see [05-demo-scenarios-meta.md](../10-appendix/meta/07-poc/05-demo-scenarios-meta.md).
 
 ## 1. Bootstrap + first admin
 
@@ -25,12 +25,18 @@ For the meta specifications, see [05-demo-scenarios-meta.md](../09-appendix/meta
 * Reply to the post.
 * Verify feed listing and author-only edits.
 
-## 4. Sync convergence
+## 4. Marketplace flow
+
+* Open the app marketplace UI.
+* Install the market app (or another available app) via the app lifecycle route.
+* Verify the app appears in the installed list and can be enabled or disabled.
+
+## 5. Sync convergence
 
 * Run a two-node handshake and exchange envelopes.
 * Verify both nodes converge to identical graph state.
 
-## 5. Error posture
+## 6. Error posture
 
 * Submit a malformed envelope and verify fail-closed rejection.
 * Attempt cross-app access and verify denial.

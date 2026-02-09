@@ -6,7 +6,7 @@
 
 Defines excluded behaviors, assumptions, and guarantees for the 2WAY PoC. Specifies non-goals, forbidden interactions, and rejection expectations. Constrains trust dependencies and enforcement boundaries for excluded features.
 
-For the meta specifications, see [02-non-goals-and-out-of-scope meta](../09-appendix/meta/00-scope/02-non-goals-and-out-of-scope-meta.md).
+For the meta specifications, see [02-non-goals-and-out-of-scope meta](../10-appendix/meta/00-scope/02-non-goals-and-out-of-scope-meta.md).
 
 ## 1. Responsibilities, invariants, and guarantees
 

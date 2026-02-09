@@ -6,7 +6,7 @@
 
 Defines backend component categories, responsibilities, and interaction rules. Specifies manager/service boundaries, allowed interactions, and trust posture. Defines failure handling and guarantees for component behavior.
 
-For the meta specifications, see [01-component-model meta](../09-appendix/meta/02-architecture/01-component-model-meta.md).
+For the meta specifications, see [01-component-model meta](../10-appendix/meta/02-architecture/01-component-model-meta.md).
 
 ## 1. Component model overview
 
@@ -204,7 +204,7 @@ Each component defines a strict trust boundary as detailed in [02-architecture/0
 - Services trust managers but not external inputs.
 - App extension services are untrusted relative to core managers.
 - Network Manager treats all inbound peer data as untrusted.
-- Auth Manager treats frontend credentials as untrusted until verified.
+- Auth Manager treats frontend auth tokens and registration signatures as untrusted until verified.
 
 Trust does not propagate implicitly across components.
 

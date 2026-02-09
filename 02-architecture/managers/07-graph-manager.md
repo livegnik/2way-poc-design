@@ -6,8 +6,7 @@
 
 Defines graph read and write coordination, validation ordering, and sequencing. Specifies internal engines, concurrency rules, and graph traversal constraints. Defines manager interactions, startup/shutdown behavior, and failure handling.
 
-For the meta specifications, see [07-graph-manager meta](../09-appendix/meta/02-architecture/managers/07-graph-manager-meta.md).
-
+For the meta specifications, see [07-graph-manager meta](../../10-appendix/meta/02-architecture/managers/07-graph-manager-meta.md).
 
 ## 1. Internal engines and ownership model
 
@@ -324,6 +323,16 @@ Failures fail closed per [01-protocol/10-errors-and-failure-modes.md](../../01-p
 * No partial writes occur, consistent with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Serialized context is released.
 * Errors follow protocol precedence rules defined by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), including structural failures taking precedence over schema and ACL failures.
+
+Graph Manager failure mapping to `ErrorDetail.code`:
+
+* Structural validation failure -> `envelope_invalid`
+* Identifier validation failure -> `identifier_invalid`
+* Unknown type resolution -> `schema_unknown_type`
+* Schema validation failure -> `schema_validation_failed`
+* ACL denial -> `acl_denied`
+* Sequencing violation -> `sequence_error`
+* Persistence failure -> `storage_error`
 
 ## 11. Object lifecycle assumptions
 

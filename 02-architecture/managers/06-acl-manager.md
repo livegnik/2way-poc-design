@@ -6,8 +6,7 @@
 
 Defines authorization evaluation for graph access based on identity, app, and schema policy. Specifies ACL engines, inputs, decision ordering, and remote constraints. Defines failure behavior and manager interactions for access control.
 
-For the meta specifications, see [06-acl-manager meta](../09-appendix/meta/02-architecture/managers/06-acl-manager-meta.md).
-
+For the meta specifications, see [06-acl-manager meta](../../10-appendix/meta/02-architecture/managers/06-acl-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -20,12 +19,15 @@ Across all relevant components, boundaries, and contexts defined in this file, t
   * Local graph state.
   * Compiled schema metadata.
   * ACL objects attached to graph Parents.
+
   These sources align with the allowed inputs described in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), and no network metadata or transport hints are ever considered.
+
 * Authorization evaluation has no side effects, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authorization evaluation completes before any graph mutation occurs, firmly positioned between schema validation and persistence in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Explicit deny rules always override allow rules, matching the precedence rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Schema-defined prohibitions cannot be overridden by ACL data, per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authorization fails closed when correctness cannot be guaranteed, matching both [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and the rejection handling in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* ACL evaluation follows the enforcement matrix in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), including explicit owner/admin bypass rules and sync egress checks.
 * These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise, ensuring parity with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 2. Internal structure and engines
@@ -129,7 +131,7 @@ Authorization is evaluated in a strict, linear sequence that mirrors the layers 
 1. Ownership resolution.
 2. Schema-defined defaults and prohibitions.
 3. App and domain boundary enforcement.
-4. Object-level ACL evaluation.
+4. Object-level ACL evaluation, unless the enforcement matrix marks the operation as "no ACL check" (for example, own-data operations or admin actions).
 5. Graph-derived constraint evaluation.
 6. Remote execution constraint enforcement.
 
@@ -139,10 +141,11 @@ No later stage may override a failure from an earlier stage, and earlier pipelin
 
 * Ownership is derived from Parent authorship, exactly as defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Ownership is immutable and cannot be reassigned.
-* Owner privileges are defined exclusively by schema defaults, and only explicit ACL rules may extend those privileges within schema limits.
+* Owners may read or update their own objects without object-level ACL checks, provided schema and app/domain rules permit the operation. Deletion is not supported; visibility suppression/tombstoning is handled via schema-defined ratings per [06-flows/03-create-update-delete-graph-objects.md](../../06-flows/03-create-update-delete-graph-objects.md).
 * Ownership does not bypass schema prohibitions declared in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Ownership does not bypass remote execution constraints defined for sync flows in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Attempts to mutate objects owned by another identity are denied unless explicitly permitted by schema and ACL rules, honoring the remote mutation prohibition in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* Admin actions (as defined by interface surfaces and `system.admin` capability) bypass object-level ACL checks but remain subject to schema and app/domain constraints.
 
 ## 6. Schema-defined defaults and prohibitions
 
@@ -197,7 +200,7 @@ The [ACL Manager](06-acl-manager.md) evaluates these constraints using only loca
 For local execution:
 
 * Schema defaults apply.
-* Object-level ACLs apply.
+* Object-level ACLs apply unless the enforcement matrix marks the operation as "no ACL check".
 * Ownership semantics apply.
 * App and domain boundaries apply.
 

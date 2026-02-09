@@ -6,8 +6,7 @@
 
 Defines the Event Manager publication pipeline, envelope normalization, and WebSocket delivery. Specifies event classes, ordering anchors, subscription gating, and resume behavior. Defines failure handling, limits, and telemetry outputs for event delivery.
 
-For the meta specifications, see [11-event-manager meta](../09-appendix/meta/02-architecture/managers/11-event-manager-meta.md).
-
+For the meta specifications, see [11-event-manager meta](../../10-appendix/meta/02-architecture/managers/11-event-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -109,7 +108,7 @@ Every emitted event is normalized into an immutable `EventEnvelope`. The envelop
 
 * For each envelope, [Event Manager](11-event-manager.md) derives an `audience_contract` describing the authorization inputs it will later use to authorize subscribers. 
 * For domain events, [Event Manager](11-event-manager.md) requests an ACL read visibility capsule from [ACL Manager](06-acl-manager.md) using `{ requester_identity_id, scope, object_ids }` and caches the capsule for the envelope retention lifetime, directly applying the authorization posture defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). 
-* For system and security events, [Event Manager](11-event-manager.md) binds to admin roles and observer scopes declared in configuration and validated by [ACL Manager](06-acl-manager.md). Cross app bindings are forbidden unless [App Manager](08-app-manager.md) explicitly registered a cross app channel. 
+* For system and security events, [Event Manager](11-event-manager.md) binds to admin capability scopes declared in configuration and validated by [ACL Manager](06-acl-manager.md). Cross app bindings are forbidden unless [App Manager](08-app-manager.md) explicitly registered a cross app channel. 
 * [ACL Manager](06-acl-manager.md) must not be called in the per frame WebSocket hot path for every event. Capsules are designed to be reused for the envelope lifetime. 
 
 ### 3.4 Delivery
@@ -443,6 +442,7 @@ Validation rules:
 * Buffer overflows, heartbeat timeouts, invalid ACKs, invalid resume tokens, or malformed frames close the connection and emit security audit events, including `security.subscription_dropped` and `security.subscription_rejected`, satisfying [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
 * [Event Manager](11-event-manager.md) never retries deliveries after closing a connection. Clients must reconnect and use resume or read APIs to recover, aligning with the realtime semantics in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md). 
 * Dependency outages, including [ACL Manager](06-acl-manager.md) outage or [Config Manager](01-config-manager.md) inability to supply valid config, must force readiness false and must halt delivery rather than bypassing authorization or limits, consistent with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). 
+* Connection close reasons must map to `ErrorDetail` codes as defined in [04-interfaces/14-events-interface.md](../../04-interfaces/14-events-interface.md).
 
 ## 9. Security and trust boundary constraints
 

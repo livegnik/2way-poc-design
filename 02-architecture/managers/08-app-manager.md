@@ -6,8 +6,7 @@
 
 Defines application registration, identity binding, and backend extension wiring. Specifies app registry invariants, lifecycle ordering, and isolation constraints. Defines startup/shutdown behavior and manager interactions for applications.
 
-For the meta specifications, see [08-app-manager meta](../09-appendix/meta/02-architecture/managers/08-app-manager-meta.md).
-
+For the meta specifications, see [08-app-manager meta](../../10-appendix/meta/02-architecture/managers/08-app-manager-meta.md).
 
 ## 1. Conceptual model
 
@@ -81,6 +80,8 @@ Registration is not complete until the identity Parent and pubkey Attribute are 
 
 During application registration, the [App Manager](08-app-manager.md) performs the following actions in strict order:
 
+* Verify the package signature against raw ZIP bytes using publisher public key material supplied with the package or resolved from the trusted publisher registry in the graph.
+* Resolve the publisher identity from `signer_id` (or bind `publisher_public_key`) and ensure the publisher is trusted for app publication. If the publisher is missing or untrusted, registration must not proceed.
 * Allocate a new `app_id` per the uniqueness and monotonicity constraints in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Persist the registry entry so declaration-before-use rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) are upheld.
 * Declare the application identifier as globally valid within the backend per [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
@@ -240,6 +241,7 @@ Failure handling rules:
 
 * Invariant violations cause hard startup failure.
 * Runtime lookup failures result in immediate request rejection.
+* When surfaced via interfaces, unknown slugs or app_id lookups MUST map to `ErrorDetail.code=app_not_found`.
 * Partial or degraded application states are not permitted.
 
   All failures must fail closed, consistent with the error handling posture mandated by [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).

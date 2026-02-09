@@ -6,7 +6,7 @@
 
 This document defines how keys are stored and how data-at-rest protection is handled in the PoC.
 
-For the meta specifications, see [06-encryption-at-rest-and-key-storage-meta.md](../09-appendix/meta/05-security/06-encryption-at-rest-and-key-storage-meta.md).
+For the meta specifications, see [06-encryption-at-rest-and-key-storage-meta.md](../10-appendix/meta/05-security/06-encryption-at-rest-and-key-storage-meta.md).
 
 ## 1. Key storage boundaries
 

@@ -6,14 +6,14 @@
 
 Defines per-app SQLite table families for graph objects and derived indices. Specifies table contents, immutability, and access rules. Defines failure behavior.
 
-For the meta specifications, see [03-per-app-tables meta](../09-appendix/meta/03-data/03-per-app-tables-meta.md).
+For the meta specifications, see [03-per-app-tables meta](../10-appendix/meta/03-data/03-per-app-tables-meta.md).
 
 ## 1. Invariants and guarantees
 
 Across all per app tables defined in this file, the following invariants and guarantees hold:
 
 * Each app owns exactly one table family with prefix `app_N_`, where `N` is the numeric `app_id`
-* `app_0` is reserved for system-owned graph data such as identities, schema, and ACL structures
+* `app_0` is reserved for system-owned graph data such as identities, schema, ACL structures, and capability objects
 * Per-app table families are created during app registration by [App Manager](../02-architecture/managers/08-app-manager.md) through [Storage Manager](../02-architecture/managers/02-storage-manager.md)
 * Per-app table families are never dropped automatically
 * All graph object rows are append-only

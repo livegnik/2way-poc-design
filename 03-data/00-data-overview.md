@@ -6,7 +6,7 @@
 
 Defines the storage posture for 2WAY. Summarizes database layout, sequencing guarantees, migration behavior, limits, and backup/restore expectations. Constrains how Storage Manager persists graph objects and how other managers interact with persistent data.
 
-For the meta specifications, see [00-data-overview meta](../09-appendix/meta/03-data/00-data-overview-meta.md).
+For the meta specifications, see [00-data-overview meta](../10-appendix/meta/03-data/00-data-overview-meta.md).
 
 ## 1. Purpose and scope
 

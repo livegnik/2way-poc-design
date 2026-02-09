@@ -6,7 +6,7 @@
 
 Defines system-level scope, goals, and required guarantees for the 2WAY PoC. Specifies global invariants, trust boundaries, and failure handling requirements. Defines allowed and forbidden behaviors at the system level.
 
-For the meta specifications, see [01-scope-and-goals meta](../09-appendix/meta/00-scope/01-scope-and-goals-meta.md).
+For the meta specifications, see [01-scope-and-goals meta](../10-appendix/meta/00-scope/01-scope-and-goals-meta.md).
 
 ## 1. System scope
 

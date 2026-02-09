@@ -6,7 +6,7 @@
 
 Defines repository-wide invariants and trust boundaries for 2WAY implementations. Specifies mandatory enforcement boundaries and sequencing and persistence constraints. Constrains handling of invalid input across all interaction surfaces.
 
-For the meta specifications, see [00-scope-overview meta](../09-appendix/meta/00-scope/00-scope-overview-meta.md).
+For the meta specifications, see [00-scope-overview meta](../10-appendix/meta/00-scope/00-scope-overview-meta.md).
 
 ## 1. Global invariants and guarantees
 

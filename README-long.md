@@ -50,7 +50,6 @@ In 2WAY, application authors define schemas, optional domain logic, and user int
 * [19. Conformance](#19-conformance)
 * [20. Scope boundary and status](#20-scope-boundary-and-status)
 * [21. Acknowledgments](#21-acknowledgments)
-
 ---
 
 ## Introduction
@@ -77,7 +76,6 @@ This repository does not ship production code. It records design intent, boundar
 - **Structural containment**: graph ownership, permission edges, and ordering rules stop applications from crossing authority boundaries.
 - **Deterministic rejection**: missing permission, unclear context, or invalid ancestry yields the same error on every device, which avoids silent divergence.
 - **Progressive failure**: compromise or outage reduces capability instead of destroying state. Nodes isolate the fault, preserve trusted history, and continue serving peers that remain in good standing.
-
 ---
 
 ## 2. Repository guide
@@ -96,8 +94,9 @@ Lower-numbered directories hold higher authority: scope constrains protocol, pro
 | `05-security` | Threat framing and controls | Which adversaries are assumed and how are they contained? |
 | `06-flows` | End-to-end operations | How do bootstrap, sync, and recovery behave? |
 | `07-poc` | Execution scope | What must the proof of concept build, demo, and test? |
-| `08-decisions` | Recorded trade-offs | Which ADRs modify previous rules and why? |
-| `09-appendix` / `10-examples` | Reference material | What supporting context or illustrations exist? |
+| `08-testing` | Testing and conformance | What test categories and conformance rules apply? |
+| `09-decisions` | Recorded trade-offs | Which ADRs modify previous rules and why? |
+| `10-appendix` / `11-examples` | Reference material | What supporting context or illustrations exist? |
 
 Put each new artifact in the folder that matches its authority. Never let a lower folder contradict a higher one unless an ADR explains the exception.
 
@@ -120,32 +119,32 @@ Because every device enforces the same rules, network input and peer behavior st
 Authority flows downward from applications to storage.
 
 ```
-┌──────────────────────────────────────────┐
-│              Applications                │
-│  • Interpret ordered state               │
-│  • Run UI and domain logic               │
-│  • Compose proposals                     │
-│  Cannot bypass → substrate validation,   │
-│  ordering, authority rules               │
-└──────────────────────────────────────────┘
-                    │
-                    ▼
-┌──────────────────────────────────────────┐
-│            2WAY Substrate                │
-│  • Identity, permissions, ordering       │
-│  • Graph state, sync, structural guards  │
-│  Cannot bypass → storage guarantees or   │
-│  transport constraints                   │
-└──────────────────────────────────────────┘
-                    │
-                    ▼
-┌──────────────────────────────────────────┐
-│        Storage and Transport             │
-│  • Local persistence and networking      │
-│  • Append-only history, peer exchange    │
-│  Cannot bypass → local substrate         │
-│  authority or per-device policy          │
-└──────────────────────────────────────────┘
++---------------------------------------------------+
+|                  Applications                     |
+|  - Interpret ordered state                        |
+|  - Run UI and domain logic                        |
+|  - Compose proposals                              |
+|  Cannot bypass -> substrate validation, ordering, |
+|  authority rules                                  |
++---------------------------------------------------+
+                      |
+                      v
++---------------------------------------------------+
+|                2WAY Substrate                     |
+|  - Identity, permissions, ordering                |
+|  - Graph state, sync, structural guards           |
+|  Cannot bypass -> storage guarantees or           |
+|  transport constraints                            |
++---------------------------------------------------+
+                      |
+                      v
++---------------------------------------------------+
+|            Storage and Transport                  |
+|  - Local persistence and networking               |
+|  - Append-only history, peer exchange             |
+|  Cannot bypass -> local substrate authority or    |
+|  per-device policy                                |
++---------------------------------------------------+
 ```
 
 ---
@@ -245,7 +244,7 @@ Services never talk to other services directly, never read private keys, and nev
 
 Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else (including other services) as untrusted. Network Manager and Auth Manager guard the boundary: they accept hostile traffic, authenticate it, and hand requests to services with minimal preprocessing. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains. Graph Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error.
 
-Every write flows `Service → Graph Manager → Storage Manager`, and every validation step calls Schema, ACL, DoS Guard, and Key Managers explicitly. There are no parallel authority paths to forget. Changing services does not weaken guarantees; changing a manager requires an ADR because it rewires system invariants. This strict component model keeps implementations consistent even if runtime packaging differs.
+Every write flows `Service → Graph Manager → Storage Manager`, and every validation step calls Schema, ACL, DoS Guard, and Network Manager verification explicitly. There are no parallel authority paths to forget. Changing services does not weaken guarantees; changing a manager requires an ADR because it rewires system invariants. This strict component model keeps implementations consistent even if runtime packaging differs.
 
 ---
 
@@ -267,7 +266,7 @@ Writes and reads originate from different places (local services, remote peers, 
 ### Remote synchronization
 
 1. **Receive safely**: Network Manager accepts the package, applies transport rules, and lets DoS Guard Manager add puzzles or throttles if needed.
-2. **Verify the sender**: Auth Manager and Key Manager confirm who signed the package before it reaches any business logic.
+2. **Verify the sender**: Auth Manager and Network Manager confirm who signed the package before it reaches any business logic.
 3. **Check ranges**: State Manager looks at `from_seq` and `to_seq` and makes sure every prerequisite is already on disk. Missing history triggers a gap request instead of guessing.
 4. **Run the same pipeline**: Each envelope runs through the same Graph, Schema, and ACL checks as a local write. Remote never means trusted.
 5. **Store or reject**: Accepted envelopes get fresh `global_seq` numbers, Storage Manager commits them, and State Manager advances the peer’s cursor. If any envelope fails, the batch is rejected and the cursor stays put.
@@ -378,18 +377,21 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 ## 13. Denial-of-service containment
 
 Because 2WAY is local-first, most defenses fire before the network sees anything. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
+
 - **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
-- **Auth and Key Managers**: Key verification and OperationContext construction confirm signatures and enrollment before any proposal is considered.
+- **Auth and interface layers**: Signature verification and OperationContext construction confirm enrollment before any proposal is considered.
 - **Schema Manager**: Structural validation kills malformed payloads without touching application logic.
 - **ACL Manager**: Capability checks run before mutations, so unauthorized traffic never triggers heavy computation.
 - **Graph Manager**: Deterministic ordering and ancestry checks discard duplicates and conflicting writes early.
 - **State Manager**: Sync windows limit how much history a peer can demand, stopping replay floods.
 - **Storage Manager**: Append-only commits happen last, after every other manager consents, so disk I/O cannot be weaponized.
+
 Because each manager fails closed, an attacker must bypass multiple deterministic gates just to reach durable state.
 
 Those local defenses keep most abuse from ever touching the network layer, but 2WAY still assumes attackers keep trying from across the wire. To contain them, the Network Manager's Bastion Engine receives each inbound or outbound handshake and immediately consults the DoS Guard Manager for an `allow`, `deny`, or `require_challenge` directive. Bastion and the DoS Guard Manager operate as a single admission loop: transport traffic stays in the holding area while the DoS Guard Manager evaluates telemetry and policy, and Bastion does not move the session forward without that decision. Only after the handshake clears this joint gate does Network Manager's Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
 
 The DoS Guard Manager applies multiple defenses before puzzles ever appear:
+
 - **Admission gating**: Each connection gets one decision (`allow`, `deny`, or `require_challenge`) and anything but `allow` keeps the session outside the trusted surfaces. The Bastion Engine never proceeds without that verdict.
 - **Rate and burst limits**: Global caps, per identity budgets, and anonymous source heuristics throttle message rates, concurrent sessions, and outstanding challenges. Limits are configured through the `dos.*` namespace and enforced deterministically.
 - **Telemetry driven posture**: Network Manager streams byte counts, message rates, transport type, and resource pressure. The DoS Guard Manager biases toward denial when telemetry is missing or shows spikes, so abusive floods die at the edge rather than reaching Graph or Storage.
@@ -399,6 +401,7 @@ The DoS Guard Manager applies multiple defenses before puzzles ever appear:
 Only after those fast checks succeed does the DoS Guard Manager fall back to puzzles. Borrowing the "New Client Puzzle Outsourcing Techniques for DoS Resistance" approach from Ari Juels et al., it shifts work to the requester whenever telemetry, policy, or Health Manager signals still show strain. Every puzzle includes a unique `challenge_id`, opaque payload, context binding, expiration, and algorithm selector. Network Manager only relays the bytes. The DoS Guard Manager records success and failure per peer, per anonymous source, and across the node, so abusive senders see difficulty rise steadily and only see relief after they behave. Proofs expire fast, cannot be replayed on other connections, and take far more effort to solve than to verify, which keeps defenders cool while attackers burn CPU.
 
 The telemetry and policy loop keeps puzzles adaptive instead of static throttles:
+
 - **Telemetry-driven escalation**: Transport byte counts, message rates, and resource pressure feed the DoS Guard Manager's admission logic. Crossing configured `dos.*` limits raises puzzle cost or triggers a deny, and missing telemetry defaults to `require_challenge`.
 - **Health-aware gating**: When Health Manager reports `not_ready`, the DoS Guard Manager raises difficulty or stops admitting traffic so the node never accepts work it cannot finish safely.
 - **Config-bound ceilings**: Config Manager sets minimum and maximum difficulty, limits on outstanding puzzles, and decay periods, so puzzle outsourcing stays bounded and predictable across builds.
@@ -456,7 +459,6 @@ If a build cannot prove each promise under its supported conditions, it is out o
 
 ---
 
-
 ## 16. What the system enables but does not define
 
 2WAY locks down structure but leaves meaning up to the people who use it. It makes sure identities, permissions, and history stay consistent, yet it never dictates why a relationship exists or what an application should do with the facts. Communities, not the protocol, decide how those facts matter.
@@ -483,7 +485,6 @@ Because the object model, validation rules, and sync process are neutral, differ
 Structure is guaranteed; meaning stays open. When the specification holds, software authors describe intent, communities encode their norms in data, and users move across tools without having to trust any one operator by default.
 
 ---
-
 
 ## 17. Application model for developers
 
@@ -514,7 +515,6 @@ Developer experience implications:
 * Testing is simpler because logs can be replayed locally.
 * Feature delivery becomes incremental: schema updates, capability grants, and UI changes can ship independently because peers enforce the same invariants.
 * Cross-platform clients stay consistent because they interpret the same ordered facts.
-
 ---
 
 ## 18. Application domains

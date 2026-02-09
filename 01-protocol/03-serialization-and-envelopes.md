@@ -6,7 +6,7 @@
 
 Defines the envelope formats used for 2WAY graph mutations and sync packages. Specifies required fields, naming rules, signing scope, and validation requirements. Defines rejection conditions for malformed or invalid envelopes.
 
-For the meta specifications, see [03-serialization-and-envelopes meta](../09-appendix/meta/01-protocol/03-serialization-and-envelopes-meta.md).
+For the meta specifications, see [03-serialization-and-envelopes meta](../10-appendix/meta/01-protocol/03-serialization-and-envelopes-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -101,7 +101,6 @@ Each operation object MUST contain:
 * `op`. The operation identifier, defined in Section 8.2.
 * `app_id`. Integer identifier of the app domain for the object ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 * `type_key` or `type_id`. Exactly one MUST be present.
-
   * `type_key`. A human-readable type key defined by the app schema.
   * `type_id`. An integer type id compiled by [Schema Manager](../02-architecture/managers/05-schema-manager.md).
 * `owner_identity`. Integer identity id that owns the object targeted or created by the operation ([05-keys-and-identity.md](05-keys-and-identity.md)).
@@ -192,7 +191,7 @@ A sync package envelope is a JSON object with these required fields:
 * `from_seq`. Integer. The first sequence number included, computed as last known sequence plus one.
 * `to_seq`. Integer. The highest sequence number included.
 * `envelope`. A graph message envelope object as defined in Section 7.
-* `signature`. String. A secp256k1 signature over the signed portion defined in Section 9.3 (see [04-cryptography.md](04-cryptography.md)).
+* `signature`. String. A secp256k1 signature over the signed portion defined in Section 9.3 (see [04-cryptography.md](04-cryptography.md)). Encoded as base64 of 64 bytes (`r || s`).
 
 No other fields are permitted in a sync package envelope.
 
@@ -203,6 +202,7 @@ The signed portion of a sync package envelope is the JSON serialization of the s
 Constraints:
 
 * The sender MUST serialize the signed portion deterministically so that the receiver can reproduce the same byte sequence for verification.
+* Canonicalization MUST use the JCS rules defined in [04-cryptography.md](04-cryptography.md#1112-canonical-serialization-for-signing).
 * The receiver MUST verify the signature before applying any enclosed operations.
 * Verification uses the sender public key resolved from the sender identity as distributed through identity exchange and stored in the graph (see [05-keys-and-identity.md](05-keys-and-identity.md)).
 

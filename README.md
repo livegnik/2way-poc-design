@@ -1,4 +1,7 @@
 
+
+
+
 # 2WAY design repository
 
 <br>
@@ -49,7 +52,7 @@ The point is not decentralization for its own sake. The point is multi-party sof
 
 ## 3. Repository guide
 
-This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security model, flows, and acceptance criteria, with PoC goals in [`07-poc`](07-poc). Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`08-decisions`](08-decisions) so exceptions stay visible.
+This repo is the main design set for the proof of concept. It defines scope, rules, architecture, object models, security model, flows, and acceptance criteria, with PoC goals in [`07-poc`](07-poc). Lower-numbered folders carry higher authority. When conflicts appear, record an ADR in [`09-decisions`](09-decisions) so exceptions stay visible.
 
 | Folder | Focus |
 | --- | --- |
@@ -61,8 +64,9 @@ This repo is the main design set for the proof of concept. It defines scope, rul
 | [`05-security`](05-security) | Threat framing and structural controls |
 | [`06-flows`](06-flows) | Bootstrap, sync, recovery, governance flows |
 | [`07-poc`](07-poc) | What the proof of concept must demonstrate |
-| [`08-decisions`](08-decisions) | Architecture Decision Records |
-| [`09-appendix`](09-appendix) / [`10-examples`](10-examples) | Reference material |
+| [`08-testing`](08-testing) | Test categories, conformance, and regression policy |
+| [`09-decisions`](09-decisions) | Architecture Decision Records |
+| [`10-appendix`](10-appendix) / [`11-examples`](11-examples) | Reference material |
 
 ---
 
@@ -104,7 +108,7 @@ The backend makes the rules real. It is one integrated system that decides what 
 
 That is the key difference from architectures built around loose roles like clients, servers, and relays. In those systems, correctness depends on assumptions, relay behavior, server-side logic, or social norms. In 2WAY, authority lives in the protocol enforcement pipeline that every node runs locally. A node does not accept state because a peer says it is fine. It accepts state because it can verify it and it passes the same checks it applies to its own writes.
 
-The backend is built from singleton managers with narrow jobs that form one path for reads and writes, as defined in the [Managers overview](02-architecture/managers/00-managers-overview.md). The [Config Manager](02-architecture/managers/01-config-manager.md) loads configuration and rejects unsafe settings. The [Auth Manager](02-architecture/managers/04-auth-manager.md) resolves local sessions into an `OperationContext` per [Operation Context](02-architecture/services-and-apps/05-operation-context.md). The [Key Manager](02-architecture/managers/03-key-manager.md) owns private keys and performs signing and encryption for trusted callers. The [App Manager](02-architecture/managers/08-app-manager.md) registers apps and app identities. The [Schema Manager](02-architecture/managers/05-schema-manager.md) checks that a change matches the app's declared structure. The [ACL Manager](02-architecture/managers/06-acl-manager.md) checks that the caller has the right to perform it, using the current `OperationContext`. The [Graph Manager](02-architecture/managers/07-graph-manager.md) is the only place where writes are accepted. It validates object model invariants, assigns a `global_seq`, and commits through the [Storage Manager](02-architecture/managers/02-storage-manager.md). The [State Manager](02-architecture/managers/09-state-manager.md) coordinates ordered sync and package construction from accepted history. The [Network Manager](02-architecture/managers/10-network-manager.md) admits peers, verifies and transports packages with the [DoS Guard Manager](02-architecture/managers/14-dos-guard-manager.md) and [Key Manager](02-architecture/managers/03-key-manager.md), and never changes protocol data. The [Event Manager](02-architecture/managers/11-event-manager.md) and [Log Manager](02-architecture/managers/12-log-manager.md) record what happened and why. The [Health Manager](02-architecture/managers/13-health-manager.md) and [DoS Guard Manager](02-architecture/managers/14-dos-guard-manager.md) keep the node stable and reject load before correctness can be threatened.
+The backend is built from singleton managers with narrow jobs that form one path for reads and writes, as defined in the [Managers overview](02-architecture/managers/00-managers-overview.md). The [Config Manager](02-architecture/managers/01-config-manager.md) loads configuration and rejects unsafe settings. The [Auth Manager](02-architecture/managers/04-auth-manager.md) resolves local sessions into an `OperationContext` per [Operation Context](02-architecture/services-and-apps/05-operation-context.md). The [Key Manager](02-architecture/managers/03-key-manager.md) owns private keys and performs signing and decryption for trusted callers. The [App Manager](02-architecture/managers/08-app-manager.md) registers apps and app identities. The [Schema Manager](02-architecture/managers/05-schema-manager.md) checks that a change matches the app's declared structure. The [ACL Manager](02-architecture/managers/06-acl-manager.md) checks that the caller has the right to perform it, using the current `OperationContext`. The [Graph Manager](02-architecture/managers/07-graph-manager.md) is the only place where writes are accepted. It validates object model invariants, assigns a `global_seq`, and commits through the [Storage Manager](02-architecture/managers/02-storage-manager.md). The [State Manager](02-architecture/managers/09-state-manager.md) coordinates ordered sync and package construction from accepted history. The [Network Manager](02-architecture/managers/10-network-manager.md) admits peers, verifies packages using public keys, encrypts payloads with recipient public keys when required, decrypts via the [Key Manager](02-architecture/managers/03-key-manager.md) when required, and never changes protocol data. The [Event Manager](02-architecture/managers/11-event-manager.md) and [Log Manager](02-architecture/managers/12-log-manager.md) record what happened and why. The [Health Manager](02-architecture/managers/13-health-manager.md) and [DoS Guard Manager](02-architecture/managers/14-dos-guard-manager.md) keep the node stable and reject load before correctness can be threatened.
 
 Services sit above the managers and provide higher-level behavior. They turn user intent into protocol-compliant operations, expose backend endpoints, and do app-specific aggregation or validation when needed. They do not get special authority. They cannot write around the managers, bypass schema or ACL checks, or touch keys, storage, or sockets directly. They must always call into the same enforcement path with a complete `OperationContext` as defined in [Operation Context](02-architecture/services-and-apps/05-operation-context.md).
 

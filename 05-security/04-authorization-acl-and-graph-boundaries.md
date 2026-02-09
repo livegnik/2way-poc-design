@@ -6,7 +6,7 @@
 
 This document defines the authorization model, validation pipeline, and boundaries that prevent cross-app interference.
 
-For the meta specifications, see [04-authorization-acl-and-graph-boundaries-meta.md](../09-appendix/meta/05-security/04-authorization-acl-and-graph-boundaries-meta.md).
+For the meta specifications, see [04-authorization-acl-and-graph-boundaries-meta.md](../10-appendix/meta/05-security/04-authorization-acl-and-graph-boundaries-meta.md).
 
 ## 1. Validation pipeline ordering
 

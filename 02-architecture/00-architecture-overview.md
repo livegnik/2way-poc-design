@@ -6,7 +6,7 @@
 
 Defines architectural invariants and data-flow sequencing for the 2WAY backend. Specifies manager/service boundaries, trust posture, and allowed interaction paths. Summarizes runtime topologies, data flows, and failure posture requirements.
 
-For the meta specifications, see [00-architecture-overview meta](../09-appendix/meta/02-architecture/00-architecture-overview-meta.md).
+For the meta specifications, see [00-architecture-overview meta](../10-appendix/meta/02-architecture/00-architecture-overview-meta.md).
 
 ## 1. Architectural posture and guiding principles
 
@@ -87,11 +87,11 @@ Committed graph mutations emit domain events routed by [Event Manager](managers/
 
 ### 5.7 Remote ingress flow
 
-Remote packages enter through [Network Manager](managers/10-network-manager.md), pass [DoS Guard Manager](managers/14-dos-guard-manager.md) admission control, are verified and decrypted by [Key Manager](managers/03-key-manager.md), are validated by [State Manager](managers/09-state-manager.md) for domain and ordering, derive a remote [OperationContext](services-and-apps/05-operation-context.md), and finally enter the standard envelope pipeline. Invalid signatures, revoked keys, or ordering violations cause rejection without advancing sync state. State Manager enforces monotonic per-peer and per-domain sequencing and rejects out-of-order or replayed envelopes. All remote writes are treated as untrusted until the same schema and ACL gates applied to local writes are satisfied.
+Remote packages enter through [Network Manager](managers/10-network-manager.md), pass [DoS Guard Manager](managers/14-dos-guard-manager.md) admission control, are verified by Network Manager using public keys and decrypted via [Key Manager](managers/03-key-manager.md) when required, are validated by [State Manager](managers/09-state-manager.md) for domain and ordering, derive a remote [OperationContext](services-and-apps/05-operation-context.md), and finally enter the standard envelope pipeline. Invalid signatures, revoked keys, or ordering violations cause rejection without advancing sync state. State Manager enforces monotonic per-peer and per-domain sequencing and rejects out-of-order or replayed envelopes. All remote writes are treated as untrusted until the same schema and ACL gates applied to local writes are satisfied.
 
 ### 5.8 Remote egress flow
 
-[State Manager](managers/09-state-manager.md) selects eligible graph changes, constructs [envelopes](../01-protocol/03-serialization-and-envelopes.md), [Key Manager](managers/03-key-manager.md) signs headers and encrypts payloads, [Network Manager](managers/10-network-manager.md) transmits them, and State Manager tracks per-peer sequencing. Only committed, in-domain data is transmitted. Outbound packaging preserves ordering guarantees and never includes suppressed or unauthorized objects for the receiving peer. Delivery is best-effort and does not mutate local state beyond per-peer sync metadata.
+[State Manager](managers/09-state-manager.md) selects eligible graph changes, constructs [envelopes](../01-protocol/03-serialization-and-envelopes.md), [Key Manager](managers/03-key-manager.md) signs headers, [Network Manager](managers/10-network-manager.md) encrypts payloads using recipient public keys and transmits them, and State Manager tracks per-peer sequencing. Only committed, in-domain data is transmitted. Outbound packaging preserves ordering guarantees and never includes suppressed or unauthorized objects for the receiving peer. Delivery is best-effort and does not mutate local state beyond per-peer sync metadata.
 
 ### 5.9 Derived and cached data flow
 

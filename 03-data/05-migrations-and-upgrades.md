@@ -6,7 +6,7 @@
 
 Defines the migration ordering rules, idempotency guarantees, and upgrade posture for backend SQLite schemas. Specifies failure handling, allowed behaviors, and migration identifiers.
 
-For the meta specifications, see [05-migrations-and-upgrades meta](../09-appendix/meta/03-data/05-migrations-and-upgrades-meta.md).
+For the meta specifications, see [05-migrations-and-upgrades meta](../10-appendix/meta/03-data/05-migrations-and-upgrades-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -75,4 +75,3 @@ The following behaviors are forbidden:
 * Running migrations while graph write transactions are active.
 * Modifying or deleting the `schema_migrations` history outside of the Storage Manager.
 * Applying migrations that silently change data semantics without a new migration identifier.
-

@@ -6,7 +6,7 @@
 
 Defines the OperationContext structure and field semantics used by managers and services. Specifies construction rules, lifecycle behavior, and local vs remote context variants. Defines validation, failure handling, and consumption requirements across the system.
 
-For the meta specifications, see [05-operation-context meta](../09-appendix/meta/02-architecture/services-and-apps/05-operation-context-meta.md).
+For the meta specifications, see [05-operation-context meta](../../10-appendix/meta/02-architecture/services-and-apps/05-operation-context-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -38,6 +38,7 @@ OperationContext is the per-request execution contract that binds:
 * **How the action is observed**: traceability and audit scope.
 
 Managers treat OperationContext as authoritative metadata. No manager infers missing information from envelopes, payloads, schema content, or transport details.
+
 OperationContext is referenced by protocol flows in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and used by [State Manager](../managers/09-state-manager.md) during sync ingestion per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 2.2 Context variants
@@ -76,6 +77,7 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | `timezone`                | Optional    | Frontend                     | Non-authoritative UX metadata.                                      |
 
 Field completeness is validated at construction time. Missing required fields result in immediate rejection.
+
 Field meaning and app scoping align with [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md), and ACL evaluation inputs align with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ---
@@ -98,6 +100,7 @@ OperationContext must never be created before authentication succeeds.
 ### 4.2 Service and engine enrichment
 
 Services and internal engines may derive enriched OperationContexts only by creating a new instance that copies identity and app bindings.
+
 Identity and app bindings must remain consistent with [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
 Permitted enrichment:
@@ -177,7 +180,6 @@ OperationContext is immutable after construction.
 * Automation contexts are local-only (`is_remote=false`) and never include remote-only fields.
 * `actor_type` must be `automation` and `capability` must be explicit for every job.
 * `requester_identity_id` is set only when the job acts on behalf of a user, otherwise it is absent.
-
 ---
 
 ## 6. Manager consumption requirements
@@ -202,7 +204,6 @@ Managers must reject any invocation lacking required context fields.
 * Attempted mutation after construction is logged and rejected.
 * Remote contexts missing required remote fields are rejected by State Manager.
 * Errors must use canonical classifications defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
-
 ---
 
 ## 8. Observability and auditing
@@ -211,7 +212,6 @@ Managers must reject any invocation lacking required context fields.
 * `trace_id`, `app_id`, actor type, and remote flags are always preserved.
 * Sensitive cryptographic material is never logged.
 * Context-derived metadata may be embedded in events where required.
-
 ---
 
 ## 9. Implementation checklist

@@ -26,7 +26,7 @@ folder as the authoritative source for protocol behavior.
 - [`10-errors-and-failure-modes.md`](10-errors-and-failure-modes.md) - Failure classification and rejection ordering.
 - [`11-versioning-and-compatibility.md`](11-versioning-and-compatibility.md) - Versioning and compatibility rules.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/01-protocol/`](../09-appendix/meta/01-protocol/).
+Each document has a corresponding meta specification in [`10-appendix/meta/01-protocol/`](../10-appendix/meta/01-protocol/).
 
 ## How to read
 

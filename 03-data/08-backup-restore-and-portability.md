@@ -6,7 +6,7 @@
 
 Defines how the backend database is backed up, restored, and moved between environments. Specifies ordering guarantees, failure posture, and portability rules.
 
-For the meta specifications, see [08-backup-restore-and-portability meta](../09-appendix/meta/03-data/08-backup-restore-and-portability-meta.md).
+For the meta specifications, see [08-backup-restore-and-portability meta](../10-appendix/meta/03-data/08-backup-restore-and-portability-meta.md).
 
 ## 1. Invariants and guarantees
 

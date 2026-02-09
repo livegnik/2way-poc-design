@@ -6,7 +6,7 @@
 
 This document captures limitations that are intentional for the PoC and do not represent production behavior.
 
-For the meta specifications, see [06-known-limitations-meta.md](../09-appendix/meta/07-poc/06-known-limitations-meta.md).
+For the meta specifications, see [06-known-limitations-meta.md](../10-appendix/meta/07-poc/06-known-limitations-meta.md).
 
 ## 1. Protocol and data
 
@@ -21,7 +21,7 @@ For the meta specifications, see [06-known-limitations-meta.md](../09-appendix/m
 ## 3. Frontend
 
 * Frontend is a scaffold; no production UX is provided.
-* App marketplace and plugin UX are out of scope for the PoC.
+* Marketplace UX is limited to PoC discovery/install flows and is not production grade.
 
 ## 4. Operational posture
 

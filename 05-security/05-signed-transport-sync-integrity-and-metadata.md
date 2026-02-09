@@ -6,7 +6,7 @@
 
 This document defines how signed envelopes, ordering, and sync metadata preserve integrity across local and remote flows.
 
-For the meta specifications, see [05-signed-transport-sync-integrity-and-metadata-meta.md](../09-appendix/meta/05-security/05-signed-transport-sync-integrity-and-metadata-meta.md).
+For the meta specifications, see [05-signed-transport-sync-integrity-and-metadata-meta.md](../10-appendix/meta/05-security/05-signed-transport-sync-integrity-and-metadata-meta.md).
 
 ## 1. Signed envelopes
 

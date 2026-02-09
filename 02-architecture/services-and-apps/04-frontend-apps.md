@@ -6,7 +6,7 @@
 
 Defines frontend app responsibilities for identity, [OperationContext](05-operation-context.md) contributions, and interface consumption. Specifies storage, sync, error handling, observability, release, and security requirements. Defines backend integration, configuration, and lifecycle obligations for frontend implementations.
 
-For the meta specifications, see [04-frontend-apps meta](../09-appendix/meta/02-architecture/services-and-apps/04-frontend-apps-meta.md).
+For the meta specifications, see [04-frontend-apps meta](../../10-appendix/meta/02-architecture/services-and-apps/04-frontend-apps-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -14,11 +14,12 @@ Across all frontend apps, the following invariants must hold:
 
 * Frontend apps are untrusted clients. Every request they emit must tolerate backend rejection and must never assume privileged access beyond published capabilities ([01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md)).
 * [OperationContext](05-operation-context.md) inputs (user identity, device identity, app_id, capability intent, trust posture, correlation metadata) are collected and transmitted exactly as defined in [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md). Frontends never fabricate server-side context.
-* All backend interactions traverse the published HTTP/WebSocket/sync surfaces in [04-interfaces/**](../../04-interfaces/**) and inherit the authentication, ACL, schema, and ordering rules codified in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md), and [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). DoS Guard enforcement and puzzle handling remain entirely on the backend. No direct database, filesystem, or socket manipulation occurs.
+* All backend interactions traverse the published HTTP/WebSocket/sync surfaces in [04-interfaces/**](../../04-interfaces/00-interface-overview.md) and inherit the authentication, ACL, schema, and ordering rules codified in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md), [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md), [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md), and [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md). DoS Guard enforcement and puzzle handling remain entirely on the backend. No direct database, filesystem, or socket manipulation occurs.
 * Inputs are validated locally before being sent so malformed payloads never reach the backend, preventing resource abuse and ensuring deterministic error handling per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Frontend storage is non-authoritative. Only graph commits acknowledged by the backend count as truth, cached state can be dropped and regenerated at any time, matching the graph authority rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 * Offline or background automation follows the same signing, authentication, and replay rules as interactive usage ([01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md)). Automation cannot invent capabilities or attempt to bypass backend DoS controls defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md); it simply respects backend throttling decisions.
-* Sensitive material (keys, tokens, PII) is handled according to [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [05-security/**](../../05-security/**) guidance, encrypted at rest when stored locally, never logged in plaintext, and scoped to the owning app.
+* Sensitive material (keys, tokens, PII) is handled according to [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [05-security/**](../../05-security/00-security-overview.md) guidance, encrypted at rest when stored locally, never logged in plaintext, and scoped to the owning app.
+* Passwords are frontend-local credentials only and MUST NOT cross the backend boundary.
 
 ## 2. Frontend application model
 
@@ -30,12 +31,14 @@ Across all frontend apps, the following invariants must hold:
 
 Frontends decompose into the following layers:
 
-| Layer                | Responsibilities                                                                                                                          | Mandatory inputs                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Presentation         | Rendering UI, collecting input, presenting errors, guiding users through backend admission responses                                      | Schema metadata, localization bundles, deterministic error catalog |
-| Client orchestration | Managing sessions, tokens, request queues, retries, background sync, offline caches                                                       | [OperationContext](05-operation-context.md) fields, capability map, sync manifests            |
-| Transport adapters   | Translating orchestration intents into HTTP/WebSocket/sync calls defined in [04-interfaces/**](../../04-interfaces/**), encrypting payloads, verifying signatures | Auth credentials, request metadata                                 |
-| Storage adapters     | Persisting local caches, attachments, and pending writes using encrypted stores                                                           | Schema definitions, ACL filters, retention policy                  |
+| Layer | Responsibilities | Mandatory inputs |
+| --- | --- | --- |
+| Presentation | Rendering UI, collecting input, presenting errors, guiding users through backend admission responses | Schema metadata, localization bundles, deterministic error catalog |
+| Client orchestration | Managing auth tokens, request queues, retries, background sync, offline caches | [OperationContext](05-operation-context.md) fields, capability map, sync manifests |
+| Transport adapters | Translating orchestration intents into HTTP/WebSocket/sync calls defined in [04-interfaces/**](../../04-interfaces/00-interface-overview.md), encrypting payloads, verifying signatures | Auth credentials, request metadata |
+| Storage adapters | Persisting local caches, attachments, and pending writes using encrypted stores | Schema definitions, ACL filters, retention policy |
+| Telemetry Adapter | Streams structured logs and optional metrics to operator-approved sinks without leaking sensitive material. | |
+| Capability Catalog | Mirrors backend-provided capability list so UI can enable or disable features deterministically. | |
 
 Every frontend app must document which layers it implements and how they map to frameworks or libraries so reviewers can trace compliance.
 
@@ -45,19 +48,19 @@ Different surfaces share the same guarantees:
 
 * **Interactive contexts** (UI, CLI) must collect user consent for each capability invocation, surface backend admission errors or waits clearly, and display backend errors verbatim.
 * **Automation contexts** (background workers, scheduled tasks) must run under automation-specific [OperationContext](05-operation-context.md) entries (`actor_type=automation`), publish schedule manifests, and respect backend throttling decisions communicated via standard error responses ([01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md)).
-* **Embedded contexts** (widgets, plugins) inherit the host container's capability posture but still identify themselves to the backend via their own app_id.
+* **Embedded contexts** (widgets, embedded surfaces) inherit the host container's capability posture but still identify themselves to the backend via their own app_id.
 
 ### 2.3 Mandatory components
 
-| Component                | Requirement                                                                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session Manager          | Maintains authenticated sessions, refresh tokens, and device attestations. Must isolate multiple identities using per-user vaults.          |
-| [OperationContext](05-operation-context.md) Builder | Assembles immutable request metadata: `user_id`, `device_id`, `app_id`, capability verb, correlation ID, locale, client version. |
-| Request Queue            | Batches writes, manages retries, enforces ordering for dependent operations, and cancels in-flight work on logout.                          |
-| Sync Controller          | Interfaces with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) flows, schedules pulls and pushes, and validates package signatures.               |
-| Storage Adapter          | Provides encrypted local persistence for caches and pending writes, enforces retention rules, and segregates app domains.                   |
-| Telemetry Adapter        | Streams structured logs and optional metrics to operator-approved sinks without leaking sensitive material.                                 |
-| Capability Catalog       | Mirrors backend-provided capability list so UI can enable or disable features deterministically.                                            |
+| Component | Requirement |
+| --- | --- |
+| Account Manager | Manages local user accounts, bcrypt password hashes, per-user keypairs, and backend auth tokens. Isolates multiple identities using per-user vaults. |
+| [OperationContext](05-operation-context.md) Builder | Assembles immutable request metadata: `app_id`, `app_version`, `capability`, `actor_type`, `correlation_id`, `locale`, `timezone`. Identity bindings are provided by the backend Auth Manager. |
+| Request Queue | Batches writes, manages retries, enforces ordering for dependent operations, and cancels in-flight work on logout. |
+| Sync Controller | Interfaces with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) flows, schedules pulls and pushes, and validates package signatures. |
+| Storage Adapter | Provides encrypted local persistence for caches and pending writes, enforces retention rules, and segregates app domains. |
+| Telemetry Adapter | Streams structured logs and optional metrics to operator-approved sinks without leaking sensitive material. |
+| Capability Catalog | Mirrors backend-provided capability list so UI can enable or disable features deterministically. |
 
 ## 3. Identity, registration, and [OperationContext](05-operation-context.md)
 
@@ -69,30 +72,31 @@ Different surfaces share the same guarantees:
 
 ### 3.2 User and device identity capture
 
-* Device enrollment flows follow [06-flows/bootstrap/**](../../06-flows/bootstrap/**) guidance and the identity binding guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md). Frontends must store device credentials in secure enclaves or OS-provided key stores.
-* Each session binds `user_id`, `device_id`, and `app_id`. Swapping any element requires reconstructing [OperationContext](05-operation-context.md) from scratch, session reuse across devices is forbidden.
-* Device fingerprints, attestation proofs, and hardware posture data must be collected before the first privileged call so [Auth Manager](../managers/04-auth-manager.md) can bind them to [OperationContext](05-operation-context.md), satisfying the identity requirements described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Users register and log in with username + password in the frontend UI. The password is hashed with bcrypt and stored only in the frontend local database.
+* The frontend generates a secp256k1 keypair per frontend user.
+* The public key is stored in the frontend local database user record.
+* The private key is stored locally at `frontend/keys/<frontend_user_id>.pem` with owner-only read/write permissions.
+* The frontend submits a signed registration payload to the backend per [13-auth-session.md](../../04-interfaces/13-auth-session.md). Device metadata is optional client metadata only and does not create or bind a device identity.
+* Frontend auth registration does not register or revoke devices; device identity is handled only via dedicated system service flows.
 
 ### 3.3 [OperationContext](05-operation-context.md) contribution
 
-Frontends must supply the following fields on every request before the backend can admit the call:
+Frontends must supply the following request metadata on every call before the backend can admit the call. Identity bindings (`requester_identity_id`, `device_id`) are set only by the backend Auth Manager and MUST NOT be supplied by the frontend.
 
-| Field                | Source                | Notes                                                                     |
-| -------------------- | --------------------- | ------------------------------------------------------------------------- |
-| `app_id`             | Build metadata        | Immutable per installation.                                               |
-| `app_version`        | Build metadata        | Allows backend compatibility enforcement.                                 |
-| `user_id`            | Authenticated session | Empty only for anonymous bootstrap endpoints explicitly marked as such.   |
-| `device_id`          | Device enrollment     | Must match [Auth Manager](../managers/04-auth-manager.md)'s record.                                         |
-| `capability`         | Capability catalog    | One verb per request, multi-step workflows decompose into separate calls. |
-| `actor_type`         | Context               | Values: `user`, `service`, `automation`.                                  |
-| `correlation_id`     | Client generated UUID | Unique per request chain, logged locally and remotely.                    |
-| `locale`, `timezone` | User settings         | Optional but recommended for UX-driven validations.                       |
+| Field | Source | Notes |
+| --- | --- | --- |
+| `app_id` | Build metadata | Immutable per installation. |
+| `app_version` | Build metadata | Allows backend compatibility enforcement. |
+| `capability` | Capability catalog | One verb per request, multi-step workflows decompose into separate calls. |
+| `actor_type` | Context | Values: `user`, `service`, `automation`. |
+| `correlation_id` | Client generated UUID | Unique per request chain, logged locally and remotely. |
+| `locale`, `timezone` | User settings | Optional but recommended for UX-driven validations. |
 
 [OperationContext](05-operation-context.md) objects are immutable snapshots. Once transmitted, the frontend must not reuse or mutate them for retries, new retries reconstruct the context to guarantee deterministic tracing, matching the ordering posture in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 3.4 Capability negotiation
 
-* At authentication, the backend returns capability summaries scoped to the requesting identity and app. Frontends cache them but must re-fetch on ACL changes, session refresh, or `ERR_CAPABILITY_REVOKED` responses ([01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)).
+* At authentication, the backend returns capability summaries scoped to the requesting identity and app. Frontends cache them but must re-fetch on ACL changes, token renewal via re-registration, or `ERR_CAPABILITY_REVOKED` responses ([01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)).
 * Capabilities are hierarchical (`system.feed.read`, `app.crm.ticket.create`). Frontends must request the most specific verb required and must not degrade into super verbs.
 * UI must hide or disable controls for missing capabilities but still allow users to discover the required permissions by referencing documentation provided by Identity Service or [App Manager](../managers/08-app-manager.md).
 
@@ -100,12 +104,11 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 4.1 HTTP and WebSocket usage
 
-* APIs are defined in [04-interfaces/http/**](../../04-interfaces/http/**) and [04-interfaces/websocket/**](../../04-interfaces/websocket/**). Frontends must import generated clients or schemas from those specs rather than re-deriving shapes.
+* APIs are defined in [01-local-http-api.md](../../04-interfaces/01-local-http-api.md) and [02-websocket-events.md](../../04-interfaces/02-websocket-events.md). Frontends must import generated clients or schemas from those specs rather than re-deriving shapes.
 * Requests include:
-
-  * Auth envelope or session token issued by [Auth Manager](../managers/04-auth-manager.md) per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+  * Auth token issued by the backend [Auth Manager](../managers/04-auth-manager.md) via [13-auth-session.md](../../04-interfaces/13-auth-session.md).
   * [OperationContext](05-operation-context.md) payload serialized according to [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-* Responses must be parsed using the canonical error catalog in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Unknown fields must not crash the client, they must be ignored while preserving the signed body for optional logging.
+* Responses must be parsed using the canonical error model in [04-error-model.md](../../04-interfaces/04-error-model.md) and the protocol `ERR_*` catalog in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Unknown fields must not crash the client, they must be ignored while preserving the signed body for optional logging.
 * WebSocket clients must implement backpressure aligned with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), if the backend signals `slow_client`, the frontend pauses subscriptions until it drains local queues.
 
 ### 4.2 Sync packages
@@ -122,16 +125,19 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 4.4 Attachments and large payloads
 
-* Uploads use signed URLs or chunked flows defined in [04-interfaces/http/upload.md](../../04-interfaces/http/upload.md). Clients must hash chunks, include digests, and resume interrupted uploads without restarting entire files.
+* Uploads use signed URLs or chunked flows defined in [12-upload-http.md](../../04-interfaces/12-upload-http.md). Clients must hash chunks, include digests, and resume interrupted uploads without restarting entire files.
 * Downloads verify digests against metadata before exposing content to users. Unverified blobs must be quarantined or discarded.
 
 ## 5. Authentication, authorization, and trust
 
 ### 5.1 Session establishment
 
-* Authentication flows (password, passkey, device token) are documented in [04-interfaces/auth/**](../../04-interfaces/auth/**) and must produce the identity proofs described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md). Clients must implement multi-factor prompts when required by policy.
-* Session tokens include expiration and scope. Clients renew sessions before expiration and destroy tokens on logout, version downgrade, or detected compromise.
-* Device revocation is enforced immediately. When the backend returns `ERR_DEVICE_REVOKED`, clients must erase local caches, pending writes, and credentials without prompting for confirmation.
+* Authentication flows are documented in [04-interfaces/13-auth-session.md](../../04-interfaces/13-auth-session.md) and must produce the identity proofs described in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Passwords are used only for local UI access. The frontend stores a bcrypt hash locally and MUST NOT send passwords to the backend.
+* The frontend registers a public key with the backend using a signed registration payload and receives an opaque auth token plus the backend `identity_id`.
+* Frontends MUST verify the backend-signed registration response before storing the token.
+* Frontends MUST verify that `server_public_key` matches the locally configured backend public key (`FRONTEND_BACKEND_PUBLIC_KEY`) before accepting the token.
+* Tokens include expiry timestamps; frontends MUST re-register to obtain a fresh token after expiry or revocation.
 
 ### 5.2 Transport hardening and admission feedback
 
@@ -141,24 +147,24 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 5.3 Capability enforcement
 
-* Frontends never attempt a call without first verifying that the session holds the required capability, per the capability edge rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Attempting unauthorized calls intentionally is a violation logged as abuse.
+* Frontends never attempt a call without first verifying that the auth token holds the required capability, per the capability edge rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Attempting unauthorized calls intentionally is a violation logged as abuse.
 * Delegations (acting on behalf of another user or app) require explicit consent flows and distinct [OperationContext](05-operation-context.md) entries (`actor_type=delegation`). Delegation tokens carry expirations and scoping rules identical to capability edges described in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ### 5.4 Privacy and PII handling
 
 * Personally identifiable data is encrypted at rest using OS-level APIs or audited crypto libraries. Keys are derived via platform key stores, raw keys never live in application bundles.
-* Crash dumps and telemetry scrub PII unless the user opts into diagnostic uploads vetted by [05-security/**](../../05-security/**).
+* Crash dumps and telemetry scrub PII unless the user opts into diagnostic uploads vetted by [05-security/**](../../05-security/00-security-overview.md).
 * Clipboard access is opt-in and accompanied by warnings when data leaves the app boundary.
 
 ## 6. Local storage and state management
 
 ### 6.1 Storage classes
 
-| Class                   | Usage                                          | Requirements                                                      |
-| ----------------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
-| Ephemeral memory        | UI state, short-lived caches                   | Cleared on logout, never persists secrets.                        |
+| Class | Usage | Requirements |
+| --- | --- | --- |
+| Ephemeral memory | UI state, short-lived caches | Cleared on logout, never persists secrets. |
 | Durable encrypted store | Pending writes, offline data, user preferences | AES-256 or OS equivalent encryption, keyed per user, device, app. |
-| Attachment cache        | Large blobs, media                             | Stored under sandbox paths, deduplicated by digest, TTL enforced. |
+| Attachment cache | Large blobs, media | Stored under sandbox paths, deduplicated by digest, TTL enforced. |
 
 ### 6.2 Schema alignment
 
@@ -173,8 +179,23 @@ Frontends must supply the following fields on every request before the backend c
 
 ### 6.4 Secret handling
 
-* Secrets (session tokens, private keys, capability grants) remain in platform key stores. The app retrieves them only when signing or authenticating requests per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), zeroing memory afterward.
+* Secrets (auth tokens, private keys, capability grants) remain in platform key stores when available. For the PoC, private keys are stored at `frontend/keys/<frontend_user_id>.pem` with owner-only permissions; auth tokens are stored in the frontend local database.
+* The app retrieves secrets only when signing or authenticating requests per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), zeroing memory afterward.
 * Debug builds may expose key material only under explicit developer flags and must never be distributed to production users.
+
+### 6.5 Frontend local DB minimum fields
+
+Frontend local storage must include, at minimum:
+
+- `frontend_user_id`
+- `username`
+- `bcrypt_hash`
+- `public_key`
+- `backend_identity_id`
+- `backend_token`
+- `backend_token_issued_at`
+- `backend_token_expires_at`
+- `backend_base_url`
 
 ## 7. Offline behavior and synchronization
 
@@ -202,18 +223,25 @@ Frontends must supply the following fields on every request before the backend c
 
 Clients must map backend error codes (from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md)) to UI states:
 
-| Error class              | Client response                                                       |
-| ------------------------ | --------------------------------------------------------------------- |
-| `ERR_AUTH_*`             | Force re-authentication, clear sensitive caches.                      |
-| `ERR_ACL_*`              | Display permission error, offer request access workflow if supported. |
-| `ERR_SCHEMA_*`           | Highlight invalid fields, prevent resubmission until corrected.       |
-| `ERR_SYNC_*`             | Retry with exponential backoff, surface diagnostics link.             |
-| `ERR_RESOURCE_*`         | Inform the user about admission delays and pause retries until allowed. |
-| `ERR_CAPABILITY_REVOKED` | Refresh capability catalog, disable affected UI.                      |
+| Error class | Client response |
+| --- | --- |
+| `ERR_AUTH_*` | Force re-registration, clear sensitive caches. |
+| `ERR_ACL_*` | Display permission error, offer request access workflow if supported. |
+| `ERR_SCHEMA_*` | Highlight invalid fields, prevent resubmission until corrected. |
+| `ERR_SYNC_*` | Retry with exponential backoff, surface diagnostics link. |
+| `ERR_RESOURCE_*` | Inform the user about admission delays and pause retries until allowed. |
+| `ERR_CAPABILITY_REVOKED` | Refresh capability catalog, disable affected UI. |
+
+### 8.1.1 Emitted frontend error conditions
+
+* `ERR_CAPABILITY_REVOKED` is emitted when a previously granted capability edge has been revoked for the requester identity.
+* `ERR_DEVICE_REVOKED` is emitted when the authenticated device binding has been revoked during token validation.
+* `ERR_OBJECT_VERSION` is emitted when a mutation includes an expected object version that does not match the current version.
+* `ERR_CONFIG_STALE` is emitted when the caller's OperationContext config hash does not match the current Config Manager snapshot.
 
 ### 8.2 Retry strategy
 
-* Retries follow per-endpoint budgets defined in [04-interfaces/**](../../04-interfaces/**). Clients respect `Retry-After` headers and any backend-provided admission window.
+* Retries follow per-endpoint budgets defined in [04-interfaces/**](../../04-interfaces/00-interface-overview.md). Clients respect `Retry-After` headers and any backend-provided admission window.
 * Exponential backoff parameters: base delay 500 ms, multiplier 2x, jitter +/- 20%, capped at 2 minutes unless interface docs state otherwise.
 * Users can manually retry after fatal failures, manual retries reset the backoff sequence.
 
@@ -233,7 +261,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 ### 9.2 Metrics and health signals
 
 * Clients sample metrics such as request latency, cache hit ratio, pending write count, and sync backlog size.
-* When backend surfaces support it, clients publish aggregated metrics via `POST /system/ops/clients/telemetry` (to be documented in [04-interfaces/http/ops.md](../../04-interfaces/http/ops.md)).
+* When backend surfaces support it, clients publish aggregated metrics via `POST /system/ops/clients/telemetry` (to be documented in [11-ops-http.md](../../04-interfaces/11-ops-http.md)).
 
 ### 9.3 Crash and issue reporting
 
@@ -255,7 +283,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 10.3 Device lifecycle
 
-* Installation registers the device with Device Manager via bootstrap flows ([01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md)).
+* Installation registers the device via system bootstrap flows in [02-system-services.md](02-system-services.md) (SBPS device enrollment).
 * Uninstallation triggers deregistration calls when connectivity exists, otherwise, the next bootstrap attempt must detect orphaned entries and clean up.
 * Wipes remove all local data, keys, caches, and pending writes, leaving nothing recoverable without re-authentication.
 
@@ -263,7 +291,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 11.1 Threat model alignment
 
-* Frontend threat assumptions mirror [05-security/**](../../05-security/**) and the crypto/posture controls in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), the device may be compromised, but the app must minimize secrets at rest, detect tampering where possible, and fail safely when invariants break.
+* Frontend threat assumptions mirror [05-security/**](../../05-security/00-security-overview.md) and the crypto/posture controls in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), the device may be compromised, but the app must minimize secrets at rest, detect tampering where possible, and fail safely when invariants break.
 * Tamper detection includes verifying bundle signatures, runtime integrity checks (optional), and refusing to run on rooted or jailbroken devices if policy demands.
 
 ### 11.2 Permissions and sandboxing
@@ -273,7 +301,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 11.3 Supply-chain controls
 
-* Dependencies are pinned with checksums, verified at build time, and scanned per [05-security/dependency-policy.md](../../05-security/dependency-policy.md).
+* Dependencies are pinned with checksums, verified at build time, and scanned per [05-security/00-security-overview.md](../../05-security/00-security-overview.md).
 * Build pipelines produce reproducible artifacts where feasible so auditors can verify shipped binaries match source.
 
 ### 11.4 Data export and interoperability
@@ -286,7 +314,6 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 ### 12.1 System service interactions
 
 * Frontends must obey service-specific requirements from [02-architecture/services-and-apps/02-system-services.md](02-system-services.md). For example:
-
   * Bootstrap flows call SBPS endpoints sequentially, verifying each stage before advancing.
   * Identity actions follow Identity Service ACL prompts, ensuring capability edges exist before exposing contact management UI.
   * Feed experiences honor Base Feed Service pagination, moderation flows, and cost hints.
@@ -312,7 +339,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 13.2 Build and packaging workflow
 
-* Build pipelines ingest schemas, capability catalogs, and configuration defaults from the graph, generate strongly typed clients from [04-interfaces/**](../../04-interfaces/**), and embed immutable manifests plus compatibility metadata directly into artifacts.
+* Build pipelines ingest schemas, capability catalogs, and configuration defaults from the graph, generate strongly typed clients from [04-interfaces/**](../../04-interfaces/00-interface-overview.md), and embed immutable manifests plus compatibility metadata directly into artifacts.
 * Source control tags must map 1:1 with shipped versions. Build metadata includes commit hash, dependency lockfile hash, and manifest version so backend telemetry can trace requests to reproducible builds.
 * Continuous integration executes lint, unit, schema validation, and [OperationContext](05-operation-context.md) assembly tests on every change. Builds fail if generated interface clients differ from checked-in versions, preventing drift from backend contracts.
 * Release automation signs artifacts (per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md)), pushes them to distribution channels, and publishes manifest updates to [App Manager](../managers/08-app-manager.md) so nodes can verify compatibility before accepting the new build.
@@ -328,7 +355,6 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 * SDKs expose helpers for [OperationContext](05-operation-context.md) assembly, schema validation, pending-write journaling, and admission feedback handling so app developers cannot bypass required behavior accidentally.
 * Local development tools spin up mock backends by replaying signed fixtures derived from the canonical specs. Tools must never turn off ACL or schema validation; instead they provide deterministic fixtures for faster iteration.
 * Automated test suites cover:
-
   * Capability checks per surface (UI plus API) to confirm missing permissions disable functionality.
   * Schema evolution handling: load previous cache snapshots, apply new schema definitions, ensure incompatible entries purge deterministically.
   * Config rollouts: apply staged configuration snapshots, confirm clients detect hash changes, reload values, and update UI or automation accordingly.
@@ -337,14 +363,14 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 ## 14. Implementation checklist
 
 1. **App identity**: Slug, `app_id`, manifest, and compatibility matrix registered with [App Manager](../managers/08-app-manager.md).
-2. **[OperationContext](05-operation-context.md) discipline**: Every request includes immutable [OperationContext](05-operation-context.md) data derived from authenticated sessions and build metadata, retries rebuild context.
+2. **[OperationContext](05-operation-context.md) discipline**: Every request includes immutable [OperationContext](05-operation-context.md) data derived from authenticated tokens and build metadata, retries rebuild context.
 3. **Capability gating**: UI and automation surfaces inspect current capability catalogs before enabling actions, revoked capabilities disable controls immediately.
-4. **Transport compliance**: HTTP or WebSocket clients honor [04-interfaces/**](../../04-interfaces/**) contracts, enforce TLS or Noise, surface backend admission feedback, and implement structured retries.
+4. **Transport compliance**: HTTP or WebSocket clients honor [04-interfaces/**](../../04-interfaces/00-interface-overview.md) contracts, enforce TLS or Noise, surface backend admission feedback, and implement structured retries.
 5. **Local storage**: Pending writes, caches, and secrets stored in encrypted containers, bounded by schema versions, and wiped on logout or device removal.
 6. **Offline handling**: Pending write log with deterministic ordering, conflict prompts, and schema-aware validation, sync scheduler respecting power and network posture.
 7. **Error handling**: Canonical error mapping to UX, deterministic logging, and exponential backoff aligned with interface hints.
 8. **Observability**: Structured logs, metrics sampling, crash diagnostics, and optional telemetry uploads wired through documented endpoints with user consent.
-9. **Security**: Key handling, sandboxing, dependency pinning, tamper detection, and supply-chain checks aligned with [05-security/**](../../05-security/**).
+9. **Security**: Key handling, sandboxing, dependency pinning, tamper detection, and supply-chain checks aligned with [05-security/**](../../05-security/00-security-overview.md).
 10. **Distribution**: Signed packages, auto-update policies, rollback capability, and manifest embedding to ensure compatibility enforcement.
 11. **Integration**: Service-specific behaviors implemented per system service specs, extension manifests respected, and [OperationContext](05-operation-context.md) hashes verified end to end.
 12. **Testing**: Automated tests cover [OperationContext](05-operation-context.md) assembly, capability gating, schema validation, pending write ordering, sync conflict handling, admission-feedback handling, and error rendering.

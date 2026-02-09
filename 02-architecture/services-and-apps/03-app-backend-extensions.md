@@ -6,7 +6,7 @@
 
 Defines how app-owned backend extensions integrate with managers and trust boundaries. Specifies lifecycle, capability, configuration, and observability requirements for extensions. Defines failure handling, packaging, and isolation guarantees for extension services.
 
-For the meta specifications, see [03-app-backend-extensions meta](../09-appendix/meta/02-architecture/services-and-apps/03-app-backend-extensions-meta.md).
+For the meta specifications, see [03-app-backend-extensions meta](../../10-appendix/meta/02-architecture/services-and-apps/03-app-backend-extensions-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -18,6 +18,7 @@ Across all components and execution contexts described in this file, the followi
 * Namespace isolation follows [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md). Extensions operate only on their owning `app_id` and never impersonate `app_0`.
 * All failures are handled fail closed with canonical error classes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Partial writes, best-effort retries, or out-of-band repairs are forbidden.
 * Removal, upgrade, or rollback of an extension never corrupts graph state because [Graph Manager](../managers/07-graph-manager.md) remains the sole write authority under [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
+* PoC app domains (contacts, messaging, social, market) are ordinary app extensions. They ship by default but remain optional and replaceable without changing system services or manager boundaries.
 
 ## 2. Backend extension contract
 
@@ -123,14 +124,34 @@ State transitions are observable through [App Manager](../managers/08-app-manage
 
 Extension packages delivered to [App Manager](../managers/08-app-manager.md) include:
 
+* A ZIP container (`<slug>_app.zip`) plus a detached signature file (`<slug>_app_sig.txt`). Filenames are informational; the manifest is authoritative.
 * Manifest file covering slug, `app_id`, semantic version, required platform version, capability catalog, dependency graph, scheduler jobs, configuration defaults, and DoS Guard hints.
 * Signed binaries or modules. Signing and verification follow [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), and unsigned packages are rejected per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Schema definitions scoped to the owning app plus migration envelopes that respect the sequencing posture in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Interface documentation references pointing to [04-interfaces/**](../../04-interfaces/) entries.
 
+Within the ZIP container, the following files are required unless noted:
+
+* `manifest.json` (required) - includes `slug`, `version`, `capabilities`, `dependencies`, and `config_keys` plus any extension-specific fields used by [App Manager](../managers/08-app-manager.md).
+* `schema.json` (required) - `{ "objects": [ ... graph objects ... ] }` in canonical Parent/Attribute form.
+* `acl.json` (optional) - `{ "objects": [ ... graph objects ... ] }` for default permissions.
+* `extension/` (optional) - backend extension module payload (native or interpreted).
+* `frontend/` (optional) - UI assets or client bundle metadata used by external installers.
+
+The signature file is a UTF-8 JSON document with:
+
+* `signer_id` (int) - identity id for the signing key recognized by the identity registry.
+* `publisher_public_key` (string, optional) - base64 public key to bind if the publisher identity is not yet in the graph.
+* `algorithm` (string) - signature algorithm name.
+* `signature` (string, base64) - detached signature over the raw ZIP bytes.
+
+Packages are rejected if the signature is missing, malformed, or fails verification.
+Packages are also rejected if the publisher identity is not present and trusted in the graph. If the publisher is missing, the install flow must prompt the user to add or trust the publisher before proceeding.
+
 ### 4.2 Registration and upgrade policy
 
 * Registration loads the manifest into [App Manager](../managers/08-app-manager.md), validates slug ownership, dependency declarations, scheduler manifests, and capability catalogs.
+* Package signatures are verified by the installer or interface layer before registration or installation proceeds.
 * Installation stages the package, loads schemas through [Schema Manager](../managers/05-schema-manager.md), validates configuration defaults via [Config Manager](../managers/01-config-manager.md), and runs the security reviews mandated in [05-security/**](../../05-security/). Installation fails closed; nothing runs until all checks succeed.
 * Upgrades use prepare/commit semantics. [App Manager](../managers/08-app-manager.md) stages the new version, validates compatibility, swaps modules atomically on success, and replays readiness checks. Rollbacks reinstall the previous signed version and rely on deterministic state reconstruction from [Graph Manager](../managers/07-graph-manager.md).
 
@@ -153,7 +174,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/11-versio
 
 * Extension configuration keys live under `app.<slug>.*`. [Config Manager](../managers/01-config-manager.md) validates snapshots before exposing them, enforcing the sequencing discipline in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Extensions implement `prepare_config(snapshot)` and `commit_config()` hooks mirroring manager behavior. Rejecting a snapshot keeps the previous version active and marks health degraded.
-* Secrets live only as encrypted graph attributes mediated by [Key Manager](../managers/03-key-manager.md). Plaintext secrets in configuration or caches are forbidden.
+* Secrets live only as encrypted graph attributes. Extensions may encrypt using recipient public keys when authorized by [OperationContext](05-operation-context.md) and identity data from the graph; private-key operations remain mediated by [Key Manager](../managers/03-key-manager.md). Plaintext secrets in configuration or caches are forbidden.
 
 ### 5.2 Schema ownership
 
@@ -192,7 +213,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/11-versio
 
 * Extensions inherit the untrusted caller posture described in [02-architecture/01-component-model.md](../01-component-model.md); managers treat them as any other caller even though they run in-process.
 * Mutual authentication is mandatory between the loader and [App Manager](../managers/08-app-manager.md). Only signed packages from the owning app are accepted.
-* Extensions never access cryptographic keys directly. [Key Manager](../managers/03-key-manager.md) mediates all signing, encryption, and random number generation per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Extensions never access private keys directly. [Key Manager](../managers/03-key-manager.md) mediates signing, decryption, and key generation per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md). Extensions may verify signatures or encrypt using public keys when authorized by [OperationContext](05-operation-context.md) and identity data in the graph.
 * Authorization always flows through [ACL Manager](../managers/06-acl-manager.md). Cached ACL decisions must be revalidated before reuse, preserving the guarantees in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * External dependencies (for example, outbound webhooks) route through [Network Manager](../managers/10-network-manager.md) so DoS Guard can throttle and so network trust boundaries in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) stay intact.
 

@@ -6,7 +6,7 @@
 
 This flow defines the handshake between two peers before sync exchange begins.
 
-For the meta specifications, see [06-sync-handshake-flow-meta.md](../09-appendix/meta/06-flows/06-sync-handshake-flow-meta.md).
+For the meta specifications, see [06-sync-handshake-flow-meta.md](../10-appendix/meta/06-flows/06-sync-handshake-flow-meta.md).
 
 ## 1. Inputs
 
@@ -16,13 +16,18 @@ For the meta specifications, see [06-sync-handshake-flow-meta.md](../09-appendix
 ## 2. Flow
 
 1) Network Manager accepts a connection subject to DoS Guard admission.
+
 2) Peer presents handshake payload with:
+
    * node identity
    * supported apps and sync domains
    * protocol version
-3) Key Manager verifies the peer signature and identity.
+
+3) Network Manager verifies the peer signature and identity using public keys.
 4) State Manager compares protocol version and sync domains.
+
 5) State Manager responds with accepted domains and sequence ranges.
+
 6) If accepted, sync ingress/egress flows are enabled for the peer.
 
 ## 3. Allowed behavior
@@ -39,3 +44,13 @@ For the meta specifications, see [06-sync-handshake-flow-meta.md](../09-appendix
 
 * Any validation failure rejects the handshake.
 * Rejections do not alter local sync state.
+* When surfaced to a transport that returns `ErrorDetail`, the following mappings apply:
+
+| Condition | Owner | ErrorDetail.code | ErrorDetail.category | Transport status |
+| --- | --- | --- | --- | --- |
+| Malformed or missing handshake fields | Network Manager | `envelope_invalid` | `structural` | `400` |
+| Signature or peer identity verification failure | Network Manager | `network_rejected` | `network` | `400` |
+| DoS Guard admission requires challenge | DoS Guard Manager | `dos_challenge_required` | `dos` | `400` |
+| Protocol version incompatible or invalid | State Manager | `network_rejected` | `network` | `400` |
+| Requested domain not registered or not eligible | State Manager | `network_rejected` | `network` | `400` |
+| Unexpected internal failure | Owning manager | `internal_error` | `internal` | `500` |

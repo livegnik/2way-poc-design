@@ -6,7 +6,7 @@
 
 Defines SQLite storage topology, table families, and required columns for the 2WAY backend. Specifies sequencing and sync-state persistence rules. Defines startup, shutdown, and failure handling rules.
 
-For the meta specifications, see [01-sqlite-layout meta](../09-appendix/meta/03-data/01-sqlite-layout-meta.md).
+For the meta specifications, see [01-sqlite-layout meta](../10-appendix/meta/03-data/01-sqlite-layout-meta.md).
 
 ## 1. Purpose and scope
 
@@ -61,7 +61,7 @@ The initial `global_seq` row is seeded during bootstrap. Migrations are applied 
 
 ### 3.3 Per app table families
 
-Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. `app_0` is reserved for system-owned graph data, including identities, schemas, ACL structures, and protocol-level metadata.
+Each registered application owns a dedicated table family using the prefix `app_N_`, where `N` is the numeric app_id. `app_0` is reserved for system-owned graph data, including identities, schemas, ACL structures, capability definitions/edges, and protocol-level metadata.
 
 Per app table families are created on demand by Storage Manager at app registration time and must be created within the same registration transaction that inserts the app record. They are never dropped automatically. All per app tables include an explicit `app_id` column even when the table name already implies scope. Each app owns an independent `type_id` namespace and cannot observe or reference another app's object tables.
 

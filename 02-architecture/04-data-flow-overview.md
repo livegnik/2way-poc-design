@@ -6,7 +6,7 @@
 
 Defines authoritative data flow paths for 2WAY, including bootstrap, read/write, sync, and rejection handling. Specifies ordering, validation, authorization, and persistence boundaries for all flows. Defines visibility suppression and event emission semantics.
 
-For the meta specifications, see [04-data-flow-overview meta](../09-appendix/meta/02-architecture/04-data-flow-overview-meta.md).
+For the meta specifications, see [04-data-flow-overview meta](../10-appendix/meta/02-architecture/04-data-flow-overview-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -22,6 +22,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * [DoS Guard Manager](managers/14-dos-guard-manager.md) is applied exclusively to network level ingress per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * All real-time notifications pass through [Event Manager](managers/11-event-manager.md).
 * All cryptographic private keys are accessed only by [Key Manager](managers/03-key-manager.md) per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
+* Signature verification and public-key encryption may be performed by authorized managers or services when permitted by [OperationContext](services-and-apps/05-operation-context.md) and identity data in the graph; private keys never leave [Key Manager](managers/03-key-manager.md).
 * [OperationContext](services-and-apps/05-operation-context.md) is immutable once constructed and propagated unchanged.
 * Domain boundaries are enforced on all reads, writes, and sync operations per [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md) and [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * No delete or physical removal operations exist in the PoC.
@@ -286,7 +287,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 * [DoS Guard Manager](managers/14-dos-guard-manager.md) applies admission control using dynamic difficulty challenges and rate limits per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
 * [Network Manager](managers/10-network-manager.md) receives encrypted payloads only on admitted connections.
 * [Key Manager](managers/03-key-manager.md) looks up the claimed key id and validates key existence, allowed purpose, and revocation state per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
-* [Key Manager](managers/03-key-manager.md) verifies the signature over the authenticated message header per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [Network Manager](managers/10-network-manager.md) verifies the signature over the authenticated message header using public keys per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [Key Manager](managers/03-key-manager.md) decrypts the payload per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [State Manager](managers/09-state-manager.md) validates sync metadata, domain scope, ordering, and replay protection per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Remote [OperationContext](services-and-apps/05-operation-context.md) is derived from the verified peer identity and fixed for the remainder of the flow.
@@ -324,8 +325,7 @@ Additional fields may be present to represent scoring, reactions, comments, or o
 * Envelopes are constructed per [01-protocol/03-serialization-and-envelopes.md](../01-protocol/03-serialization-and-envelopes.md).
 * [Key Manager](managers/03-key-manager.md) signs the authenticated message header, including sender key id and ciphertext binding per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [Network Manager](managers/10-network-manager.md) establishes or reuses a peer connection, including solving required client puzzles during admission per [01-protocol/09-dos-guard-and-client-puzzles.md](../01-protocol/09-dos-guard-and-client-puzzles.md).
-* [Key Manager](managers/03-key-manager.md) looks up the recipient peer key material required for encryption per [01-protocol/05-keys-and-identity.md](../01-protocol/05-keys-and-identity.md).
-* [Network Manager](managers/10-network-manager.md) encrypts the payload for the remote peer per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
+* [Network Manager](managers/10-network-manager.md) resolves the recipient public key from the identity registry and encrypts the payload for the remote peer per [01-protocol/04-cryptography.md](../01-protocol/04-cryptography.md).
 * [Network Manager](managers/10-network-manager.md) transmits the encrypted package over the established connection.
 
 ### 9.3 Allowed behavior

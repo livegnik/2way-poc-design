@@ -6,20 +6,19 @@
 
 Defines configuration ingestion, validation, snapshot publication, and mutation control for node-local settings. Specifies configuration sources, precedence, schema registration, and change propagation semantics. Defines APIs, security posture, and failure handling for configuration management.
 
-For the meta specifications, see [01-config-manager meta](../09-appendix/meta/02-architecture/managers/01-config-manager-meta.md).
-
+For the meta specifications, see [01-config-manager meta](../../10-appendix/meta/02-architecture/managers/01-config-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
 Across all relevant components, boundaries, or contexts defined in this file, the following invariants and guarantees hold:
 
 * All configuration access is mediated by [Config Manager](01-config-manager.md) APIs, no other component reads `.env` or `settings` directly.
-* No configuration value becomes visible to consumers unless it has passed schema based validation and policy checks.
+* No configuration value becomes visible to consumers unless it has passed schema-based validation and policy checks.
 * Precedence is deterministic, stable across restarts, and identical for all consumers within a process.
-* Published snapshots are immutable, per namespace, and cannot be mutated by consumers.
+* Published snapshots are immutable, per-namespace, and cannot be mutated by consumers.
 * Bootstrap critical `node.*` values sourced from `.env` are immutable for the life of the process.
 * Unknown keys are rejected unless registered in the schema registry before load or reload.
-* Reload is serialized, two phase, and either fully commits or has no effect. Partial application is forbidden.
+* Reload is serialized, two-phase, and either fully commits or has no effect. Partial application is forbidden.
 * Veto by an owning manager during prepare prevents commit and preserves the prior snapshot.
 * `node.protocol.version` is resolved once from `.env`, cannot be overridden, and is the sole local source of truth for protocol negotiation per [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
 * Configuration is node local and is not stored in, derived from, or replicated via the graph, preserving the authority boundaries defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
@@ -28,7 +27,7 @@ These guarantees must hold regardless of caller, execution context, input source
 
 ## 2. Configuration model and storage
 
-The configuration layer exists to keep node local operational state self describing, auditable, and accessible through one interface.
+The configuration layer exists to keep node-local operational state self describing, auditable, and accessible through one interface.
 
 Configuration follows a strict split:
 
@@ -39,17 +38,17 @@ Configuration follows a strict split:
 
 `.env` holds only values needed to reach a minimally functioning backend process, open SQLite, locate keys, configure Tor wiring, and expose the HTTP entrypoint.
 
-Example keys:
+Boot-critical keys:
 
-```
-BACKEND_DB_PATH=backend/instance/backend.db
-BACKEND_HOST=127.0.0.1
-BACKEND_PORT=8000
-KEYS_DIR=backend/keys
-TOR_CONTROL_PORT=9051
-TOR_SOCKS_PORT=9050
-PROTOCOL_VERSION=1.0.0
-```
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `BACKEND_DB_PATH` | Yes | `backend/instance/backend.db` | SQLite database path. |
+| `BACKEND_HOST` | Yes | `127.0.0.1` | Local HTTP bind host. |
+| `BACKEND_PORT` | Yes | `8000` | Local HTTP bind port. |
+| `KEYS_DIR` | Yes | `backend/keys` | Key storage directory. |
+| `TOR_CONTROL_PORT` | No | `9051` | Used only when Tor transport is enabled. |
+| `TOR_SOCKS_PORT` | No | `9050` | Used only when Tor transport is enabled. |
+| `PROTOCOL_VERSION` | Yes | `1.0.0` | Published as `node.protocol.version`. |
 
 Rules:
 
@@ -58,16 +57,23 @@ Rules:
 * `.env` does not contain graph identifiers, graph state, or mutable feature flags.
 * `.env` is immutable after startup. Any change requires process restart.
 * `PROTOCOL_VERSION` is validated and published as `node.protocol.version`.
+* Required keys must be present and non-empty.
+* `TOR_CONTROL_PORT` and `TOR_SOCKS_PORT` must be provided together or omitted together.
 
 ### 2.2 SQLite backed settings table
 
-All non boot configuration is stored in SQLite in a single key value table.
+All non boot configuration is stored in SQLite in a single key-value table.
 
 ```sql
+
 CREATE TABLE IF NOT EXISTS settings (
+
     key   TEXT PRIMARY KEY,
+
     value TEXT NOT NULL
+
 );
+
 ```
 
 Rules:
@@ -86,19 +92,28 @@ Canonical namespaces:
 * `node.*` boot and identity of the local runtime environment, sourced from `.env` plus defaults.
 * `storage.*` storage tuning and operational settings, owned by [Storage Manager](02-storage-manager.md).
 * `graph.*` graph engine operational settings, owned by [Graph Manager](07-graph-manager.md), excluding graph state.
+* `schema.*` schema compilation and resolution settings, owned by [Schema Manager](05-schema-manager.md).
+* `auth.*` local authentication operational settings, owned by [Auth Manager](04-auth-manager.md).
+* `key.*` local key custody operational settings, owned by [Key Manager](03-key-manager.md).
 * `network.*` network operational settings, owned by [Network Manager](10-network-manager.md), excluding keys and secrets.
 * `acl.*` access control operational settings, owned by [ACL Manager](06-acl-manager.md), excluding graph ACL objects.
+* `debug.*` debug logger toggles, owned by the debug logger utility.
 * `log.*` logging thresholds and routing settings, owned by [Log Manager](12-log-manager.md).
 * `dos.*` DoS containment thresholds, puzzle policy, and telemetry directives mandated by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md), owned by [DoS Guard Manager](14-dos-guard-manager.md).
-* `event.*` event routing and websocket related operational settings, owned by [Event Manager](11-event-manager.md).
+* `event.*` event routing and WebSocket related operational settings, owned by [Event Manager](11-event-manager.md).
 * `health.*` health reporting and thresholds, owned by [Health Manager](13-health-manager.md).
-* `app.<app_id>.*` app scoped settings owned by the app backend extension or [App Manager](08-app-manager.md).
+* `state.*` sync and consistency operational settings, owned by [State Manager](09-state-manager.md).
+* `service.<service_name>.*` system service settings owned by the service implementation.
+* `app.<slug>.*` app scoped settings owned by the app backend extension or [App Manager](08-app-manager.md).
 
 Rules:
 
 * Each namespace has a single owning manager or owning app backend.
+* A namespace may be reserved even if it defines zero keys.
 * A manager may only request its own namespace snapshot, unless an explicit export contract exists.
 * Frontend code never reads configuration directly. Frontend visible settings are obtained via services which call [Config Manager](01-config-manager.md) export APIs under [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) filtering.
+
+Reserved namespaces are allowed even when no concrete keys are defined.
 
 ### 2.4 Configuration is not stored in the graph
 
@@ -126,8 +141,8 @@ Rules:
 
 [Config Manager](01-config-manager.md) enforces a deterministic precedence stack:
 
-1. Built in defaults compiled with the backend.
-2. `.env` boot configuration, limited to the keys described in section 4.1.
+1. Built-in defaults compiled with the backend.
+2. `.env` boot configuration, limited to the keys described in section 2.1.
 3. SQLite `settings` table for all mutable namespaces.
 4. Environment overrides prefixed with `TWOWAY_` intended for CI and developer usage, applied for the life of the process.
 5. Ephemeral overrides provided programmatically by CLI flags, test harnesses, or diagnostics, applied for the life of the process.
@@ -261,23 +276,26 @@ Read APIs:
 
 Export APIs:
 
-* `exportConfig([OperationContext](../services-and-apps/05-operation-context.md), selector)`
+* `exportConfig(operation_context, selector)`
   * Returns a filtered and policy safe configuration view for service layer and frontend usage.
   * [ACL Manager](06-acl-manager.md) must authorize export, and the export filter must enforce key level export policies.
+  * `operation_context` is an [OperationContext](../services-and-apps/05-operation-context.md).
 
 Mutation APIs:
 
-* `updateSettings([OperationContext](../services-and-apps/05-operation-context.md), updates)`
+* `updateSettings(operation_context, updates)`
   * Performs an atomic update of one or more SQLite backed keys.
   * Validates the resulting candidate snapshot before commit.
   * Emits audit log entries and a configuration update event through [Event Manager](11-event-manager.md) on success.
+  * `operation_context` is an [OperationContext](../services-and-apps/05-operation-context.md).
 
 Reload APIs:
 
-* `reload([OperationContext](../services-and-apps/05-operation-context.md), reason=None)`
-  * Re runs the full load and validation pipeline against current sources.
+* `reload(operation_context, reason=None)`
+  * Re-runs the full load and validation pipeline against current sources.
   * Only affects namespaces that are not immutable.
   * Must serialize with any concurrent updates.
+  * `operation_context` is an [OperationContext](../services-and-apps/05-operation-context.md).
 
 Version API:
 
@@ -306,7 +324,6 @@ API rules:
 * Prepare phase
   * [Config Manager](01-config-manager.md) sends the diff for affected keys to the owning managers.
   * Owning managers may veto the change with a structured rejection reason.
-
 * Commit phase
   * If no veto occurs, [Config Manager](01-config-manager.md) commits the new snapshot, increments `cfg_seq`, and publishes the new namespace snapshots.
   * Managers receive a commit notification after the snapshot becomes authoritative.
@@ -331,9 +348,10 @@ Some configuration must be set during initial node setup before normal administr
 [Config Manager](01-config-manager.md) supports a limited bootstrap mode:
 
 * Bootstrap writes are permitted only under an [OperationContext](../services-and-apps/05-operation-context.md) that carries an explicit bootstrap capability issued and validated by the installation flow.
-* Bootstrap writes are limited to an allowlist of keys required to complete initial setup, such as network and privacy operational settings and initial plugin enablement flags.
+* Bootstrap writes are limited to an allowlist of keys required to complete initial setup, such as network and privacy operational settings and initial app enablement flags.
 * Bootstrap writes are still validated via the schema registry.
 * Bootstrap mode ends when the installation flow marks the node as installed via an installation owned flag. After this, bootstrap capabilities are rejected.
+* Rejected bootstrap writes after installation MUST return `ErrorDetail.code=acl_denied`.
 
 [Config Manager](01-config-manager.md) does not create admin identities and does not own the installation state machine. It only enforces the capability and key allowlist rules for configuration writes.
 
@@ -342,7 +360,7 @@ Some configuration must be set during initial node setup before normal administr
 * `.env`, environment overrides, and SQLite contents are untrusted until validated.
 * [Config Manager](01-config-manager.md) must treat all loaded text as hostile input, including values sourced locally.
 * Secrets are not stored directly in SQLite settings. [Config Manager](01-config-manager.md) stores only secret references, such as file paths or handle ids, and enforces secrecy classification to prevent export.
-* Export must be deny by default. Only keys explicitly marked exportable may be returned by `exportConfig`.
+* Export must be deny-by-default. Only keys explicitly marked exportable may be returned by `exportConfig`.
 * Access control for mutation and export flows through [OperationContext](../services-and-apps/05-operation-context.md) and [ACL Manager](06-acl-manager.md) authorization checks.
 * Managers and services cannot escalate by editing files. Direct file edits are outside protocol guarantees and must not be relied upon for authorized change paths.
 * [Config Manager](01-config-manager.md) must log configuration source usage per load and reload attempt, enabling audit and drift detection.
@@ -361,6 +379,13 @@ Runtime failures:
 * Reload failure preserves the prior snapshot and emits structured error logs.
 * Update failure does not partially write to SQLite. The update must be atomic, either fully persisted and committed, or fully rejected.
 * Repeated failures mark the configuration subsystem degraded via [Health Manager](13-health-manager.md).
+
+Error mapping for external surfaces:
+
+* Validation failures, unknown keys, vetoes, or queue overflow -> `config_invalid`.
+* Unauthorized export or update -> `acl_denied`.
+* Persistence failures -> `storage_error`.
+* Unexpected internal failures -> `internal_error`.
 
 Observability:
 

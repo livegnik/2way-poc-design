@@ -6,7 +6,7 @@
 
 This document defines auditability guarantees and how tampering is detected.
 
-For the meta specifications, see [10-auditability-provenance-and-tamper-detection-meta.md](../09-appendix/meta/05-security/10-auditability-provenance-and-tamper-detection-meta.md).
+For the meta specifications, see [10-auditability-provenance-and-tamper-detection-meta.md](../10-appendix/meta/05-security/10-auditability-provenance-and-tamper-detection-meta.md).
 
 ## 1. Provenance
 

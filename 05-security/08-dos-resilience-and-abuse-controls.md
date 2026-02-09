@@ -6,7 +6,7 @@
 
 This document defines how the PoC resists abuse and resource exhaustion.
 
-For the meta specifications, see [08-dos-resilience-and-abuse-controls-meta.md](../09-appendix/meta/05-security/08-dos-resilience-and-abuse-controls-meta.md).
+For the meta specifications, see [08-dos-resilience-and-abuse-controls-meta.md](../10-appendix/meta/05-security/08-dos-resilience-and-abuse-controls-meta.md).
 
 ## 1. Admission control
 

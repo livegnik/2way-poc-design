@@ -21,7 +21,7 @@ treat this folder as the authoritative source for backend enforcement behavior.
 - [`managers/`](managers/) - Normative specifications for each manager and its authority.
 - [`services-and-apps/`](services-and-apps/) - Service, app, and `OperationContext` specifications.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/02-architecture/`](../09-appendix/meta/02-architecture/).
+Each document has a corresponding meta specification in [`10-appendix/meta/02-architecture/`](../10-appendix/meta/02-architecture/).
 
 ## How to read
 

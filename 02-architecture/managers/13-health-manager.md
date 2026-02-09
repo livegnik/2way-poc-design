@@ -6,10 +6,12 @@
 
 Defines health signal ingestion, evaluation, and readiness/liveness publication. Specifies component states, thresholds, snapshots, and notification behavior. Defines failure handling, access control, and telemetry outputs for health.
 
-For the meta specifications, see [13-health-manager meta](../09-appendix/meta/02-architecture/managers/13-health-manager-meta.md).
+For the meta specifications, see [13-health-manager meta](../../10-appendix/meta/02-architecture/managers/13-health-manager-meta.md).
 
 Defines health signal aggregation, readiness/liveness evaluation, and publication.
+
 Specifies inputs, thresholds, snapshots, and admin access constraints.
+
 Defines configuration, failure handling, and manager interactions for health.
 
 ## 1. Invariants and guarantees
@@ -95,7 +97,7 @@ Key configuration entries owned by [Health Manager](13-health-manager.md) includ
 | `health.critical_components`  | List    | Yes        | Components that block readiness when not `healthy`. Defaults to all protocol managers. |
 | `health.event_notifications`  | Boolean | Yes        | Enables [Event Manager](11-event-manager.md) bridge.                                                          |
 | `health.log_notifications`    | Boolean | Yes        | Enables structured log emission (always on in production).                             |
-| `health.admin_acl_role`       | String  | Yes        | ACL role required to access detailed health data via HTTP.                             |
+| `health.admin_capability`     | String  | Yes        | Capability required to access detailed health data via HTTP.                           |
 
 Configuration reloads follow [Config Manager](01-config-manager.md)'s prepare/commit flow. [Health Manager](13-health-manager.md) validates that thresholds are non-negative and that all listed components are registered.
 
@@ -168,7 +170,7 @@ Failure behavior:
 
 ## 9. Security and trust boundaries
 
-* Health queries via HTTP require an [OperationContext](../services-and-apps/05-operation-context.md) whose identity carries the admin ACL role defined in `health.admin_acl_role`, enforcing [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and binding to the identity primitives in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Health queries via HTTP require an [OperationContext](../services-and-apps/05-operation-context.md) whose identity carries the admin capability defined in `health.admin_capability`, enforcing [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and binding to the identity primitives in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Health snapshots do not expose raw metrics for components unless the requester is authorized. Unprivileged callers receive only aggregate readiness and liveness state.
 * All health data is transient. Persistent storage occurs only through [Log Manager](12-log-manager.md) (structured logs) and optional [Event Manager](11-event-manager.md) notifications.
 * [Health Manager](13-health-manager.md) treats incoming signals as untrusted. Spoofed or malformed signals cannot change global state without passing validation.

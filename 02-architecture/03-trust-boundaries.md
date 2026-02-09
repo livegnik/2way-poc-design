@@ -6,7 +6,7 @@
 
 Defines architectural trust boundaries and enforcement requirements for 2WAY. Specifies allowed/forbidden interactions across boundaries and failure handling. Defines boundary invariants that protect validation, authorization, and persistence.
 
-For the meta specifications, see [03-trust-boundaries meta](../09-appendix/meta/02-architecture/03-trust-boundaries-meta.md).
+For the meta specifications, see [03-trust-boundaries meta](../10-appendix/meta/02-architecture/03-trust-boundaries-meta.md).
 
 ## 1. Trust model and baseline assumptions
 

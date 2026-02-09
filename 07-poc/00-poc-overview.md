@@ -8,12 +8,12 @@ This section defines the proof-of-concept scope for 2WAY, including its goals, t
 
 References:
 
-* [BUILD-PLAN.md](../../BUILD-PLAN.md)
-* [POC-ACCEPTANCE.md](../../POC-ACCEPTANCE.md)
-* [POC-APPS.md](../../POC-APPS.md)
-* [IMPLEMENTATION-CHOICES.md](../../IMPLEMENTATION-CHOICES.md)
+* [BUILD-PLAN.md](../../docs-build/BUILD-PLAN.md)
+* [POC-ACCEPTANCE.md](../../docs-build/POC-ACCEPTANCE.md)
+* [POC-APPS.md](../../docs-build/POC-APPS.md)
+* [IMPLEMENTATION-CHOICES.md](../../docs-build/IMPLEMENTATION-CHOICES.md)
 
-For the meta specifications, see [00-poc-overview-meta.md](../09-appendix/meta/07-poc/00-poc-overview-meta.md).
+For the meta specifications, see [00-poc-overview-meta.md](../10-appendix/meta/07-poc/00-poc-overview-meta.md).
 
 ## 1. Purpose
 
@@ -26,13 +26,20 @@ The PoC includes:
 * A single-process backend with Storage, Schema, ACL, Graph, and supporting managers.
 * A service layer that orchestrates managers and implements system and app services.
 * Minimal HTTP and WebSocket interfaces for local use.
-* Two example app domains: messaging and social feed.
+* Four example app domains: contact list, messaging, social feed, and market.
+* An app marketplace UI that can discover and install apps via the documented lifecycle routes.
 * Tests that cover ordering, validation, and fail-closed behavior, including integration flows.
+
+Terminology:
+
+* `Market app` is the PoC market domain app (listings/offers/contracts in the graph).
+* `Marketplace` is the app discovery/install UI flow and is distinct from the market domain.
+* PoC app domains are shipped by default but remain ordinary apps; they may be swapped out without altering system service contracts.
 
 The PoC excludes:
 
 * Production deployment, scaling, and high-availability concerns.
-* UI workflows beyond the defined frontend scaffold.
+* UI workflows beyond the defined frontend scaffold and the marketplace flow.
 * Nonessential external integrations.
 
 ## 3. Document index
@@ -46,3 +53,4 @@ The PoC specification set consists of:
 5) Demo scenarios.
 6) Known limitations.
 7) Acceptance criteria.
+

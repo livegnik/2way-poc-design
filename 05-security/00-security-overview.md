@@ -14,7 +14,7 @@ References:
 * [04-interfaces/**](../04-interfaces/)
 * [06-flows/**](../06-flows/)
 
-For the meta specifications, see [00-security-overview-meta.md](../09-appendix/meta/05-security/00-security-overview-meta.md).
+For the meta specifications, see [00-security-overview-meta.md](../10-appendix/meta/05-security/00-security-overview-meta.md).
 
 ## 1. Security objectives
 

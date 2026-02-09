@@ -6,7 +6,7 @@
 
 Defines the protocol posture and lifecycle for 2WAY graph mutations and sync. Specifies validation ordering, authorization gates, and sync sequencing requirements. Summarizes required guarantees, forbidden paths, and compatibility rules.
 
-For the meta specifications, see [00-protocol-overview meta](../09-appendix/meta/01-protocol/00-protocol-overview-meta.md).
+For the meta specifications, see [00-protocol-overview meta](../10-appendix/meta/01-protocol/00-protocol-overview-meta.md).
 
 ## 1. Protocol posture and guiding principles
 
@@ -21,8 +21,8 @@ For the meta specifications, see [00-protocol-overview meta](../09-appendix/meta
 
 ### 2.1 Authoring and local submission
 
-* A local frontend request authenticates via a frontend session token.
-* [Auth Manager](../02-architecture/managers/04-auth-manager.md) resolves the session token to an `identity_id`.
+* A local frontend request authenticates via an auth token.
+* [Auth Manager](../02-architecture/managers/04-auth-manager.md) resolves the auth token to an `identity_id`.
 * The HTTP layer constructs an [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) containing, at minimum, requester identity, `app_id`, a remote or local flag, and a trace id.
 * The caller submits a [graph message envelope](03-serialization-and-envelopes.md) for all writes, even locally.
 * Local automation jobs or internal services construct an [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) with `is_remote=false` before submitting envelopes, following the same authorization and ordering rules as interactive requests.

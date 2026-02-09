@@ -6,7 +6,7 @@
 
 Defines protocol-level error classes and symbolic codes for 2WAY operations and sync packages. Specifies validation-stage ordering, rejection behavior, and peer-facing handling. Defines failure precedence and component boundaries for error detection.
 
-For the meta specifications, see [10-errors-and-failure-modes meta](../09-appendix/meta/01-protocol/10-errors-and-failure-modes-meta.md).
+For the meta specifications, see [10-errors-and-failure-modes meta](../10-appendix/meta/01-protocol/10-errors-and-failure-modes-meta.md).
 
 ### 1. Invariants and guarantees
 

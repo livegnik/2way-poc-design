@@ -6,8 +6,7 @@
 
 Defines state progression, sync metadata tracking, and ordering enforcement across peers. Specifies inbound/outbound sync coordination, persistence, and recovery behavior. Defines startup/shutdown behavior, failure handling, and trust boundaries for state.
 
-For the meta specifications, see [09-state-manager meta](../09-appendix/meta/02-architecture/managers/09-state-manager-meta.md).
-
+For the meta specifications, see [09-state-manager meta](../../10-appendix/meta/02-architecture/managers/09-state-manager-meta.md).
 
 ## 1. State domain and ownership
 
@@ -160,6 +159,26 @@ Outbound sync progress advances only after successful handoff to [Network Manage
 
 Outbound packages must respect domain visibility and revocation rules described in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) and the violation codes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). The [State Manager](09-state-manager.md) must never export data a peer is not eligible to receive.
 
+ACL enforcement for outbound sync is mandatory:
+
+* For each candidate object, [State Manager](09-state-manager.md) MUST invoke [ACL Manager](06-acl-manager.md) with a `sync_read` intent (or equivalent) bound to the remote peer identity.
+* Objects denied by ACL or schema rules MUST be excluded from the outbound package.
+* Admin bypass rules do not apply to outbound sync; all peer exports require explicit authorization.
+* If [ACL Manager](06-acl-manager.md) is unavailable or returns an error during `sync_read`, outbound sync MUST fail closed with no export and no cursor advancement, and the failure is surfaced as `internal_error` when exposed to callers.
+
+### 5.4 Outbound failure mapping (when surfaced)
+
+When outbound sync preparation or delivery failures are surfaced to a transport that returns `ErrorDetail`, the following mappings apply:
+
+| Condition | Owner | ErrorDetail.code | ErrorDetail.category | Transport status |
+| --- | --- | --- | --- | --- |
+| Malformed outbound package or invalid metadata | State Manager | `envelope_invalid` | `structural` | `400` |
+| Outbound range or ordering violation | State Manager | `sequence_error` | `storage` | `400` |
+| Transport admission denied or peer unavailable | Network Manager | `network_rejected` | `network` | `400` |
+| Persistence failure when updating sync state | State Manager | `storage_error` | `storage` | `400` |
+| ACL Manager unavailable during `sync_read` | State Manager | `internal_error` | `internal` | `500` |
+| Unexpected internal failure | Owning manager | `internal_error` | `internal` | `500` |
+
 ## 6. Persistence and durability
 
 ### 6.1 Persistence contract
@@ -209,13 +228,28 @@ On shutdown, the [State Manager](09-state-manager.md):
 
 If forced shutdown occurs, recovery behavior must detect incomplete checkpoints and fail fast if consistency cannot be proven.
 
-## 9. Failure handling
+## 9. Configuration surface, `state.*`
 
-### 9.1 Ordering violations
+[State Manager](09-state-manager.md) owns the `state.*` namespace in [Config Manager](01-config-manager.md).
+
+| Key | Type | Reloadable | Default | Description |
+| --- | --- | --- | --- | --- |
+| `state.sync.max_inflight_packages` | Integer | Yes | `8` | Maximum concurrent inbound packages per peer. |
+| `state.sync.max_replay_window` | Integer | Yes | `10000` | Maximum sequence window accepted for replay protection. |
+
+## 10. Failure handling
+
+### 10.1 Ordering violations
 
 Ordering violations result in immediate rejection and suspension of the offending peer domain until corrected. Rejections must be reported internally using the `ERR_SYNC_SEQUENCE_INVALID`, `ERR_SYNC_RANGE_MISMATCH`, or related classes defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 9.2 Persistence failures
+Error mapping when surfaced via transport:
+
+* `ERR_SYNC_SEQUENCE_INVALID`, `ERR_SYNC_RANGE_MISMATCH`, `ERR_SYNC_REWRITE_ATTEMPT`, `ERR_SYNC_MISSING_DEPENDENCY` -> `sequence_error`
+* `ERR_SYNC_DOMAIN_VIOLATION` -> `network_rejected`
+* `ERR_RESOURCE_RATE_LIMIT`, `ERR_RESOURCE_PEER_LIMIT`, `ERR_RESOURCE_PUZZLE_FAILED` -> `network_rejected`
+
+### 10.2 Persistence failures
 
 Persistence failures result in:
 
@@ -223,25 +257,25 @@ Persistence failures result in:
 * Suspension of affected operations.
 * Escalation to observability and administrative channels using the resource error patterns from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 9.3 Recovery failures
+### 10.3 Recovery failures
 
 Any inconsistency between persisted metadata and canonical state results in fatal startup failure. Automatic repair or inference is forbidden per the recovery rules in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 9.4 Degraded operation
+### 10.4 Degraded operation
 
 When durability guarantees cannot be met, the [State Manager](09-state-manager.md) must refuse new state transitions while continuing to serve safe read-only views if possible.
 
-## 10. State access and exposure
+## 11. State access and exposure
 
-### 10.1 Read-only guarantees
+### 11.1 Read-only guarantees
 
 All exposed state views are read-only and reflect only committed, durable state.
 
-### 10.2 Access restrictions
+### 11.2 Access restrictions
 
 Only trusted internal components may access [State Manager](09-state-manager.md) read surfaces. No direct external access is permitted.
 
-## 11. Trust boundaries
+## 12. Trust boundaries
 
 The [State Manager](09-state-manager.md) trusts:
 
@@ -251,7 +285,7 @@ The [State Manager](09-state-manager.md) trusts:
 
 All remote inputs are treated as untrusted until validated.
 
-## 12. Explicitly allowed behaviors
+## 13. Explicitly allowed behaviors
 
 * Buffering validated inbound envelopes while preserving order.
 * Temporarily suspending peers to preserve integrity.
@@ -259,7 +293,7 @@ All remote inputs are treated as untrusted until validated.
 * Serving read-only metadata to observability systems.
 * Rejecting invalid or out-of-order inputs deterministically.
 
-## 13. Explicitly forbidden behaviors
+## 14. Explicitly forbidden behaviors
 
 * Mutating canonical graph objects directly.
 * Assigning or modifying global sequence identifiers.
@@ -268,7 +302,7 @@ All remote inputs are treated as untrusted until validated.
 * Exposing speculative or partial state.
 * Bypassing [Network Manager](10-network-manager.md) or [Graph Manager](07-graph-manager.md).
 
-## 14. Invariants and guarantees
+## 15. Invariants and guarantees
 
 Across all components and contexts defined in this file, the following invariants hold:
 
@@ -280,6 +314,6 @@ Across all components and contexts defined in this file, the following invariant
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior.
 
-## 15. Compliance criteria
+## 16. Compliance criteria
 
 An implementation complies with this specification if and only if it satisfies all responsibilities, invariants, boundaries, and forbidden behavior constraints defined herein.

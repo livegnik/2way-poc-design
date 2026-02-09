@@ -6,7 +6,7 @@
 
 Defines local storage limits and budgets for the 2WAY backend SQLite database. Specifies enforcement posture, failure behavior, and constraints that must not weaken validation or ordering guarantees.
 
-For the meta specifications, see [06-storage-limits-and-budgets meta](../09-appendix/meta/03-data/06-storage-limits-and-budgets-meta.md).
+For the meta specifications, see [06-storage-limits-and-budgets meta](../10-appendix/meta/03-data/06-storage-limits-and-budgets-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -67,4 +67,3 @@ The following behaviors are forbidden:
 * Bypassing limits for “trusted” callers.
 * Advancing sequence cursors when budgets are exceeded.
 * Auto-deleting data to satisfy budgets.
-

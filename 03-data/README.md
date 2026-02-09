@@ -1,3 +1,7 @@
+
+
+
+
 # 03 Data
 
 This folder defines the persistent storage model for the 2WAY backend. It specifies the SQLite
@@ -19,7 +23,7 @@ this folder as the authoritative source for persistence behavior.
 - [`07-sequences-and-ordering.md`](07-sequences-and-ordering.md) - Sequencing guarantees and ordering.
 - [`08-backup-restore-and-portability.md`](08-backup-restore-and-portability.md) - Backup, restore, and portability rules.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/03-data/`](../09-appendix/meta/03-data/).
+Each document has a corresponding meta specification in [`10-appendix/meta/03-data/`](../10-appendix/meta/03-data/).
 
 ## How to read
 

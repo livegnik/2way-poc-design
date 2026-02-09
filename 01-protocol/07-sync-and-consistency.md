@@ -6,7 +6,7 @@
 
 Defines synchronization units, ordering rules, and validation requirements for 2WAY replication. Specifies sync state tracking, acceptance criteria, and rejection behavior for envelopes. Defines consistency guarantees, conflict handling, and invariants during sync.
 
-For the meta specifications, see [07-sync-and-consistency meta](../09-appendix/meta/01-protocol/07-sync-and-consistency-meta.md).
+For the meta specifications, see [07-sync-and-consistency meta](../10-appendix/meta/01-protocol/07-sync-and-consistency-meta.md).
 
 ## 1. Sync model overview
 

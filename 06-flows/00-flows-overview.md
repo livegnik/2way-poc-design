@@ -13,7 +13,7 @@ These flows are authoritative for runtime behavior and are aligned with:
 * [02-architecture/services-and-apps/**](../02-architecture/services-and-apps/)
 * [04-interfaces/**](../04-interfaces/)
 
-For the meta specifications, see [00-flows-overview-meta.md](../09-appendix/meta/06-flows/00-flows-overview-meta.md).
+For the meta specifications, see [00-flows-overview-meta.md](../10-appendix/meta/06-flows/00-flows-overview-meta.md).
 
 ## 1. Common invariants
 
@@ -32,14 +32,25 @@ Across all flows in this section, the following invariants hold:
 The flows defined in this section are:
 
 1) First-run and identity bootstrap.
+
 2) App install and permission provisioning.
+
 3) Create/update/delete graph objects (write flow).
+
 4) Contact and profile management.
+
 5) Messaging flow.
+
 6) Sync handshake flow.
+
 7) Conflict resolution flow.
+
 8) Key rotation flow.
+
 9) Device add/remove flow.
+
 10) Backup and restore flow.
+
+11) Frontend auth registration flow.
 
 No additional flows are permitted unless added to this section with matching meta specifications.

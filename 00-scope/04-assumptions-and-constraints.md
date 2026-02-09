@@ -6,7 +6,7 @@
 
 Defines PoC scope assumptions, mandatory invariants, and enforcement boundaries. Specifies inclusion and exclusion constraints and required validation gates. Defines trust assumptions and rejection requirements at the scope level.
 
-For the meta specifications, see [04-assumptions-and-constraints meta](../09-appendix/meta/00-scope/04-assumptions-and-constraints-meta.md).
+For the meta specifications, see [04-assumptions-and-constraints meta](../10-appendix/meta/00-scope/04-assumptions-and-constraints-meta.md).
 
 ## 1. Scope definition
 

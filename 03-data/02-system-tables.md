@@ -6,7 +6,7 @@
 
 Defines required global system tables and their contents in the backend SQLite database. Specifies access rules, invariants, and sequencing state for system tables. Defines operational behavior for system tables.
 
-For the meta specifications, see [02-system-tables meta](../09-appendix/meta/03-data/02-system-tables-meta.md).
+For the meta specifications, see [02-system-tables meta](../10-appendix/meta/03-data/02-system-tables-meta.md).
 
 ## 1. Responsibilities and boundaries
 
@@ -265,6 +265,62 @@ Each row records:
 * downgrades are unsupported per [01-protocol/11-versioning-and-compatibility.md](../01-protocol/11-versioning-and-compatibility.md)
 * partial migration execution causes startup failure
 * migration failure results in fail-closed behavior
+
+### 4.9 auth_tokens
+
+#### Purpose
+
+Stores opaque auth tokens issued during identity registration. It lives outside the graph because tokens are local session artifacts and must not be replicated as graph state.
+
+This table exists to support:
+
+* Auth Manager token validation
+* Identity binding for local requests
+* Token revocation or expiry (if configured)
+
+#### Expected contents
+
+Each row includes:
+
+* token (opaque string or hashed representation)
+* identity_id
+* issued_at
+* expires_at
+* optional revoked_at
+* optional revoked_reason
+
+#### Rules and guarantees
+
+* tokens map to exactly one identity_id
+* tokens are never stored in the graph
+* token rows are not synced
+* token rows must include expiry timestamps
+* token rows may be revoked by policy or identity re-registration
+
+### 4.10 auth_registration_nonces
+
+#### Purpose
+
+Tracks accepted registration nonces to enforce replay protection for `/auth/identity/register`. It lives outside the graph because replay tracking is node-local and must be enforced before any identity binding occurs.
+
+This table exists to support:
+
+* Auth Manager registration replay protection
+
+#### Expected contents
+
+Each row includes:
+
+* public_key_hash (hash of submitted public key)
+* nonce (base64 or raw bytes)
+* issued_at
+* expires_at
+
+#### Rules and guarantees
+
+* `(public_key_hash, nonce)` pairs are unique within the replay window
+* rows expire and are removed after `auth.registration.nonce_ttl_ms`
+* rows are never synced to peers
 
 ## 5. Startup behavior
 

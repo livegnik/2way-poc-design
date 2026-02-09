@@ -4,9 +4,9 @@
 
 # 07 Acceptance criteria
 
-The authoritative acceptance criteria are defined in [POC-ACCEPTANCE.md](../../POC-ACCEPTANCE.md). This document summarizes them for convenience.
+The authoritative acceptance criteria are defined in [POC-ACCEPTANCE.md](../../docs-build/POC-ACCEPTANCE.md). This document summarizes them for convenience.
 
-For the meta specifications, see [07-acceptance-criteria-meta.md](../09-appendix/meta/07-poc/07-acceptance-criteria-meta.md).
+For the meta specifications, see [07-acceptance-criteria-meta.md](../10-appendix/meta/07-poc/07-acceptance-criteria-meta.md).
 
 ## 1. Criteria summary
 
@@ -20,7 +20,11 @@ For the meta specifications, see [07-acceptance-criteria-meta.md](../09-appendix
 * AC-08 Replayability.
 * AC-09 DoS admission.
 * AC-10 Observability and audit.
+* AC-11 Auth registration and token usage.
+* AC-12 Marketplace app discovery and install.
+* AC-13 End-to-end smoke (backend + frontend).
 
 ## 2. Test mapping
 
-Each acceptance criterion maps to at least one test placeholder in [POC-ACCEPTANCE.md](../../POC-ACCEPTANCE.md).
+Each acceptance criterion maps to at least one test placeholder in [POC-ACCEPTANCE.md](../../docs-build/POC-ACCEPTANCE.md).
+

@@ -6,7 +6,7 @@
 
 Defines cryptographic algorithms and rules for signing, verification, encryption, and decryption of 2WAY messages and envelopes. Specifies signature coverage, visibility constraints, and validation ordering for cryptographic processing. Defines component responsibilities for cryptographic operations and failure handling.
 
-For the meta specifications, see [04-cryptography meta](../09-appendix/meta/01-protocol/04-cryptography-meta.md).
+For the meta specifications, see [04-cryptography meta](../10-appendix/meta/01-protocol/04-cryptography-meta.md).
 
 ## 1. Cryptographic algorithms
 
@@ -15,6 +15,28 @@ For the meta specifications, see [04-cryptography meta](../09-appendix/meta/01-p
 - All signatures use secp256k1.
 - Signatures are applied to protocol message bytes as defined by the message serialization used for transport.
 - Verification uses the corresponding public key supplied by local state as defined in [05-keys-and-identity.md](05-keys-and-identity.md).
+
+### 1.1.1 Signature encoding
+
+When signatures are represented in JSON or other text formats:
+
+- The signature value MUST be base64 encoding of the raw 64-byte `(r || s)` secp256k1 signature.
+- The encoding MUST be standard base64 with padding.
+- Consumers MUST reject signatures that do not decode to exactly 64 bytes.
+
+### 1.1.2 Canonical serialization for signing
+
+All signed JSON payloads use a canonical JSON serialization so the sender and verifier reproduce identical bytes.
+
+Canonicalization requirements:
+
+- UTF-8 encoding.
+- JSON canonicalization follows RFC 8785 (JSON Canonicalization Scheme, JCS).
+- Object member order is lexicographic by Unicode code point as required by JCS.
+- Numbers are serialized per JCS numeric rules (no superfluous zeros, no `+`, no exponent when not required).
+- No additional whitespace outside the canonical JSON produced by JCS.
+
+When a specification defines a "signed portion" of a JSON payload, the bytes to sign are the UTF-8 JCS serialization of that signed portion object, excluding any `signature` field unless explicitly stated otherwise.
 
 ## 1.2 Asymmetric encryption
 
@@ -82,17 +104,17 @@ Inputs:
 
 - Requests to sign bytes.
 - Requests to decrypt ECIES ciphertext.
-- Requests to encrypt bytes for a specified recipient public key.
 
 Outputs:
 
 - Signatures over provided bytes.
 - Plaintext bytes after successful decryption.
-- Ciphertext bytes after successful encryption.
 
 Trust boundary:
 
-- [Key Manager](../02-architecture/managers/03-key-manager.md) is the only component that may access private keys for signing and decryption.
+- [Key Manager](../02-architecture/managers/03-key-manager.md) is the only backend component that may access backend private keys for signing and decryption.
+- This backend-only restriction does not apply to frontend clients, which sign locally using their own private keys per the auth registration flow and envelope rules.
+- Signature verification and public-key encryption may be performed by authorized managers or services using identity data from the graph and an appropriate [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
 - Callers must treat [Key Manager](../02-architecture/managers/03-key-manager.md) outputs as cryptographic results only. Authorization semantics are out of scope for Key Manager.
 
 ## 4.2 Network Manager
@@ -106,7 +128,7 @@ Outputs:
 
 - Verified package bytes and extracted metadata for consumption by State Manager.
 - Rejection of invalid packages.
-- Encrypted and signed outbound packages for transport.
+- Signed outbound packages for transport and encrypted payloads using recipient public keys when required.
 
 Trust boundary:
 
@@ -122,7 +144,7 @@ Inputs:
 Outputs:
 
 - Envelopes submitted to [Graph Manager](../02-architecture/managers/07-graph-manager.md) for validation and application.
-- Outbound sync packages provided to [Network Manager](../02-architecture/managers/10-network-manager.md) for signing and optional encryption.
+- Outbound sync packages provided to [Network Manager](../02-architecture/managers/10-network-manager.md) for signing and optional encryption using recipient public keys.
 
 Trust boundary:
 

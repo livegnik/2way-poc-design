@@ -4,10 +4,9 @@
 
 # 03 Key Manager
 
-Defines key generation, storage, and cryptographic operations for backend private keys. Specifies key scopes, storage layout, and interfaces for signing and encryption. Defines lifecycle, failure handling, and operational constraints for key management.
+Defines key generation, storage, and cryptographic operations for backend private keys. Specifies key scopes, storage layout, and interfaces for signing and decryption. Defines lifecycle, failure handling, and operational constraints for key management.
 
-For the meta specifications, see [03-key-manager meta](../09-appendix/meta/02-architecture/managers/03-key-manager-meta.md).
-
+For the meta specifications, see [03-key-manager meta](../../10-appendix/meta/02-architecture/managers/03-key-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -23,6 +22,7 @@ Across all components and contexts defined in this file, the following invariant
 * The node key must exist and be valid before startup completes, satisfying the node identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * The [Key Manager](03-key-manager.md) never determines authorship or authority and defers to identity semantics defined in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Only the [Key Manager](03-key-manager.md) may perform signing or decryption using private keys, keeping the private-key boundary enforced by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* Signature verification and public-key encryption may be performed by other managers or services when authorized by the relevant [OperationContext](../services-and-apps/05-operation-context.md) and identity data in the graph; they must not require access to private keys.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
@@ -58,7 +58,6 @@ It does not bind keys to graph identities directly.
 The Crypto Operation Engine owns:
 
 * Signing byte sequences with a specified private key exactly as defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
-* ECIES encryption using a supplied recipient public key in compliance with [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * ECIES decryption using a specified private key in compliance with [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Input validation for cryptographic operations.
 * Enforcing algorithm and size constraints.
@@ -167,7 +166,6 @@ The [Key Manager](03-key-manager.md) never writes to the graph directly.
   * Load key by scope and identifier.
 * Cryptographic requests:
   * Sign bytes.
-  * Encrypt bytes with recipient public key.
   * Decrypt ciphertext.
 
 All callers are trusted backend components.
@@ -176,7 +174,6 @@ All callers are trusted backend components.
 
 * Public key bytes.
 * Signature bytes.
-* Ciphertext bytes.
 * Plaintext bytes.
 
 Private key material is never returned.
@@ -221,7 +218,7 @@ Failure aborts backend startup.
 
 * Generating keys for explicit scopes.
 * Loading keys into memory.
-* Performing signing and ECIES operations.
+* Performing signing and decryption operations.
 * Deriving public keys for graph binding.
 * Enforcing strict validation.
 
@@ -231,6 +228,7 @@ Failure aborts backend startup.
 * Accepting private keys from external sources.
 * Writing to the graph or database.
 * Verifying signatures.
+* Performing public-key-only encryption that does not require private-key access.
 * Selecting keys implicitly.
 * Continuing after node key failure.
 * Using non secp256k1 algorithms.
@@ -276,3 +274,11 @@ It does not decide revocation precedence.
 * Key directory is the sole private key authority.
 * Loss of keys prevents future operations but does not corrupt history.
 * No background tasks beyond load and request handling.
+
+## 11. Configuration surface, `key.*`
+
+[Key Manager](03-key-manager.md) owns the `key.*` namespace in [Config Manager](01-config-manager.md).
+
+| Key | Type | Reloadable | Default | Description |
+| --- | --- | --- | --- | --- |
+| `key.dir` | Path | No | `backend/keys` | Key material directory path (mirrors `KEYS_DIR` from `.env`). |

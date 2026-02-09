@@ -6,7 +6,7 @@
 
 Defines peer network I/O, admission, cryptographic binding, and transport lifecycle control. Specifies internal engines, discovery, scheduling, and DoS Guard integration. Defines failure handling, limits, and trust boundaries for network operations.
 
-For the meta specifications, see [10-network-manager meta](../09-appendix/meta/02-architecture/managers/10-network-manager-meta.md).
+For the meta specifications, see [10-network-manager meta](../../10-appendix/meta/02-architecture/managers/10-network-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -102,7 +102,7 @@ Responsibilities:
 
 Constraints:
 
-* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes, because [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) confines those operations to the post-admission [Key Manager](03-key-manager.md) boundary.
+* The Bastion Engine must not perform cryptographic verification or decryption of protocol envelopes; verification occurs in the post-admission Incoming Engine and decryption is delegated to [Key Manager](03-key-manager.md).
 * The Bastion Engine must not parse protocol semantics beyond minimal framing required to run the admission exchange, preserving the envelope opacity described in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * The Bastion Engine must not forward any payload to [State Manager](09-state-manager.md), [Graph Manager](07-graph-manager.md), [ACL Manager](06-acl-manager.md), or [Storage Manager](02-storage-manager.md).
 * Challenge payloads are opaque. The Bastion Engine must not interpret puzzle content, difficulty, or correctness, per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
@@ -118,7 +118,7 @@ Responsibilities:
 * Receiving inbound envelopes from admitted peers on the admitted surface or admitted sessions, depending on transport configuration, while preserving the envelope shapes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Enforcing post-admission limits, including maximum envelope size, maximum per-connection rate, and maximum buffering.
 * Performing full transport framing validation for admitted traffic, ensuring compliance with [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
-* Invoking the [Key Manager](03-key-manager.md) to verify envelope signatures and bind the envelope to a signer identity, exactly as defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* Verifying envelope signatures using public keys and binding the envelope to a signer identity, exactly as defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Invoking the [Key Manager](03-key-manager.md) to decrypt envelopes addressed to the local node, when encryption is used, following [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Constructing an internal delivery unit that contains:
   * the plaintext envelope bytes intended for the [State Manager](09-state-manager.md)
@@ -144,7 +144,8 @@ Responsibilities:
 * Performing bastion admission for outbound session attempts via the Bastion Engine path, before any admitted-data transmission, as required by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 * Reusing existing admitted sessions where available, keyed by verified peer identity.
 * Requesting outbound envelopes from the [State Manager](09-state-manager.md), including required destination metadata and transport hints, and ensuring the envelopes remain compliant with [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
-* Invoking the [Key Manager](03-key-manager.md) to sign and encrypt outbound envelopes as required, following [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* Invoking the [Key Manager](03-key-manager.md) to sign outbound envelopes as required, following [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* Encrypting outbound envelopes using recipient public keys when required by [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
 * Applying transport framing and transmitting envelopes over admitted sessions without mutating the package bytes defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * Enforcing outbound limits, including per-peer rate caps, per-session buffering caps, global concurrency caps, and global outbound rate caps.
 * Emitting explicit transmission outcomes and connection state changes as events, without promising delivery.
@@ -412,8 +413,7 @@ This section defines integration contracts in terms of inputs, outputs, and trus
 
 Inbound:
 
-* Incoming Engine requests signature verification for an envelope and receives:
-  * verified signer identity, or failure
+* Incoming Engine verifies signatures using public key material from the identity registry and binds the envelope to a signer identity. Key Manager is not involved in signature verification.
 * Incoming Engine requests decryption for an envelope addressed to the local node and receives:
   * plaintext envelope bytes, or failure
 
@@ -421,8 +421,7 @@ Outbound:
 
 * Outgoing Engine requests signing of an outbound envelope and receives:
   * signed envelope bytes, or failure
-* Outgoing Engine requests encryption of an outbound envelope for a peer and receives:
-  * ciphertext envelope bytes, or failure
+* Outgoing Engine encrypts outbound envelopes for peers using recipient public keys derived from the identity registry.
 
 Rules:
 
@@ -668,6 +667,38 @@ The [Network Manager](10-network-manager.md) enforces mandatory limits, includin
 These limits are mandatory and cannot be disabled.
 
 They enforce hard-cap guidance from [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md), preserve resource-failure semantics described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md), and feed telemetry inputs consumed by [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
+
+### 12.1 Configuration surface, `network.*`
+
+[Network Manager](10-network-manager.md) owns the `network.*` namespace in [Config Manager](01-config-manager.md). The following keys are mandatory.
+
+| Key | Type | Reloadable | Default | Description |
+| --- | --- | --- | --- | --- |
+| `network.bastion.max_sessions` | Integer | Yes | `256` | Maximum concurrent bastion-held sessions. |
+| `network.bastion.max_challenged_sessions` | Integer | Yes | `64` | Maximum concurrent challenged sessions. |
+| `network.admitted.max_sessions` | Integer | Yes | `128` | Maximum concurrent admitted sessions. |
+| `network.outbound.max_dials` | Integer | Yes | `16` | Maximum concurrent outbound dial attempts. |
+| `network.peer.max_admitted_sessions` | Integer | Yes | `2` | Maximum admitted sessions per verified peer identity. |
+| `network.envelope.max_bytes` | Integer | Yes | `1048576` | Maximum envelope size (bytes). |
+| `network.buffer.inbound.max_bytes` | Integer | Yes | `2097152` | Maximum per-session inbound buffer (bytes). |
+| `network.buffer.outbound.max_bytes` | Integer | Yes | `2097152` | Maximum per-session outbound buffer (bytes). |
+| `network.rate.inbound.max_msgs_per_sec` | Integer | Yes | `200` | Maximum per-session inbound message rate. |
+| `network.rate.outbound.max_msgs_per_sec` | Integer | Yes | `200` | Maximum per-session outbound message rate. |
+| `network.rate.global_inbound.max_msgs_per_sec` | Integer | Yes | `2000` | Maximum global inbound message rate. |
+| `network.rate.global_outbound.max_msgs_per_sec` | Integer | Yes | `2000` | Maximum global outbound message rate. |
+| `network.discovery.max_cycles_per_min` | Integer | Yes | `2` | Maximum discovery cycles per minute. |
+| `network.reachability.max_probes_per_min` | Integer | Yes | `60` | Maximum reachability probes per minute. |
+| `network.cooldown.min_ms` | Integer | Yes | `1000` | Minimum cooldown before retrying a failed peer. |
+| `network.cooldown.max_ms` | Integer | Yes | `60000` | Maximum cooldown before retrying a failed peer. |
+| `network.backoff.min_ms` | Integer | Yes | `1000` | Minimum backoff between dial attempts. |
+| `network.backoff.max_ms` | Integer | Yes | `600000` | Maximum backoff between dial attempts. |
+
+Validation rules:
+
+* Startup fails if required keys are missing or invalid.
+* All limit values must be greater than zero.
+* `network.cooldown.min_ms` must be less than or equal to `network.cooldown.max_ms`.
+* `network.backoff.min_ms` must be less than or equal to `network.backoff.max_ms`.
 
 ## 13. Security considerations
 

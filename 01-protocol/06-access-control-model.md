@@ -6,7 +6,7 @@
 
 Defines authorization evaluation rules and enforcement layers for 2WAY graph operations. Specifies authorization inputs, decision ordering, and rejection conditions. Defines required isolation constraints and security properties for access control.
 
-For the meta specifications, see [06-access-control-model meta](../09-appendix/meta/01-protocol/06-access-control-model-meta.md).
+For the meta specifications, see [06-access-control-model meta](../10-appendix/meta/01-protocol/06-access-control-model-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -87,14 +87,118 @@ Rules:
 - ACLs may grant or deny read or write permissions.
 - ACLs cannot override schema level prohibitions.
 - Explicit deny rules take precedence over grant rules.
+- ACL evaluation is required unless the enforcement matrix below explicitly marks an operation as "no ACL check."
 
-### 3.5 Graph derived constraints
+### 3.5 ACL enforcement matrix and bypass rules
+
+Authorization must follow the matrix below. These rules are normative for the PoC and apply to both local and remote contexts unless explicitly scoped otherwise.
+The ACL Manager MUST apply this matrix exactly.
+
+Definitions:
+
+- **Own data**: objects where `owner_identity` equals `OperationContext.requester_identity_id` (including the Parent and any attached Attributes, Edges, or Ratings with the same owner identity).
+- **Own parent**: a Parent whose `owner_identity` equals `OperationContext.requester_identity_id`.
+- **Admin action**: an operation explicitly marked as admin-only by the interface surface and executed by an identity that holds the `system.admin` capability.
+
+| Action type | ACL check? | Notes |
+| --- | --- | --- |
+| Querying own data | No | Query scope is limited to zeroth-degree objects owned by the requester. Schema and app/domain boundaries still apply. |
+| Creating objects under own parent | No | Schema creation rules still apply. |
+| Creating objects under a parent owned by another identity | Yes | Requires ACL allow for write or create. |
+| Modifying or tombstoning (visibility suppression) of own objects | No | Schema mutability and suppression rules still apply; physical deletion is forbidden. |
+| Modifying or tombstoning (visibility suppression) of objects owned by another identity | Yes | Requires ACL allow for write or update. |
+| Querying system (`app_0`) or app-managed data not owned by the requester | Yes | ACL must allow read unless the action is admin-only. |
+| Syncing data with another user | Yes | [State Manager](../02-architecture/managers/09-state-manager.md) MUST enforce ACL checks before exporting any object to a remote peer. |
+| Admin actions | No | Admin actions MUST require `system.admin` capability and bypass object-level ACL checks only. Schema validation, structural validation, and app/domain scoping remain in force. |
+
+Additional rules:
+
+- Operations targeting own data MUST NOT require object-level ACL checks; schema and app/domain rules still apply.
+- Operations targeting objects owned by another identity MUST require explicit ACL allow for the relevant verb.
+- Physical deletion of graph objects is forbidden; deletion semantics are expressed as schema-defined tombstoning or visibility suppression.
+
+### 3.6 Canonical ACL objects (app_0 schema)
+
+ACLs are stored as a Parent plus Attributes in the same `app_id` scope as the objects they govern (system-scope ACLs live in `app_0`). The canonical ACL schema uses the following types:
+
+ACL root Parent: `acl.root`
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `target_type` | Yes | string | `parent`, `attr`, `edge`, `rating`, `app`, or `domain`. |
+| `target_id` | Cond | string | Required when `target_type` is `parent`, `attr`, `edge`, or `rating`. |
+| `target_app_id` | Cond | int | Required when `target_type` is `app`. |
+| `target_domain` | Cond | string | Required when `target_type` is `domain`. |
+| `created_at` | Yes | string | RFC3339 timestamp. |
+
+ACL Attributes (attached to `acl.root`):
+
+* `acl.read.allow`
+* `acl.read.deny`
+* `acl.write.allow`
+* `acl.write.deny`
+
+Each ACL attribute `value_json` MUST be:
+
+```
+{
+  "identities": [<int>],
+  "apps": [<int>],
+  "capabilities": ["<string>"]
+}
+```
+
+Rules:
+
+- Empty arrays are permitted and mean "no principals of that class".
+- Omitted keys are treated as empty arrays.
+- ACLs MUST be evaluated only within the ACL's `app_id` scope unless schema explicitly delegates cross-app access.
+
+### 3.7 Canonical capability objects (app_0 schema)
+
+Capabilities are stored as typed Parents in `app_0`, and grants are stored as typed Edges.
+
+Capability definition Parent: `capability.definition`
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `name` | Yes | string | 1-128 chars, unique within `app_0`. |
+| `scope` | Yes | string | `system` or `app`. |
+| `app_id` | Cond | int | Required when `scope=app`. |
+| `description` | No | string | 0-256 chars. |
+| `created_at` | Yes | string | RFC3339 timestamp. |
+
+Capability grant Edge: `capability.edge`
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `granted_by` | Yes | string | Identity id that granted the capability. |
+| `granted_at` | Yes | string | RFC3339 timestamp. |
+| `expires_at` | No | string | RFC3339 timestamp. |
+
+Edge structure rules:
+
+- `src_parent_id` MUST reference the recipient identity Parent.
+- `dst_parent_id` MUST reference the `capability.definition` Parent.
+- Capability edges MUST reside in `app_0` regardless of the target app scope.
+
+Publisher trust:
+
+- A publisher is trusted for app publication only if it holds a `capability.edge` to `capability.definition` where `name=system.apps.publish`.
+
+Reserved capability names:
+
+- `system.admin` (admin-only actions; bypasses object-level ACL checks per Section 3.5).
+- `system.apps.publish` (publisher trust for app installation).
+
+
+### 3.8 Graph derived constraints
 
 Authorization may depend on graph structure when explicitly defined by [schema](../02-architecture/managers/05-schema-manager.md).
 
 Rules:
 
-- Membership [edges](02-object-model.md) may gate access to group scoped objects.
+- Membership [edges](02-object-model.md) may gate access to group scoped objects. Group membership is represented using `system.group` Parents and `system.group_member` Edges in `app_0` (see [02-object-model.md](02-object-model.md) Section 6.6).
 - Degrees of separation may restrict visibility or interaction.
 - [Rating](02-object-model.md) or trust based thresholds may gate participation.
 
@@ -105,7 +209,7 @@ All such constraints must be explicitly declared by schema and evaluated determi
 The following behaviors are allowed when all authorization layers succeed:
 
 - Creation of new objects within the identity's authorized scope.
-- Mutation of owned objects when [schema](../02-architecture/managers/05-schema-manager.md) and ACL rules permit mutation.
+- Mutation of owned objects when [schema](../02-architecture/managers/05-schema-manager.md) rules permit mutation (ACL checks apply only when required by the enforcement matrix).
 - Read access to objects permitted by visibility rules.
 - Limited interaction with non owned objects when explicitly authorized.
 

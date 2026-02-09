@@ -6,7 +6,7 @@
 
 Defines global and per-domain sequencing rules for the backend. Specifies monotonicity, ordering invariants, and failure handling for sequence cursors.
 
-For the meta specifications, see [07-sequences-and-ordering meta](../09-appendix/meta/03-data/07-sequences-and-ordering-meta.md).
+For the meta specifications, see [07-sequences-and-ordering meta](../10-appendix/meta/03-data/07-sequences-and-ordering-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -70,4 +70,3 @@ The following behaviors are forbidden:
 * Resetting or decreasing any cursor in `global_seq`, `sync_state`, or `domain_seq`.
 * Advancing cursors without completing associated validations and commits.
 * Bypassing Storage Manager sequencing APIs.
-

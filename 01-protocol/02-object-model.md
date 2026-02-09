@@ -6,7 +6,7 @@
 
 Defines the canonical graph object categories for 2WAY and their required fields. Specifies object invariants, reference rules, and application-domain isolation constraints. Defines acceptance and rejection conditions for object mutations.
 
-For the meta specifications, see [02-object-model meta](../09-appendix/meta/01-protocol/02-object-model-meta.md).
+For the meta specifications, see [02-object-model meta](../10-appendix/meta/01-protocol/02-object-model-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -182,6 +182,19 @@ An Edge record includes:
 * Changing `owner_identity` or `type_id`.
 * Creating an Edge with unresolved references.
 
+### 6.6 System group primitives (app_0)
+
+Group membership used by ACL and read filters is represented in `app_0` using the following system types:
+
+* Parent type `system.group` (group definition).
+* Edge type `system.group_member` (membership edge from a `system.group` Parent to an identity Parent).
+
+Structural rules:
+
+* `system.group` Parents MUST reside in `app_0` and may only reference identity Parents in `app_0`.
+* `system.group_member` Edges MUST use `src_parent_id` pointing to a `system.group` Parent and `dst_parent_id` pointing to an identity Parent.
+* Group membership edges are read-only inputs for authorization and read filtering and do not bypass app domain isolation for writes.
+
 ## 7. Rating
 
 ### 7.1 Definition
@@ -223,6 +236,7 @@ ACL is represented as:
 
 * A Parent that serves as the ACL root.
 * A constrained set of Attributes attached to that Parent.
+* Canonical ACL attribute schemas are defined in [06-access-control-model.md](06-access-control-model.md).
 
 ### 8.2 Structural invariants
 

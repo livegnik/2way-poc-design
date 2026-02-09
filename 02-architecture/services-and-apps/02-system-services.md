@@ -6,7 +6,7 @@
 
 Defines the mandatory system services and their required behaviors in the 2WAY backend. Specifies capability, OperationContext, and manager interaction requirements for system services. Defines lifecycle sequencing, configuration obligations, and fail-closed handling for service workflows.
 
-For the meta specifications, see [02-system-services meta](../09-appendix/meta/02-architecture/services-and-apps/02-system-services-meta.md).
+For the meta specifications, see [02-system-services meta](../../10-appendix/meta/02-architecture/services-and-apps/02-system-services-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -45,6 +45,7 @@ All system services adhere to a single contract. Deviating from these rules void
 
 * Every request or scheduled job constructs a complete [OperationContext](05-operation-context.md) as defined in [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md) and [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md). System services default to `app_id=app_0` and stamp granular capability strings (for example, `capability=system.bootstrap.install`), matching how [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) ties [OperationContext](05-operation-context.md) to envelope submission.
 * Services must reject requests missing `app_id`, requester identity, device identity, capability intent, or tracing metadata. Partial contexts are invalid even if the service could infer identity from other data because ACL evaluation defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) requires those inputs.
+* Missing required [OperationContext](05-operation-context.md) fields MUST return `ErrorDetail.code=envelope_invalid` and be surfaced to interfaces as HTTP `400` (or WebSocket error event) before any manager invocation.
 * Capabilities are documented and versioned. [ACL Manager](../managers/06-acl-manager.md) enforces them via capability edges anchored in the graph, as mandated by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Services never authorize directly, they only declare the capability they are attempting to exercise.
 
 ### 2.4 Interface surfaces
@@ -75,6 +76,7 @@ System services expose three kinds of surfaces:
 * Services declare dependencies on other system services explicitly (for example, Feed Service depends on Identity Service for membership expansion). The runtime starts services according to this dependency DAG and enforces timeouts.
 * Readiness is reported to [Health Manager](../managers/13-health-manager.md) only after the service validates configuration, loads required schemas, restores derived caches (if any), and registers endpoints and jobs. Any missing dependency forces `ready=false`.
 * Services that expose network visible effects must also respect [Network Manager](../managers/10-network-manager.md) admission gates. If [Network Manager](../managers/10-network-manager.md) is not ready, services must reject network coupled work, even if the service itself is ready, matching the sequencing described in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) and [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
+* When [Network Manager](../managers/10-network-manager.md) is not ready, network coupled requests MUST return `ErrorDetail.code=network_rejected` and avoid any manager mutations.
 
 ### 3.2 Shutdown and fail-closed posture
 
@@ -118,7 +120,7 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 ### 4.3 Capability and ACL templates
 
 * Services publish capability catalogs in the graph (for example, `system.capability.feed.publish`). [ACL Manager](../managers/06-acl-manager.md) consumes these when evaluating requests, as defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Default ACL templates for system services are stored in `app_0` during installation. Bootstrap Service initializes admin identities with the minimum capabilities needed to operate other services so [OperationContext](05-operation-context.md) decisions stay deterministic per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* Default ACL templates for system services are stored in `app_0` during installation. Bootstrap Service initializes admin identities with the minimum capabilities needed to operate other services, including `system.admin`, so [OperationContext](05-operation-context.md) decisions stay deterministic per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
 ## 5. Observability, telemetry, and policy hooks
 
@@ -129,7 +131,7 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 
 ### 5.2 Events
 
-* Services emit events through [Event Manager](../managers/11-event-manager.md) per [04-interfaces/events/**](../../04-interfaces/events/**). Event descriptors include event family (`system.bootstrap.completed`, `system.identity.invite.accepted`, `system.feed.thread.updated`, `system.sync.plan.failed`, `system.ops.health_toggle`), referencing committed graph objects.
+* Services emit events through [Event Manager](../managers/11-event-manager.md) per [04-interfaces/events/**](../../04-interfaces/14-events-interface.md). Event descriptors include event family (`system.bootstrap.completed`, `system.identity.invite.accepted`, `system.feed.thread.updated`, `system.sync.plan.failed`, `system.ops.health_toggle`), referencing committed graph objects.
 * Subscribers must revalidate authorization via ACL capsules attached to the event. Services never include raw object payloads. They only reference objects for callers to fetch through authorized reads.
 
 ### 5.3 Metrics and health
@@ -145,6 +147,8 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 ## 6. Canonical system service catalog
 
 The proof of concept ships with five mandatory system services. Each one is described in later sections. The table below summarizes their remit.
+
+PoC app domains (contacts, messaging, social, market) are not system services. They are app domains shipped by default for validation and can be swapped for other apps without changing system service contracts or manager boundaries.
 
 | Service                                        | Responsibilities                                                                                                                                     | Primary surfaces                                                             | Mandatory dependencies                                    |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -172,35 +176,57 @@ SBPS is the only authority allowed to transition a node from uninitialized to op
 ### 7.2 Inputs and outputs
 
 **Inputs**
-
 * Installation payloads carrying node name, storage path confirmation, admin identity metadata, and optional recovery contact information. Payloads are signed locally and never sent over the network.
 * Device attestation bundles referencing physical device fingerprints, key fingerprints, and intended identity association.
 * Bootstrap invite acceptance payloads containing invite tokens, proof of possession for the identity key, and capability selections.
-
 **Outputs**
-
 * Graph envelopes that create or mutate bootstrap objects (`app_0` parents for node, admin identity, devices, capability edges) per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 * [Event Manager](../managers/11-event-manager.md) descriptors announcing installation milestones (`system.bootstrap.installation_started`, `system.bootstrap.first_admin_created`, `system.bootstrap.device_enrolled`).
 * [Log Manager](../managers/12-log-manager.md) records for every bootstrap step, including structured error logs when schema or ACL validation fails.
 
+### 7.2.1 Bootstrap install payload schemas (app_0)
+
+SBPS owns the `admin.identity`, `admin.device`, and `admin.recovery` schemas in `app_0`. Unknown fields are rejected.
+
+`admin.identity` (object):
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `handle` | Yes | string | 1-64 chars, lowercase `[a-z0-9_]+`. |
+| `display_name` | No | string | 1-128 chars. |
+| `public_key` | Yes | string | base64, 32-512 bytes decoded. |
+
+`admin.device` (object):
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `device_name` | Yes | string | 1-64 chars. |
+| `device_fingerprint` | Yes | string | hex string, 16-128 chars. |
+| `key_fingerprint` | Yes | string | hex string, 16-128 chars. |
+| `device_type` | No | string | 1-32 chars. |
+
+`admin.recovery` (object):
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `recovery_key_fingerprint` | Yes | string | hex string, 16-128 chars. |
+| `recovery_public_key` | Yes | string | base64, 32-512 bytes decoded. |
+| `recovery_hint` | No | string | 1-128 chars. |
+
 ### 7.3 Critical flows
 
 1. **Installation**
-
    * Interface layer calls SBPS `POST /system/bootstrap/install`.
    * SBPS validates payload, ensures node is not already installed, and constructs an [OperationContext](05-operation-context.md) with `capability=system.bootstrap.install`.
+   * If the node is already installed, SBPS rejects the request with `ERR_BOOTSTRAP_ACL`.
    * SBPS orchestrates [Graph Manager](../managers/07-graph-manager.md) writes to create node parents, admin identity, admin device, default ACL templates, and capability edges, packaged per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and authorized per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
    * Upon success, [Event Manager](../managers/11-event-manager.md) receives `system.bootstrap.completed`, [Health Manager](../managers/13-health-manager.md) marks the node ready, and [DoS Guard Manager](../managers/14-dos-guard-manager.md) unlocks public surfaces in line with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
    * If network transport services exist, SBPS ensures [Network Manager](../managers/10-network-manager.md) does not accept inbound peer work until [Health Manager](../managers/13-health-manager.md) is ready so the ordering in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) is respected.
-
 2. **Device enrollment**
-
    * Device runs local CLI or UI to request an invite. Admin obtains invite token via SBPS `POST /system/bootstrap/invites`.
    * Device presents token plus key proof to `POST /system/bootstrap/devices`. SBPS validates, binds device to identity via [Graph Manager](../managers/07-graph-manager.md) per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md), and destroys the invite token.
    * [Event Manager](../managers/11-event-manager.md) emits `system.bootstrap.device_enrolled`. [Log Manager](../managers/12-log-manager.md) records the enrollment, including device metadata.
-
 3. **Recovery**
-
    * Admin uses `POST /system/bootstrap/recover` to rotate bootstrap secrets or reset capability assignments.
    * SBPS ensures [Graph Manager](../managers/07-graph-manager.md) replays schema compliant ACL edges per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and revokes stale invites.
 
@@ -226,14 +252,32 @@ IRS owns the authoritative identity directory within `app_0` and must uphold the
 ### 8.2 Inputs and outputs
 
 * **Inputs**:
-
   * Authenticated HTTP requests from admins or app automation ([OperationContext](05-operation-context.md) includes requesting identity, capability such as `system.identity.manage`).
   * Scheduled jobs that scan for stale invitations or orphaned devices.
 * **Outputs**:
-
   * Graph envelopes for identity updates, capability edges, contact relationships, authored per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
   * Events `system.identity.identity_created`, `system.identity.capability_delegated`, `system.identity.contact_revoked`.
   * Log entries for every identity lifecycle step with ACL decisions.
+
+### 8.2.1 Identity and group schemas (app_0)
+
+IRS owns the following schema types in `app_0`. Unknown fields are rejected.
+
+`system.group` (Parent payload):
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `name` | Yes | string | 1-64 chars, lowercase `[a-z0-9_]+`. |
+| `description` | No | string | 0-256 chars. |
+| `created_at` | Yes | string | RFC3339 timestamp. |
+| `updated_at` | No | string | RFC3339 timestamp. |
+
+`system.group_member` (Edge payload):
+
+| Field | Required | Type | Constraints |
+| --- | --- | --- | --- |
+| `role` | No | string | `member` or `admin`. |
+| `created_at` | Yes | string | RFC3339 timestamp. |
 
 ### 8.3 Workflow specifics
 
@@ -261,7 +305,6 @@ The Base Feed Service provides a canonical social timeline abstraction every app
 ### 9.2 Interfaces and jobs
 
 * HTTP APIs:
-
   * `POST /system/feed/threads`, Create a new thread, requires capability `system.feed.publish`.
   * `POST /system/feed/messages`, Append to thread.
   * `POST /system/feed/reactions`, Create rating.
@@ -269,7 +312,6 @@ The Base Feed Service provides a canonical social timeline abstraction every app
   * `POST /system/feed/moderations`, Submit moderation ratings.
 * WebSocket channel `system.feed.stream` delivering normalized event descriptors.
 * Background jobs:
-
   * Aggregation sweeps building derived indices.
   * Moderation policy enforcement that recalculates hide lists when a rating threshold is crossed.
 
@@ -283,7 +325,7 @@ The Base Feed Service provides a canonical social timeline abstraction every app
 
 * Missing [OperationContext](05-operation-context.md) capability, `ERR_FEED_CAPABILITY`.
 * Attempting to reference another app's objects without delegation, ACL denial per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Derived cache rebuild failure, BFS marks itself degraded and raises `system.feed.cache_failure`.
+* Derived cache rebuild failure marks BFS degraded, emits `system.feed.cache_failure`, and rejects cache-dependent read endpoints with `storage_error` until rebuild succeeds. Write endpoints continue to follow [Graph Manager](../managers/07-graph-manager.md) persistence outcomes, including `storage_error` on persistence failure.
 
 ## 10. Sync Orchestration Service (SOS)
 
@@ -300,7 +342,6 @@ SOS bridges admin intent with [State Manager](../managers/09-state-manager.md)'s
 ### 10.2 Interfaces and jobs
 
 * HTTP APIs:
-
   * `GET /system/sync/peers`, List peers with sync status.
   * `POST /system/sync/plans`, Submit or adjust sync plans.
   * `POST /system/sync/peers/{peer_id}/pause|resume`.
@@ -316,7 +357,7 @@ SOS bridges admin intent with [State Manager](../managers/09-state-manager.md)'s
 
 ### 10.4 Failure handling
 
-* [State Manager](../managers/09-state-manager.md) rejection leads to `ERR_SYNC_PLAN_INVALID`, logged with reason (ordering violation, unknown peer, ACL denial) so diagnostics map to [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). SOS propagates the error and marks the plan `failed`.
+* [State Manager](../managers/09-state-manager.md) rejections are mapped when surfaced to interfaces as follows: ordering violations return `sequence_error`, unknown peer returns `object_invalid`, ACL denial returns `acl_denied`, and remaining plan validation failures return `ERR_SYNC_PLAN_INVALID`. SOS logs the original reason and marks the plan `failed`.
 * If [DoS Guard Manager](../managers/14-dos-guard-manager.md) indicates a peer is abusive, SOS automatically pauses the peer and emits `system.sync.peer_paused` with severity `warning`, aligning with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ## 11. Operations Console Service (OCS)
@@ -334,7 +375,6 @@ OCS provides administrative surfaces needed to operate a node safely:
 ### 11.2 Interfaces
 
 * HTTP APIs under `/system/ops/*` requiring admin [OperationContext](05-operation-context.md):
-
   * `GET /system/ops/health`, Aggregated readiness and liveness snapshot.
   * `GET /system/ops/config`, Export sanitized configuration.
   * `POST /system/ops/service-toggles`, Enable and disable services with `system.ops.manage` capability.
@@ -345,7 +385,7 @@ OCS provides administrative surfaces needed to operate a node safely:
 
 ### 11.3 Security posture
 
-* All endpoints require `system.ops.manage` capability plus admin identity classification. [ACL Manager](../managers/06-acl-manager.md) verifies both identity and capability edges in accordance with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). OCS does not implement shortcuts.
+* All endpoints require `system.ops.manage` capability plus admin identity classification (`system.admin`). [ACL Manager](../managers/06-acl-manager.md) verifies both identity and capability edges in accordance with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). OCS does not implement shortcuts.
 * Configuration exports redact sensitive keys (`log.*` secrets, encryption salts). Redaction is deterministic and logged.
 * Service toggles result in [Graph Manager](../managers/07-graph-manager.md) events that record who toggled what, preserving auditability.
 
@@ -353,7 +393,7 @@ OCS provides administrative surfaces needed to operate a node safely:
 
 * Missing capability, `ERR_OPS_CAPABILITY`, preserving the rejection semantics from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Config export failure due to ACL or [Config Manager](../managers/01-config-manager.md) rejection, `ERR_OPS_CONFIG_ACCESS`.
-* When OCS cannot reach [Health Manager](../managers/13-health-manager.md), it marks itself degraded and refuses to serve stale data so callers never rely on outdated readiness information per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* When OCS cannot reach [Health Manager](../managers/13-health-manager.md), it marks itself degraded and refuses to serve stale data by returning `internal_error`, so callers never rely on outdated readiness information per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 12. Shared security considerations
 

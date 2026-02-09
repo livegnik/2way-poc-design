@@ -6,8 +6,7 @@
 
 Defines SQLite lifecycle, schema provisioning, and persistence primitives for the backend. Specifies storage invariants, transaction boundaries, sequencing, and concurrency behavior. Defines APIs, startup/shutdown, and failure posture for durable storage.
 
-For the meta specifications, see [02-storage-manager meta](../09-appendix/meta/02-architecture/managers/02-storage-manager-meta.md).
-
+For the meta specifications, see [02-storage-manager meta](../../10-appendix/meta/02-architecture/managers/02-storage-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -264,6 +263,8 @@ Diagnostics never expose raw rows.
 * invariant violation
 
 Recovery requires operator intervention. Automatic repair is forbidden. Failures never advance `global_seq`, `domain_seq`, or peer `sync_state`, honoring the rejection guarantees defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+
+All surfaced storage failures must map to `ErrorDetail.code=storage_error` with category `storage`. Interface layers map these to transport errors (HTTP `400` where applicable) per [04-error-model.md](../../04-interfaces/04-error-model.md).
 
 ## 12. Allowed and forbidden behaviors
 

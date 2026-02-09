@@ -6,8 +6,7 @@
 
 Defines local authentication resolution for HTTP and WebSocket entrypoints. Specifies authentication outputs used to construct [OperationContext](../services-and-apps/05-operation-context.md). Defines auth lifecycle, rejection categories, and audit requirements.
 
-For the meta specifications, see [04-auth-manager meta](../09-appendix/meta/02-architecture/managers/04-auth-manager-meta.md).
-
+For the meta specifications, see [04-auth-manager meta](../../10-appendix/meta/02-architecture/managers/04-auth-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -16,10 +15,10 @@ Across all relevant components and execution contexts defined in this file, the 
 * Authentication is strictly separated from authorization in accordance with [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Authentication never implies permission, visibility, or ownership.
 * [Auth Manager](04-auth-manager.md) never mutates backend graph state.
-* [Auth Manager](04-auth-manager.md) never accesses private keys or performs cryptographic operations, keeping cryptographic enforcement with the actors defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md).
+* [Auth Manager](04-auth-manager.md) never accesses private keys and never performs signing or decryption, keeping private-key enforcement with the actors defined in [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md). It may verify signatures using public keys for auth registration.
 * [Auth Manager](04-auth-manager.md) never trusts client-supplied identity claims, consistent with the prohibition on inferred identity in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Every request produces exactly one explicit authentication outcome.
-* Authentication results are deterministic given identical session store state.
+* Authentication results are deterministic given identical auth token store state.
 * `[OperationContext](../services-and-apps/05-operation-context.md).requester_identity_id` is bound exclusively by [Auth Manager](04-auth-manager.md) so that the HTTP layer can provide the context described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * Envelope-declared authorship is never overridden or inferred by [Auth Manager](04-auth-manager.md), matching the authorship guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * All guarantees hold regardless of caller, execution context, or input source.
@@ -31,7 +30,7 @@ Across all relevant components and execution contexts defined in this file, the 
 ### 2.1 Input acquisition
 
 * Receive raw request metadata from HTTP or WebSocket layer defined in [04-interfaces/**](../../04-interfaces/).
-* Extract session token from header or cookie.
+* Extract auth token from header or cookie.
 * Receive trusted route classification and app context from the interface layer.
 * Treat all extracted data as untrusted input.
 
@@ -39,9 +38,9 @@ Across all relevant components and execution contexts defined in this file, the 
 
 * Validate token presence.
 * Validate token format.
-* Validate token existence in frontend session store.
+* Validate token existence in backend auth token store.
 * Validate token expiry.
-* Resolve linked frontend user record.
+* Validate token revocation status.
 * Resolve linked backend identity.
 
 Any failure terminates execution and produces a rejected authentication result.
@@ -50,7 +49,7 @@ Any failure terminates execution and produces a rejected authentication result.
 
 * Executed only after successful authentication.
 * Apply admin-only route constraints if applicable.
-* Determine admin eligibility from trusted local configuration or identity metadata.
+* Determine admin eligibility by verifying the requester identity holds the admin capability defined by `auth.admin_capability` (default `system.admin`).
 * Failure produces a rejected authentication result.
 
 ### 2.4 Authentication result emission
@@ -66,13 +65,13 @@ Any failure terminates execution and produces a rejected authentication result.
 
 #### 3.1.1 HTTP entrypoints
 
-* Session token from header or cookie.
+* Auth token from header or cookie.
 * Trusted route classification.
 * App context resolved by routing layer.
 
 #### 3.1.2 WebSocket entrypoints
 
-* Session token supplied during connection establishment.
+* Auth token supplied during connection establishment.
 
 All inputs are untrusted.
 
@@ -100,16 +99,17 @@ Requirements:
 
 Requests lacking sufficient metadata to build a valid [OperationContext](../services-and-apps/05-operation-context.md) are rejected so that downstream validation may apply the ordering defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
-## 4. Session token model
+## 4. Auth token model
 
 ### 4.1 Authority and ownership
 
-* Frontend database is the sole session authority for local requests referenced in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
-* Each token maps to exactly one session record.
-* Each session maps to exactly one frontend user.
-* Each frontend user maps to exactly one backend identity.
+* Backend auth token store is the sole authority for local requests referenced in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
+* Each token maps to exactly one auth token record.
+* Each auth token maps to exactly one backend identity.
+* Auth tokens MUST NOT be stored in graph tables.
+* Issuing a new token for an identity MUST revoke all previously issued tokens for that identity.
 
-[Auth Manager](04-auth-manager.md) does not cache session resolutions.
+[Auth Manager](04-auth-manager.md) does not cache auth token resolutions.
 
 ### 4.2 Validation requirements
 
@@ -118,9 +118,8 @@ For authenticated endpoints, [Auth Manager](04-auth-manager.md) validates:
 * Token presence.
 * Token format.
 * Token existence.
-* Token expiry.
-* User record integrity.
 * Backend identity existence.
+* Token expiry and revocation status.
 
 Failure of any check results in rejection.
 
@@ -129,6 +128,16 @@ Failure of any check results in rejection.
 * Public endpoints may proceed with `requester_identity_id = null`.
 * All other endpoints require authentication.
 * Public access is explicit, never inferred.
+
+### 4.4 Registration signature verification
+
+For `/auth/identity/register`:
+
+* Verify the signature over the canonical payload per [04-interfaces/13-auth-session.md](../../04-interfaces/13-auth-session.md).
+* Bind the resulting identity solely to the submitted public key.
+* Registration is idempotent for a given public key.
+* Enforce replay protection for `nonce` and `timestamp` values and persist accepted nonces for the configured replay window.
+* Persist replay protection entries in the `auth_registration_nonces` system table.
 
 ## 5. Admin gating
 
@@ -139,8 +148,8 @@ Failure of any check results in rejection.
 
 ### 5.2 Constraints
 
-* Admin status does not bypass ACL evaluation per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Admin status does not grant implicit permissions.
+* Admin status does not bypass schema or app/domain constraints per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* Admin actions (explicitly marked admin-only routes) bypass object-level ACL checks per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Admin gating applies only to route-level constraints.
 
 ## 6. Interaction with other components
@@ -169,7 +178,7 @@ Trust boundary:
 
 ### 6.3 Storage access
 
-* [Auth Manager](04-auth-manager.md) reads frontend session and user records through approved interfaces.
+* [Auth Manager](04-auth-manager.md) reads auth token records through approved interfaces.
 * [Auth Manager](04-auth-manager.md) never accesses backend graph tables or raw SQLite connections.
 
 ### 6.4 Downstream managers
@@ -193,14 +202,31 @@ At minimum:
 * Malformed token.
 * Unknown token.
 * Expired token.
-* Session store unavailable.
-* User record missing.
+* Revoked token.
+* Auth token store unavailable.
 * Backend identity missing.
 * Admin gating failure.
+* Registration signature invalid (for auth registration).
+* Registration replay detected (for auth registration).
+
+### 7.4 Mapping to ErrorDetail
+
+Auth Manager rejection categories map to `ErrorDetail.code` values as follows (transport status in parentheses):
+
+* Missing token -> `auth_required` (401)
+* Malformed token -> `auth_invalid` (401)
+* Unknown token -> `auth_invalid` (401)
+* Expired token -> `ERR_AUTH_TOKEN_EXPIRED` (401)
+* Revoked token -> `ERR_AUTH_TOKEN_REVOKED` (401)
+* Auth token store unavailable -> `auth_invalid` (401)
+* Backend identity missing -> `auth_invalid` (401)
+* Admin gating failure -> `acl_denied` (400)
+* Registration signature invalid -> `ERR_AUTH_SIGNATURE_INVALID` (401)
+* Registration replay or skew -> `ERR_AUTH_REPLAY` (401)
 
 These categories map to the canonical classification ordering in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 7.3 Session store unavailability
+### 7.3 Auth token store unavailability
 
 * All authenticated endpoints rejected.
 * Admin endpoints always rejected.
@@ -233,3 +259,14 @@ These categories map to the canonical classification ordering in [01-protocol/10
 
 * [Auth Manager](04-auth-manager.md) never processes remote traffic.
 * Remote identities are introduced exclusively by [Network Manager](10-network-manager.md) and [State Manager](09-state-manager.md) per [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
+
+## 9. Configuration surface, `auth.*`
+
+[Auth Manager](04-auth-manager.md) owns the `auth.*` namespace in [Config Manager](01-config-manager.md).
+
+| Key | Type | Reloadable | Default | Description |
+| --- | --- | --- | --- | --- |
+| `auth.admin_capability` | String | Yes | `system.admin` | Capability name that grants admin eligibility for admin-gated routes. |
+| `auth.registration.max_skew_ms` | Integer | Yes | `300000` | Maximum absolute clock skew for registration timestamps (ms). |
+| `auth.registration.nonce_ttl_ms` | Integer | Yes | `600000` | Replay window for `(public_key, nonce)` acceptance (ms). |
+| `auth.token.ttl_ms` | Integer | Yes | `86400000` | Default auth token time-to-live (ms). |

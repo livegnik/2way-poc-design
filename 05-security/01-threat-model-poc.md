@@ -6,7 +6,7 @@
 
 This document enumerates the threats considered in the PoC and the guarantees that mitigate them.
 
-For the meta specifications, see [01-threat-model-poc-meta.md](../09-appendix/meta/05-security/01-threat-model-poc-meta.md).
+For the meta specifications, see [01-threat-model-poc-meta.md](../10-appendix/meta/05-security/01-threat-model-poc-meta.md).
 
 ## 1. Assumed adversaries
 
@@ -41,3 +41,13 @@ Sybil resistance is not achieved by identity scarcity. It relies on the graph st
 ## 5. Censorship and autonomy
 
 Nodes are autonomous and can operate offline. Accepted history can be replayed locally without remote dependencies. Sync convergence does not require a central coordinator.
+
+## 6. Adversarial test scope
+
+Adversarial tests MUST attempt:
+
+* malformed envelope submission (structural and type errors)
+* ACL bypass attempts on reads and writes
+* cross-app namespace violations
+* replay and out-of-order sync submissions
+* oversized payloads that exceed configured limits

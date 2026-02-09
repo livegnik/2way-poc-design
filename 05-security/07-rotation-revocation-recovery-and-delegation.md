@@ -6,7 +6,7 @@
 
 This document defines how keys and identities are rotated, revoked, and delegated.
 
-For the meta specifications, see [07-rotation-revocation-recovery-and-delegation-meta.md](../09-appendix/meta/05-security/07-rotation-revocation-recovery-and-delegation-meta.md).
+For the meta specifications, see [07-rotation-revocation-recovery-and-delegation-meta.md](../10-appendix/meta/05-security/07-rotation-revocation-recovery-and-delegation-meta.md).
 
 ## 1. Rotation
 

@@ -6,7 +6,7 @@
 
 This document defines the PoC's goals, guarantees, and non-goals.
 
-For the meta specifications, see [01-poc-definition-meta.md](../09-appendix/meta/07-poc/01-poc-definition-meta.md).
+For the meta specifications, see [01-poc-definition-meta.md](../10-appendix/meta/07-poc/01-poc-definition-meta.md).
 
 ## 1. Goals
 

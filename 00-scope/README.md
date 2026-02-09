@@ -19,7 +19,7 @@ authoritative source and record exceptions in an ADR.
 - [`03-definitions-and-terminology.md`](03-definitions-and-terminology.md) - Canonical terms and object names used throughout the repo.
 - [`04-assumptions-and-constraints.md`](04-assumptions-and-constraints.md) - PoC assumptions, constraints, and hard exclusions.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/00-scope/`](../09-appendix/meta/00-scope/).
+Each document has a corresponding meta specification in [`10-appendix/meta/00-scope/`](../10-appendix/meta/00-scope/).
 
 ## How to read
 

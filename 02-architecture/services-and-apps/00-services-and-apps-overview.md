@@ -6,7 +6,7 @@
 
 Defines how services and apps fit into the manager-centric 2WAY architecture. Specifies shared invariants, trust boundaries, and lifecycle ordering for services and apps. Summarizes end-to-end flows for local requests and remote sync packages.
 
-For the meta specifications, see [00-services-and-apps-overview meta](../09-appendix/meta/02-architecture/services-and-apps/00-services-and-apps-overview-meta.md).
+For the meta specifications, see [00-services-and-apps-overview meta](../../10-appendix/meta/02-architecture/services-and-apps/00-services-and-apps-overview-meta.md).
 
 ## 1. Service and application taxonomy
 
@@ -35,8 +35,8 @@ All services and apps must uphold the following invariants:
 
 Services and apps participate in a single data-flow pipeline governed by managers. The entry path differs for local requests versus remote sync packages, but both converge on the manager sequencing rules.
 
-1. A frontend app submits a request through the interface layer ([04-interfaces/**](../../04-interfaces/)). [Auth Manager](../managers/04-auth-manager.md) validates credentials and binds local identity. [App Manager](../managers/08-app-manager.md) resolves the `app_id`. The interface layer then constructs the [OperationContext](05-operation-context.md).
-2. A remote peer submits a sync package through [Network Manager](../managers/10-network-manager.md). [DoS Guard Manager](../managers/14-dos-guard-manager.md) admission, [Key Manager](../managers/03-key-manager.md) verification, and [State Manager](../managers/09-state-manager.md) ordering occur before any graph mutation; [State Manager](../managers/09-state-manager.md) constructs the remote [OperationContext](05-operation-context.md).
+1. A frontend app submits a request through the interface layer ([04-interfaces/**](../../04-interfaces/)). [Auth Manager](../managers/04-auth-manager.md) validates auth tokens and binds local identity. [App Manager](../managers/08-app-manager.md) resolves the `app_id`. The interface layer then constructs the [OperationContext](05-operation-context.md).
+2. A remote peer submits a sync package through [Network Manager](../managers/10-network-manager.md). [DoS Guard Manager](../managers/14-dos-guard-manager.md) admission, transport-boundary signature verification, and [State Manager](../managers/09-state-manager.md) ordering occur before any graph mutation; [State Manager](../managers/09-state-manager.md) constructs the remote [OperationContext](05-operation-context.md).
 3. The service (system or extension) validates input and invokes managers in the required order, with [Graph Manager](../managers/07-graph-manager.md) orchestrating the sequence (structural validation -> schema validation -> ACL evaluation -> graph sequencing -> persistence -> event emission) as described in [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md).
 4. Manager responses propagate back to the caller unchanged, and [Log Manager](../managers/12-log-manager.md) records a full audit trail.
 

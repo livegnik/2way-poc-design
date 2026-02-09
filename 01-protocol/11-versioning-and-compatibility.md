@@ -6,7 +6,7 @@
 
 Defines protocol version identifiers and compatibility rules for 2WAY peers. Specifies compatibility validation boundaries and rejection behavior. Defines allowed/forbidden cross-version interactions and guarantees.
 
-For the meta specifications, see [11-versioning-and-compatibility meta](../09-appendix/meta/01-protocol/11-versioning-and-compatibility-meta.md).
+For the meta specifications, see [11-versioning-and-compatibility meta](../10-appendix/meta/01-protocol/11-versioning-and-compatibility-meta.md).
 
 ## 1. Protocol version identifier
 
@@ -140,6 +140,17 @@ If incompatibility is detected after partial interaction, the system must:
 - Preserve all local invariants.
 
 No retry or downgrade behavior is defined at the protocol level.
+
+### 6.4 Error mapping when surfaced to transport
+
+When incompatibility or invalid declarations are surfaced to a transport that returns `ErrorDetail`, the following mappings apply:
+
+| Condition | Owner | ErrorDetail.code | ErrorDetail.category | Transport status |
+| --- | --- | --- | --- | --- |
+| Incompatible protocol version | Network Manager or State Manager | `network_rejected` | `network` | `400` |
+| Missing or malformed version declaration | Network Manager | `network_rejected` | `network` | `400` |
+| Late detection after partial interaction | Owning manager | `network_rejected` | `network` | `400` |
+| Unexpected internal failure | Owning manager | `internal_error` | `internal` | `500` |
 
 ## 7. Invariants and guarantees
 

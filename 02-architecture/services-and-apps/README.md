@@ -20,7 +20,7 @@ folder as the authoritative source for service/app roles and constraints.
 - [`04-frontend-apps.md`](04-frontend-apps.md) - Frontend responsibilities and security posture.
 - [`05-operation-context.md`](05-operation-context.md) - `OperationContext` structure and lifecycle.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/02-architecture/services-and-apps/`](../../09-appendix/meta/02-architecture/services-and-apps/).
+Each document has a corresponding meta specification in [`10-appendix/meta/02-architecture/services-and-apps/`](../../10-appendix/meta/02-architecture/services-and-apps/).
 
 ## How to read
 

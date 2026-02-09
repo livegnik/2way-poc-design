@@ -6,10 +6,12 @@
 
 Defines admission decisions, puzzle issuance and verification, and abuse mitigation. Specifies telemetry inputs, decision outputs, policy evaluation, and engine behavior. Defines failure handling, configuration, and trust boundaries for DoS protection.
 
-For the meta specifications, see [14-dos-guard-manager meta](../09-appendix/meta/02-architecture/managers/14-dos-guard-manager-meta.md).
+For the meta specifications, see [14-dos-guard-manager meta](../../10-appendix/meta/02-architecture/managers/14-dos-guard-manager-meta.md).
 
 Defines admission control, puzzle issuance, and abuse mitigation for network connections.
+
 Specifies inputs, decisions, telemetry, and integration with Network and Health Managers.
+
 Defines configuration, failure handling, and trust boundaries for DoS protection.
 
 ## 1. Invariants and guarantees
@@ -144,7 +146,6 @@ On startup, [DoS Guard Manager](14-dos-guard-manager.md) must:
 
 * Load `dos.*` configuration via [Config Manager](01-config-manager.md).
 * Initialize in-memory state for:
-
   * per-identity counters and rolling windows.
   * per-source counters and rolling windows for anonymous sources.
   * outstanding challenges and expiration tracking.
@@ -166,12 +167,10 @@ On shutdown, [DoS Guard Manager](14-dos-guard-manager.md) must:
 [DoS Guard Manager](14-dos-guard-manager.md) must provide the following signals for consumption by [Health Manager](13-health-manager.md):
 
 * **Readiness**: DoS Guard is ready when:
-
   * configuration is loaded and validated.
   * [Key Manager](03-key-manager.md) dependencies required for puzzle generation are available, or DoS Guard has switched to deny-only mode explicitly and reported it.
   * the admission decision interface is registered with [Network Manager](10-network-manager.md).
 * **Liveness**: DoS Guard is live when:
-
   * the Telemetry Intake Engine is draining inputs.
   * the Policy Engine is producing decisions within configured bounds.
   * the Publication Engine can deliver decisions to [Network Manager](10-network-manager.md).

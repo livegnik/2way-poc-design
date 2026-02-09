@@ -6,8 +6,7 @@
 
 Defines schema loading, validation, compilation, and type resolution for graph data. Specifies schema inputs, type_id mappings, sync domain metadata, and validation helpers. Defines startup, reload, and failure handling for schema enforcement.
 
-For the meta specifications, see [05-schema-manager meta](../09-appendix/meta/02-architecture/managers/05-schema-manager-meta.md).
-
+For the meta specifications, see [05-schema-manager meta](../../10-appendix/meta/02-architecture/managers/05-schema-manager-meta.md).
 
 ## 1. Invariants and guarantees
 
@@ -294,9 +293,19 @@ The [Schema Manager](05-schema-manager.md) explicitly forbids:
 * Authorization decisions ([01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)).
 * Automatic migration or compatibility heuristics.
 
-## 12. Failure handling
+## 12. Configuration surface, `schema.*`
 
-### 12.1 Startup failures
+[Schema Manager](05-schema-manager.md) owns the `schema.*` namespace in [Config Manager](01-config-manager.md).
+
+| Key | Type | Reloadable | Default | Description |
+| --- | --- | --- | --- | --- |
+| `schema.max_types_per_app` | Integer | Yes | `1024` | Maximum schema types per app. |
+| `schema.max_fields_per_type` | Integer | Yes | `256` | Maximum fields per type. |
+| `schema.max_domains_per_app` | Integer | Yes | `128` | Maximum domains per app. |
+
+## 13. Failure handling
+
+### 13.1 Startup failures
 
 If startup fails:
 
@@ -306,22 +315,22 @@ If startup fails:
 
 All such failures are reported using the schema error class defined in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 12.2 Runtime failures
+### 13.2 Runtime failures
 
 At runtime, operations referencing unknown or invalid schema elements must be rejected immediately, preserving the precedence rules (structural before schema before authorization) in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-### 12.3 Integrity failures
+### 13.3 Integrity failures
 
 Any detected inconsistency between schema declarations and persisted indices is fatal and must block schema-dependent operations, even if the caller would otherwise succeed per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
-## 13. Security constraints
+## 14. Security constraints
 
 * Schema input is untrusted.
 * Payload size and nesting must be bounded.
 * Parsing and compilation must be resource bounded.
 * No remote input may trigger schema reload.
 
-## 14. Manager interactions
+## 15. Manager interactions
 
 * [Graph Manager](07-graph-manager.md) depends on [Schema Manager](05-schema-manager.md) for validation only, matching the processing order in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md).
 * [State Manager](09-state-manager.md) depends on [Schema Manager](05-schema-manager.md) for domain metadata only, consistent with [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).

@@ -29,7 +29,7 @@ folder as the authoritative source for manager responsibilities and boundaries.
 - [`13-health-manager.md`](13-health-manager.md) - Readiness/liveness aggregation.
 - [`14-dos-guard-manager.md`](14-dos-guard-manager.md) - Admission control and client puzzles.
 
-Each document has a corresponding meta specification in [`09-appendix/meta/02-architecture/managers/`](../../09-appendix/meta/02-architecture/managers/).
+Each document has a corresponding meta specification in [`10-appendix/meta/02-architecture/managers/`](../../10-appendix/meta/02-architecture/managers/).
 
 ## How to read
 

@@ -6,7 +6,7 @@
 
 Defines permitted runtime arrangements for 2WAY nodes and their trust boundaries. Specifies component placement, allowed interactions, and failure behavior per topology. Defines invariants that must hold across all runtime configurations.
 
-For the meta specifications, see [02-runtime-topologies meta](../09-appendix/meta/02-architecture/02-runtime-topologies-meta.md).
+For the meta specifications, see [02-runtime-topologies meta](../10-appendix/meta/02-architecture/02-runtime-topologies-meta.md).
 
 ## 1. Invariants and guarantees
 

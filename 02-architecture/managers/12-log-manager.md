@@ -6,10 +6,12 @@
 
 Defines log record ingestion, validation, normalization, routing, and sink delivery. Specifies log classes, record schema, retention, and query behavior. Defines failure handling, limits, and trust boundaries for logging.
 
-For the meta specifications, see [12-log-manager meta](../09-appendix/meta/02-architecture/managers/12-log-manager-meta.md).
+For the meta specifications, see [12-log-manager meta](../../10-appendix/meta/02-architecture/managers/12-log-manager-meta.md).
 
 Defines structured log ingestion, normalization, routing, and retention for backend records.
+
 Specifies log classes, required metadata, sink behavior, and query constraints.
+
 Defines configuration, failure handling, and security constraints for logging.
 
 ## 1. Invariants and guarantees
@@ -36,7 +38,7 @@ Across all relevant contexts defined here, the following invariants hold:
 | `operational.*` | Manager lifecycle events, configuration reloads, resource pressure, queue sizes.                                                                                                           | `component`, `state`, `limits`, `latency_ms`.                                                   | [Health Manager](13-health-manager.md), operators.              |
 | `diagnostic.*`  | Developer-focused traces gated by configuration. Never emitted in production mode unless `log.diagnostic.enabled` is true.                                                                 | `component`, `message`, `trace_id`.                                                             | Development tooling.                    |
 
-App backends may define additional subclasses under their own namespace (`app.<app_id>.audit.*`) but must register them with [Log Manager](12-log-manager.md) via [App Manager](08-app-manager.md) so routing policies remain explicit.
+App backends may define additional subclasses under their own namespace (`app.<slug>.audit.*`) but must register them with [Log Manager](12-log-manager.md) via [App Manager](08-app-manager.md) so routing policies remain explicit.
 
 Identifier or namespace violations described in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) must emit `audit.*` (if the rejection corresponds to a user-visible state change) or `operational.*` logs so the mandatory "record the rejection in the local log" requirement is fulfilled regardless of which manager detects the error.
 
@@ -51,7 +53,7 @@ Every record adheres to the format defined in this specification. Fields include
 | `class`             | One of the classes listed above.                                                                                                                                                                                      |
 | `component`         | Emitting manager or service name.                                                                                                                                                                                     |
 | `operation_context` | Serialized snapshot of the [OperationContext](../services-and-apps/05-operation-context.md) (requester identity id, app id, domain scope, trace id, remote flag) exactly as defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md), copying `trace_id` from envelopes per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md). Absent only for manager bootstrap logs. |
-| `category`          | Manager-specific subtype (for example `auth.session_token_missing`).                                                                                                                                                  |
+| `category`          | Manager-specific subtype (for example `auth.token_missing`).                                                                                                                                                          |
 | `severity`          | Enum (`debug`, `info`, `warn`, `error`, `critical`).                                                                                                                                                                  |
 | `payload`           | Structured JSON object containing additional fields defined by the emitting manager.                                                                                                                                  |
 | `sinks`             | Computed list of sink identifiers that accepted the record. Used for audit verification.                                                                                                                              |
@@ -264,6 +266,7 @@ Telemetry is routed through [Health Manager](13-health-manager.md) and also reco
 The following actions violate this specification:
 
 * Bypassing [Log Manager](12-log-manager.md) by writing directly to stdout, files, or [Event Manager](11-event-manager.md).
+  * Exception: the debug logger utility defined in [15-debug-logger.md](../15-debug-logger.md) may emit developer-only diagnostic lines when explicitly enabled; it must not emit structured audit/security/operational records.
 * Emitting unstructured text logs or logs without [OperationContext](../services-and-apps/05-operation-context.md) metadata when one exists.
 * Rewriting or deleting accepted log entries prior to retention expiry.
 * Emitting security or audit payloads through [Event Manager](11-event-manager.md) or other broadcasts that bypass ACL-enforced query APIs.

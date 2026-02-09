@@ -6,7 +6,7 @@
 
 This document defines identity as the root of trust and how authorship is bound to keys and graph objects.
 
-For the meta specifications, see [02-identity-authorship-and-keys-meta.md](../09-appendix/meta/05-security/02-identity-authorship-and-keys-meta.md).
+For the meta specifications, see [02-identity-authorship-and-keys-meta.md](../10-appendix/meta/05-security/02-identity-authorship-and-keys-meta.md).
 
 ## 1. Identity as root of trust
 
