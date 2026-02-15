@@ -26,7 +26,7 @@ Ops endpoints MUST be local-only.
 | `/system/ops/app-services/{slug}/diagnostics` | POST | Required (admin) | app service diagnostics snapshot. |
 | `/system/ops/clients/telemetry` | POST | Required (admin) | Ingest client telemetry aggregates. |
 
-Ops routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes return `400` with `config_invalid`.
+Ops routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes return `503` with `ERR_SVC_SYS_DISABLED`.
 
 ## 3. GET /system/ops/health
 
@@ -63,7 +63,7 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) when Health Manager is unavailable or the snapshot cannot be served.
 
@@ -94,8 +94,8 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) for internal failures.
 
@@ -105,7 +105,7 @@ Request/response schema: see [09-system-services-http.md](09-system-services-htt
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`config_invalid`) for Config Manager validation failures, vetoes, or queue overflow.
 * `400` (`storage_error`) for Config Manager persistence failures.
@@ -118,8 +118,8 @@ Request/response schema: see [09-system-services-http.md](09-system-services-htt
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
@@ -167,8 +167,8 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
 * `400` (`envelope_invalid`) for malformed query parameters or missing/invalid `class`.
 * `400` (`storage_error`) for log read failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -208,7 +208,7 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for ingestion or persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -226,7 +226,7 @@ Response:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -238,7 +238,7 @@ Errors are returned using the canonical `ErrorDetail` shape in [04-error-model.m
 
 Service-specific errors include:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
 
 Authentication failures include `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, and `ERR_AUTH_TOKEN_REVOKED`, mapped to HTTP `401`.

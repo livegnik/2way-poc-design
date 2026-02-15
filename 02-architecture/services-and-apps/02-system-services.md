@@ -83,6 +83,7 @@ System services expose three kinds of surfaces:
 
 * During shutdown or degraded health, services stop accepting new work, mark outstanding jobs as `aborted`, and provide [Health Manager](../managers/13-health-manager.md) with a degraded reason. They flush logs and events before releasing dependencies.
 * Services do not attempt to run graceful fallbacks when managers are unavailable. They reject work with the relevant error classification so [DoS Guard Manager](../managers/14-dos-guard-manager.md) and frontend callers can back off, in line with the rejection semantics called out in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* When a system service is registered but unavailable, requests MUST fail with one of the following availability codes (HTTP `503` on HTTP interfaces): `ERR_SVC_SYS_NOT_READY`, `ERR_SVC_SYS_DISABLED`, `ERR_SVC_SYS_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_SYS_DRAINING`, or `ERR_SVC_SYS_LOAD_FAILED`.
 * Services must not attempt to drain or reconcile partially completed workflows by bypassing managers. Recovery is performed only through the normal manager pipeline after restart, preserving the envelope ordering rules in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
 ### 3.3 Upgrade and migration requirements
@@ -217,7 +218,7 @@ Setup Service owns the `admin.identity`, `admin.device`, and `admin.recovery` sc
 1. **Installation**
    * Interface layer calls Setup Service `POST /system/bootstrap/install`.
    * Setup Service validates payload, ensures node is not already installed, and constructs an [OperationContext](05-operation-context.md) with `capability=system.bootstrap.install`.
-   * If the node is already installed, Setup Service rejects the request with `ERR_BOOTSTRAP_ACL`.
+   * If the node is already installed, Setup Service rejects the request with `ERR_SVC_SYS_SETUP_ACL`.
    * Setup Service orchestrates [Graph Manager](../managers/07-graph-manager.md) writes to create node parents, admin identity, admin device, default ACL templates, and capability edges, packaged per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and authorized per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
    * Upon success, [Event Manager](../managers/11-event-manager.md) receives `system.bootstrap.completed`, [Health Manager](../managers/13-health-manager.md) marks the node ready, and [DoS Guard Manager](../managers/14-dos-guard-manager.md) unlocks public surfaces in line with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
    * If network transport services exist, Setup Service ensures [Network Manager](../managers/10-network-manager.md) does not accept inbound peer work until [Health Manager](../managers/13-health-manager.md) is ready so the ordering in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) is respected.
@@ -231,9 +232,9 @@ Setup Service owns the `admin.identity`, `admin.device`, and `admin.recovery` sc
 
 ### 7.4 Failure handling
 
-* If any Graph or Schema operation fails, Setup Service aborts the entire operation, rolls back, and records the failure reason (`ERR_BOOTSTRAP_SCHEMA`, `ERR_BOOTSTRAP_ACL`) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial installs exist.
+* If any Graph or Schema operation fails, Setup Service aborts the entire operation, rolls back, and records the failure reason (`ERR_SVC_SYS_SETUP_SCHEMA`, `ERR_SVC_SYS_SETUP_ACL`) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial installs exist.
 * Expired invites result in `HTTP 410 Gone` responses with DoS telemetry increments so repeated misuse pushes puzzle difficulty upward.
-* Device attestations that cannot be verified result in `ERR_BOOTSTRAP_DEVICE_ATTESTATION`. Setup Service logs the fingerprint for audit.
+* Device attestations that cannot be verified result in `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION`. Setup Service logs the fingerprint for audit.
 
 ## 8. Identity Service
 
@@ -282,11 +283,11 @@ Identity Service owns the following schema types in `app_0`. Unknown fields are 
 
 * Identity creation requires [Schema Manager](../managers/05-schema-manager.md) validation (`identity.parent`, `device.parent`, `capability.edge` types). Identity Service ensures [Graph Manager](../managers/07-graph-manager.md) writes objects in the order defined in [02-architecture/04-data-flow-overview.md](../04-data-flow-overview.md) and within the ownership rules of [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Device linking uses a double opt in. Device owner signs a request, admin approves, Identity Service records the association and notifies [Event Manager](../managers/11-event-manager.md).
-* Contact invitations track acceptance state. Identity Service enforces `service.identity.max_contacts_per_identity` by counting accepted edges, and every mutation honors the ACL semantics in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Exceeding the limit returns `ERR_IDENTITY_CONTACT_LIMIT`.
+* Contact invitations track acceptance state. Identity Service enforces `service.identity.max_contacts_per_identity` by counting accepted edges, and every mutation honors the ACL semantics in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md). Exceeding the limit returns `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT`.
 
 ### 8.4 Failure handling
 
-* Unknown capability results in immediate rejection with `ERR_IDENTITY_CAPABILITY`, preserving the deterministic failure posture described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Unknown capability results in immediate rejection with `ERR_SVC_SYS_IDENTITY_CAPABILITY`, preserving the deterministic failure posture described in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Integrity sweep failures (for example, orphaned capability edges) trigger alerts via [Event Manager](../managers/11-event-manager.md) (`severity=warning` or `critical`). Identity Service attempts to repair by submitting Graph envelopes. Repeated failure marks the service degraded.
 
 ## 9. Sync Service
@@ -319,7 +320,7 @@ Sync Service bridges admin intent with [State Manager](../managers/09-state-mana
 
 ### 9.4 Failure handling
 
-* [State Manager](../managers/09-state-manager.md) rejections are mapped when surfaced to interfaces as follows: ordering violations return `sequence_error`, unknown peer returns `object_invalid`, ACL denial returns `acl_denied`, and remaining plan validation failures return `ERR_SYNC_PLAN_INVALID`. Sync Service logs the original reason and marks the plan `failed`.
+* [State Manager](../managers/09-state-manager.md) rejections are mapped when surfaced to interfaces as follows: ordering violations return `sequence_error`, unknown peer returns `object_invalid`, ACL denial returns `acl_denied`, and remaining plan validation failures return `ERR_SVC_SYS_SYNC_PLAN_INVALID`. Sync Service logs the original reason and marks the plan `failed`.
 * If [DoS Guard Manager](../managers/14-dos-guard-manager.md) indicates a peer is abusive, Sync Service automatically pauses the peer and emits `system.sync.peer_paused` with severity `warning`, aligning with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ## 10. Admin Service
@@ -353,8 +354,9 @@ Admin Service provides administrative surfaces needed to operate a node safely:
 
 ### 10.4 Failure handling
 
-* Missing capability, `ERR_OPS_CAPABILITY`, preserving the rejection semantics from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
-* Config export failure due to ACL or [Config Manager](../managers/01-config-manager.md) rejection, `ERR_OPS_CONFIG_ACCESS`.
+* Missing capability, `ERR_SVC_SYS_OPS_CAPABILITY`, preserving the rejection semantics from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Config export failure due to ACL or [Config Manager](../managers/01-config-manager.md) rejection, `ERR_SVC_SYS_OPS_CONFIG_ACCESS`.
+* Service is unavailable, disabled, or not ready, one of: `ERR_SVC_SYS_NOT_READY`, `ERR_SVC_SYS_DISABLED`, `ERR_SVC_SYS_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_SYS_DRAINING`, `ERR_SVC_SYS_LOAD_FAILED` (`503` on HTTP surfaces).
 * When Admin Service cannot reach [Health Manager](../managers/13-health-manager.md), it marks itself degraded and refuses to serve stale data by returning `internal_error`, so callers never rely on outdated readiness information per [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 
 ## 11. Shared security considerations

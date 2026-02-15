@@ -35,6 +35,7 @@ This overview is responsible for the following:
 * Describing how frontend apps assemble [OperationContext](../../../../02-architecture/services-and-apps/05-operation-context.md) inputs, authenticate users and devices, request capabilities, and respect ACL policy.
 * Detailing transport, sync, configuration, storage, and offline requirements so apps cannot weaken protocol guarantees.
 * Capturing observability, telemetry, logging, and diagnostics obligations for frontend behavior so operators can audit requests end-to-end.
+* Defining frontend handling expectations for service availability errors (`ERR_SVC_APP_*`).
 * Outlining security, privacy, release, and supply-chain controls for distributing and updating frontend apps across devices.
 
 This overview does not cover the following:

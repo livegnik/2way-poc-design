@@ -114,7 +114,7 @@ Frontend apps (native, mobile, CLI, or web) consume backend APIs or sync flows d
 
 * Apps specify which services handle their backend requests. System services may refuse app traffic if schemas or ACLs are misconfigured.
 * Services expose explicit APIs that name the app domains they are willing to serve. For example, a shared feed app service may accept requests from any app that adheres to a given schema contract, whereas a ledger app service only accepts requests from its own app.
-* Apps must not assume that a service exists. Frontend apps must handle `503 Service Unavailable` or explicit rejection responses when a required app service is missing.
+* Apps must not assume that a service exists. Frontend apps must handle `503` with `ErrorDetail.code` in the `ERR_SVC_APP_*` family (or another explicit rejection) when a required app service is missing or unavailable.
 
 ## 5. Interaction model
 

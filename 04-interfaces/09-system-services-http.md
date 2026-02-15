@@ -40,6 +40,19 @@ This document specifies local-only HTTP contracts for system services under `/sy
 | Admin Service | `/system/ops/app-services/{slug}/diagnostics` | POST | Required (admin) | app service diagnostics dump. |
 | Admin Service | `/system/ops/clients/telemetry` | POST | Required (admin) | Ingest client telemetry aggregates. |
 
+## 2.1 System service error-family legend
+
+System service routes MUST emit parent-scoped codes. Legacy singleton roots such as `ERR_APP_SYS_*` are forbidden.
+
+| Family | Parent owner | Meaning |
+| --- | --- | --- |
+| `ERR_SVC_SYS_SETUP_*` | Setup Service | Bootstrap/install/invite/device/recovery checks rejected by Setup Service. |
+| `ERR_SVC_SYS_IDENTITY_*` | Identity Service | Identity/contact/capability policy checks rejected by Identity Service. |
+| `ERR_SVC_SYS_SYNC_*` | Sync Service | Sync plan or sync service-specific validation rejected by Sync Service. |
+| `ERR_SVC_SYS_OPS_*` | Admin/Ops Service | Admin operations or ops config/capability checks rejected by Ops Service. |
+| `ERR_SVC_SYS_*` availability codes | Any system service | Service exists but is unavailable (`disabled`, `not_ready`, `dependency_unavailable`, `draining`, `load_failed`). |
+| `ERR_MNG_<MANAGER>_*` | Manager layer | Manager-owned errors; typically normalized unless an interface contract exposes them directly. |
+
 ## 3. Common requirements
 
 * All endpoints MUST construct a complete [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) before invoking managers.
@@ -54,6 +67,7 @@ Common errors (all endpoints):
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`envelope_invalid`) when required [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) fields are missing.
 * `400` (`network_rejected`) when [Network Manager](../02-architecture/managers/10-network-manager.md) is not ready for network-coupled work.
+* `503` with one of `ERR_SVC_SYS_NOT_READY`, `ERR_SVC_SYS_DISABLED`, `ERR_SVC_SYS_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_SYS_DRAINING`, `ERR_SVC_SYS_LOAD_FAILED` when the targeted system service is unavailable.
 * DoS Guard challenges are not issued on these local HTTP endpoints; admission failures are surfaced as `network_rejected`.
 * `500` (`internal_error`) for internal failures.
 
@@ -113,15 +127,15 @@ Response (success):
 
 Errors:
 
-* `ERR_BOOTSTRAP_SCHEMA`, `ERR_BOOTSTRAP_ACL`, `ERR_BOOTSTRAP_DEVICE_ATTESTATION`.
+* `ERR_SVC_SYS_SETUP_SCHEMA`, `ERR_SVC_SYS_SETUP_ACL`, `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION`.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 
 Additional rules:
 
-* Invalid or expired `bootstrap_token` MUST return `ERR_BOOTSTRAP_ACL`.
-* `storage_path_confirmation` mismatch MUST return `ERR_BOOTSTRAP_SCHEMA`.
-* If the node is already installed, the request MUST return `ERR_BOOTSTRAP_ACL`.
+* Invalid or expired `bootstrap_token` MUST return `ERR_SVC_SYS_SETUP_ACL`.
+* `storage_path_confirmation` mismatch MUST return `ERR_SVC_SYS_SETUP_SCHEMA`.
+* If the node is already installed, the request MUST return `ERR_SVC_SYS_SETUP_ACL`.
 
 ### 4.2 POST /system/bootstrap/invites
 
@@ -157,7 +171,7 @@ Rules:
 
 Errors:
 
-* `ERR_BOOTSTRAP_ACL` when the caller lacks bootstrap invite capability.
+* `ERR_SVC_SYS_SETUP_ACL` when the caller lacks bootstrap invite capability.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 * `400` (`config_invalid`) when `service.bootstrap.max_pending_invites` is exceeded.
@@ -201,9 +215,9 @@ Response:
 Errors:
 
 * `410 Gone` when invite is expired.
-* `ERR_BOOTSTRAP_DEVICE_ATTESTATION` on attestation failure.
-* `ERR_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
-* `ERR_BOOTSTRAP_ACL` when the invite lacks `system.bootstrap.device`.
+* `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION` on attestation failure.
+* `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
+* `ERR_SVC_SYS_SETUP_ACL` when the invite lacks `system.bootstrap.device`.
 * `400` (`object_invalid`) when `invite_token` does not resolve to a pending invite.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
@@ -212,7 +226,7 @@ Rules:
 
 * `device_attestation.proof` is required and unknown fields are rejected.
 * `payload_b64` is base64 with 32-4096 bytes decoded.
-* `issued_at` and `expires_at` must be RFC3339; expired proofs are rejected with `ERR_BOOTSTRAP_DEVICE_ATTESTATION`.
+* `issued_at` and `expires_at` must be RFC3339; expired proofs are rejected with `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION`.
 
 ### 4.4 POST /system/bootstrap/recover
 
@@ -234,7 +248,7 @@ Response:
 
 Errors:
 
-* `ERR_BOOTSTRAP_ACL` when the caller lacks bootstrap recovery capability.
+* `ERR_SVC_SYS_SETUP_ACL` when the caller lacks bootstrap recovery capability.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 
@@ -272,8 +286,8 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CONTACT_LIMIT`
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -309,7 +323,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `identity_id`.
 * `400` (`object_invalid`) when `identity_id` does not resolve to an identity.
@@ -350,7 +364,7 @@ Rules:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -384,11 +398,11 @@ Rules:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`object_invalid`) when `invite_token` does not resolve to an invite.
 * `410 Gone` when invite is expired.
-* `ERR_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
+* `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 * `auth_invalid` for invalid or expired invite proof.
@@ -412,7 +426,7 @@ Response:
 ```
 
 Errors:
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
@@ -438,7 +452,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
@@ -478,7 +492,7 @@ Rules:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed query parameters.
 * `400` (`storage_error`) for directory read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -528,7 +542,7 @@ Response:
 
 Errors:
 
-* `ERR_SYNC_PLAN_INVALID`
+* `ERR_SVC_SYS_SYNC_PLAN_INVALID`
 * `400` (`identifier_invalid`) for malformed `peer_id`.
 * `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
 * `400` (`acl_denied`) when the caller lacks sync permissions for the peer or domain.
@@ -595,7 +609,7 @@ Rules:
 
 Errors:
 
-* `ERR_SYNC_PLAN_INVALID` for structural plan validation failures.
+* `ERR_SVC_SYS_SYNC_PLAN_INVALID` for structural plan validation failures.
 * `400` (`identifier_invalid`) for malformed `peer_id`.
 * `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
 * `400` (`acl_denied`) when the caller lacks sync permissions for the peer or domain.
@@ -607,7 +621,7 @@ Errors:
 ## 7. Admin Service endpoints
 
 Admin Service routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes MUST reject requests.
-When disabled, all `/system/ops/*` routes return `400` with `config_invalid`.
+When disabled, all `/system/ops/*` routes return `503` with `ERR_SVC_SYS_DISABLED`.
 
 ### 7.1 GET /system/ops/health
 
@@ -615,7 +629,7 @@ Response schema: see [11-ops-http.md](11-ops-http.md).
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 * `500` (`internal_error`) when Health Manager is unavailable or the snapshot cannot be served.
 
@@ -625,8 +639,8 @@ Response schema: see [11-ops-http.md](11-ops-http.md).
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
 ### 7.3 POST /system/ops/service-toggles
@@ -655,7 +669,7 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `400` (`envelope_invalid`) when `service` does not resolve to a known service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`config_invalid`) for Config Manager validation failures, vetoes, or queue overflow.
@@ -689,8 +703,8 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
@@ -737,8 +751,8 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
-* `ERR_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
 * `400` (`envelope_invalid`) for malformed query parameters or missing/invalid `class`.
 * `400` (`storage_error`) for log read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -775,7 +789,7 @@ Rules:
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -786,7 +800,7 @@ Request/response schema: see [11-ops-http.md](11-ops-http.md).
 
 Errors:
 
-* `ERR_OPS_CAPABILITY`
+* `ERR_SVC_SYS_OPS_CAPABILITY`
 * `400` (`storage_error`) for ingestion or persistence failures.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.

@@ -72,10 +72,10 @@ For the meta specifications, see [01-first-run-and-identity-bootstrap-meta.md](.
 
 | Condition | Owner | ErrorDetail.code | ErrorDetail.category | Transport status |
 | --- | --- | --- | --- | --- |
-| Missing or invalid bootstrap token | Bootstrap Service | `ERR_BOOTSTRAP_ACL` | `acl` | `400` |
+| Missing or invalid bootstrap token | Bootstrap Service | `ERR_SVC_SYS_SETUP_ACL` | `acl` | `400` |
 | Malformed bootstrap payload structure | Bootstrap Service | `envelope_invalid` | `structural` | `400` |
-| Bootstrap schema validation failure | Bootstrap Service | `ERR_BOOTSTRAP_SCHEMA` | `schema` | `400` |
-| Device attestation failure | Bootstrap Service | `ERR_BOOTSTRAP_DEVICE_ATTESTATION` | `auth` | `400` |
-| Node already installed | Bootstrap Service | `ERR_BOOTSTRAP_ACL` | `acl` | `400` |
+| Bootstrap schema validation failure | Bootstrap Service | `ERR_SVC_SYS_SETUP_SCHEMA` | `schema` | `400` |
+| Device attestation failure | Bootstrap Service | `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION` | `auth` | `400` |
+| Node already installed | Bootstrap Service | `ERR_SVC_SYS_SETUP_ACL` | `acl` | `400` |
 | Persistence failure | Storage Manager | `storage_error` | `storage` | `400` |
 | Unexpected internal failure | Owning manager | `internal_error` | `internal` | `500` |

@@ -226,7 +226,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 | Error class | Client response |
 | --- | --- |
 | `ERR_AUTH_*` | Force re-registration, clear sensitive caches. |
-| `ERR_ACL_*` | Display permission error, offer request access workflow if supported. |
+| `acl_denied`, `ERR_SVC_APP_CAPABILITY_REQUIRED`, `ERR_SVC_SYS_OPS_CAPABILITY`, `ERR_SVC_SYS_IDENTITY_CAPABILITY`, `ERR_SVC_APP_FEED_CAPABILITY` | Display permission error, offer request access workflow if supported. |
 | `ERR_SCHEMA_*` | Highlight invalid fields, prevent resubmission until corrected. |
 | `ERR_SYNC_*` | Retry with exponential backoff, surface diagnostics link. |
 | `ERR_RESOURCE_*` | Inform the user about admission delays and pause retries until allowed. |
@@ -320,7 +320,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 ### 12.2 App service coordination
 
 * When an app service exposes new APIs, the frontend must fetch the manifest (version, capability list, schema requirements) from [App Manager](../managers/08-app-manager.md) before calling them.
-* App service unavailability is normal. Clients detect it by observing `503 AppServiceDisabled` errors and degrade gracefully (hide UI, queue operations, or reroute to fallback services).
+* App service unavailability is normal. Clients detect it by observing `503` with one of the `ERR_SVC_APP_*` codes (`ERR_SVC_APP_NOT_READY`, `ERR_SVC_APP_DISABLED`, `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_APP_DRAINING`, `ERR_SVC_APP_LOAD_FAILED`) and degrade gracefully (hide UI, queue operations, or reroute to fallback services).
 
 ### 12.3 [OperationContext](05-operation-context.md) verification
 

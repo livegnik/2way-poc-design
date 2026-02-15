@@ -117,10 +117,10 @@ Notes:
 
 Failure mapping:
 
-* Signature verification failure -> `ERR_APP_SIGNATURE_INVALID`.
-* Missing or untrusted publisher -> `ERR_APP_PUBLISHER_UNTRUSTED`.
-* Missing or invalid OperationContext -> `ERR_APP_SERVICE_CONTEXT`.
-* Missing installer capability -> `ERR_APP_SERVICE_CAPABILITY`.
+* Signature verification failure -> `ERR_SVC_SYS_APP_SIGNATURE_INVALID`.
+* Missing or untrusted publisher -> `ERR_SVC_SYS_APP_PUBLISHER_UNTRUSTED`.
+* Missing or invalid OperationContext -> `ERR_SVC_APP_CONTEXT_INVALID`.
+* Missing installer capability -> `ERR_SVC_APP_CAPABILITY_REQUIRED`.
 * Schema object validation failure -> `schema_validation_failed`.
 * ACL object validation failure -> `schema_validation_failed`.
 * ACL authorization failure -> `acl_denied`.

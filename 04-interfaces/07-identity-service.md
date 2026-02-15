@@ -117,8 +117,8 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CONTACT_LIMIT`
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -154,7 +154,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `identity_id`.
 * `400` (`object_invalid`) when `identity_id` does not resolve to an identity.
@@ -188,7 +188,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -217,11 +217,11 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`object_invalid`) when `invite_token` does not resolve to an invite.
 * `410 Gone` when invite is expired.
-* `ERR_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
+* `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `auth_invalid` for invalid or expired invite proof.
@@ -246,7 +246,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
@@ -272,7 +272,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
@@ -310,7 +310,7 @@ Response:
 
 Errors:
 
-* `ERR_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`envelope_invalid`) for malformed query parameters.
 * `400` (`storage_error`) for directory read failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -318,8 +318,8 @@ Errors:
 ## 10. Validation and ordering
 
 * Every endpoint MUST construct a complete [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
-* Missing capability MUST reject with `ERR_IDENTITY_CAPABILITY`.
-* Contact limits MUST reject with `ERR_IDENTITY_CONTACT_LIMIT`.
+* Missing capability MUST reject with `ERR_SVC_SYS_IDENTITY_CAPABILITY`.
+* Contact limits MUST reject with `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT`.
 
 ## 11. Forbidden behaviors
 

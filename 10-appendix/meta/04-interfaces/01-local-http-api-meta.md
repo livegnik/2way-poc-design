@@ -27,6 +27,7 @@ This specification is responsible for the following:
 * Declaring the health snapshot schema returned by admin health endpoints.
 * Declaring the local graph read request/response shape that binds to Graph Manager reads.
 * Declaring PoC app list/read routes that bind to Graph Manager reads.
+* Declaring app service availability mappings for `ERR_SVC_APP_*` on app-scoped local routes.
 
 This specification does not cover the following:
 

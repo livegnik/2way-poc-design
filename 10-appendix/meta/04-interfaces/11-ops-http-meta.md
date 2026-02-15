@@ -21,7 +21,7 @@ This specification is responsible for the following:
 * Declaring ops routes and payloads.
 * Recording admin gating requirements.
 * Declaring the health snapshot schema and telemetry payload constraints.
-* Declaring ops route enablement gating and error mapping.
+* Declaring ops route enablement gating and error mapping, including `ERR_SVC_SYS_DISABLED` when routes are disabled.
 
 This specification does not cover the following:
 

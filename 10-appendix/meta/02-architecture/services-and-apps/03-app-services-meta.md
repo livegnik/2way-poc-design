@@ -32,6 +32,7 @@ This overview is responsible for the following:
 * Defining strict ownership rules between app services, managers, system services, and the interface layer so app-owned code never weakens the guarantees in [01-protocol/00-protocol-overview.md](../../../../01-protocol/00-protocol-overview.md) and [02-architecture/01-component-model.md](../../../../02-architecture/01-component-model.md).
 * Defining [OperationContext](../../../../02-architecture/services-and-apps/05-operation-context.md), capability catalog, configuration, schema, packaging, and observability requirements so app services integrate with managers using the same posture as system services.
 * Defining admission, [DoS Guard Manager](../../../../02-architecture/managers/14-dos-guard-manager.md), and [Health Manager](../../../../02-architecture/managers/13-health-manager.md) expectations that gate app service readiness and resource usage.
+* Defining app service availability error families (`ERR_SVC_APP_*`) and parent-scoped app service validation/capability families (`ERR_SVC_APP_*`) and when they must be surfaced.
 * Defining a reusable checklist that implementers can follow to prove an app service meets all contractual obligations before shipment.
 
 This overview does not cover the following:

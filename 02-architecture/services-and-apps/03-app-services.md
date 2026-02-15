@@ -116,6 +116,7 @@ State transitions are observable through [App Manager](../managers/08-app-manage
 ### 3.3 Dependency health and readiness
 
 * App services monitor [Health Manager](../managers/13-health-manager.md) for dependency readiness. If any dependency transitions to `not_ready`, the app service immediately stops the impacted surfaces and fails closed, following [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* If an app service route is reached while the app service is unavailable, the interface must reject with the most specific availability code and HTTP `503`: `ERR_SVC_APP_NOT_READY`, `ERR_SVC_APP_DISABLED`, `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_APP_DRAINING`, or `ERR_SVC_APP_LOAD_FAILED`.
 * Readiness reports (`initializing`, `ready`, `degraded`, `not_ready`, `stopped`) must reflect the ability to handle new work without data loss. Misreporting readiness violates the [OperationContext](05-operation-context.md) guarantees that DoS Guard depends on.
 
 ## 4. Packaging, registration, and compatibility
@@ -219,7 +220,8 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/11-versio
 
 ## 8. Failure handling and recovery
 
-* Failures reject work atomically with canonical error codes (`ERR_APP_SERVICE_CONTEXT`, `ERR_APP_SERVICE_CAPABILITY`, etc.), aligning with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Failures reject work atomically with canonical error codes (`ERR_SVC_APP_CONTEXT_INVALID`, `ERR_SVC_APP_CAPABILITY_REQUIRED`, etc.), aligning with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
+* Service availability failures (disabled, unload in progress, dependency outage, load failure, or `not_ready`) use the `ERR_SVC_APP_*` family with HTTP `503` on HTTP interfaces.
 * Background work may retry idempotent operations using bounded exponential backoff. Retries respect the ordering guarantees in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Crash recovery reconstructs state entirely from [Graph Manager](../managers/07-graph-manager.md), [Config Manager](../managers/01-config-manager.md), and other manager-owned stores. Derived caches rebuild deterministically before readiness returns.
 * Upgrade or rollback failures trigger [App Manager](../managers/08-app-manager.md) to reinstall the previous signed version, emit health degradation events, and leave graph state untouched.

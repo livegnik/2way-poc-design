@@ -26,15 +26,19 @@ This specification references:
 This specification is responsible for the following:
 
 * Defining the canonical set of protocol-level error classes and symbolic error codes.
+* Defining validation-stage order and deterministic precedence across failure classes.
+* Defining a complete protocol `ERR_*` registry with rejection scope guidance.
 * Defining when an operation, [envelope](../../../01-protocol/03-serialization-and-envelopes.md), or [sync package](../../../01-protocol/07-sync-and-consistency.md) must be rejected.
 * Defining invariants around rejection behavior and state safety.
 * Defining guarantees about side effects in the presence of failure.
 * Defining how failures are surfaced across trust boundaries (see [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)).
+* Providing transport surfacing guidance to [04-error-model.md](../../../04-interfaces/04-error-model.md) where interface mapping is required.
+* Distinguishing protocol-stage `ERR_*` symbols from interface service-availability families (`ERR_SVC_SYS_*`, `ERR_SVC_APP_*`) and forbidding bare family-root placeholders without specific suffixes.
 
 This specification does not cover the following:
 
 * UI error messages or localization.
-* HTTP status codes or [transport-specific representations](../../../01-protocol/08-network-transport-requirements.md).
+* Authoritative [transport-specific representations](../../../01-protocol/08-network-transport-requirements.md) for each interface.
 * Internal logging formats or [telemetry](../../../02-architecture/managers/11-event-manager.md).
 * Retry strategies, backoff policies, or scheduling.
 * Component-internal exceptions that do not cross protocol boundaries.

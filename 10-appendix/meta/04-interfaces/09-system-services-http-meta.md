@@ -22,6 +22,8 @@ This specification is responsible for the following:
 
 * Declaring HTTP routes, request/response shapes, and error mappings for system services.
 * Recording OperationContext requirements and fail-closed validation order.
+* Declaring service availability mappings for `ERR_SVC_SYS_*` codes on local HTTP routes.
+* Declaring per-service system error families (`ERR_SVC_SYS_SETUP_*`, `ERR_SVC_SYS_IDENTITY_*`, `ERR_SVC_SYS_SYNC_*`, `ERR_SVC_SYS_OPS_*`) and forbidding legacy unscoped service symbols.
 * Declaring the app service diagnostics snapshot schema.
 
 This specification does not cover the following:

@@ -217,6 +217,7 @@ Rules:
 * `401` if authentication fails (`auth_required`, `auth_invalid`).
 * `401` if auth token is expired or revoked (`ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`).
 * `404` if `slug` is unknown or the app registry has no entry for the resolved app (`app_not_found`).
+* `503` with one of `ERR_SVC_APP_NOT_READY`, `ERR_SVC_APP_DISABLED`, `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_APP_DRAINING`, `ERR_SVC_APP_LOAD_FAILED` if the app service for `slug` is installed but unavailable.
 * `500` for internal failures (`internal_error`).
 
 ### 5.6 POST /apps/{slug}/read
@@ -260,6 +261,7 @@ Rules:
 * `401` if authentication fails (`auth_required`, `auth_invalid`).
 * `401` if auth token is expired or revoked (`ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`).
 * `404` if `slug` is unknown or the app registry has no entry for the resolved app (`app_not_found`).
+* `503` with one of `ERR_SVC_APP_NOT_READY`, `ERR_SVC_APP_DISABLED`, `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE`, `ERR_SVC_APP_DRAINING`, `ERR_SVC_APP_LOAD_FAILED` if the app service for `slug` is installed but unavailable.
 * `500` for internal failures (`internal_error`).
 
 ## 6. Validation and ordering

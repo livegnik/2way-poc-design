@@ -19,3 +19,14 @@ This specification references the following documents:
 * `02-architecture/services-and-apps/05-operation-context.md`
 
 Those documents remain normative for their respective domains.
+
+## 2. Responsibilities and boundaries
+
+This specification is responsible for the following:
+
+* Defining separation rules between system services, app services, and frontend apps.
+* Defining how callers handle service availability failures, including `ERR_SVC_APP_*` behavior on unavailable app services.
+
+This specification does not cover the following:
+
+* Endpoint-specific transport mappings, which are owned by [04-interfaces/**](../../04-interfaces/).

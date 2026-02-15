@@ -26,6 +26,8 @@ This specification is responsible for the following:
 * Declaring publisher trust requirements for app installation.
 * Stating validation, ordering, and fail-closed rules for lifecycle actions.
 * Declaring lifecycle endpoint error responses.
+* Declaring parent-scoped lifecycle error families (`ERR_SVC_APP_*`, `ERR_SVC_SYS_APP_*`) and rejecting legacy singleton roots.
+* Declaring app service availability mappings for `ERR_SVC_APP_*` lifecycle failures.
 
 This specification does not cover the following:
 
