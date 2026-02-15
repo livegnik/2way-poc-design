@@ -20,6 +20,9 @@ This specification references:
 * [02-architecture/managers/**](managers/)
 * [02-architecture/services-and-apps/**](services-and-apps/)
 * [04-interfaces/**](../04-interfaces/)
+* [03-data/09-derived-cache-tables.md](../../../03-data/09-derived-cache-tables.md)
+* [01-protocol/08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
+* [01-protocol/09-dos-guard-and-client-puzzles.md](../../../01-protocol/09-dos-guard-and-client-puzzles.md)
 
 ## 2. Component model overview
 

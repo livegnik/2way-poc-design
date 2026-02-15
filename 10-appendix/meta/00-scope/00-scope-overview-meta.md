@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the scope boundary, document authority, and cross-document invariants for the 2WAY system design repository. It establishes what this repository specifies, what it explicitly excludes, and how the contained documents are to be interpreted and reviewed. This document does not define protocol wire formats, storage schemas, or component-level behavior beyond global constraints and invariants; those details live in [01-protocol](../01-protocol/), [02-architecture](../02-architecture/), and [03-data](../03-data/). Terminology is defined in [03-definitions-and-terminology.md](../../../00-scope/03-definitions-and-terminology.md).
+This document defines the scope boundary, document authority, and cross-document invariants for the 2WAY system design repository. It establishes what this repository specifies, what it explicitly excludes, and how the contained documents are to be interpreted and reviewed. This document does not define protocol wire formats, storage schemas, or component-level behavior beyond global constraints and invariants; those details live in [01-protocol](../01-protocol/), [02-architecture](../02-architecture/), [03-data](../03-data/), [04-interfaces](../04-interfaces/), [05-security](../05-security/), and [06-flows](../06-flows/). Terminology is defined in [03-definitions-and-terminology.md](../../../00-scope/03-definitions-and-terminology.md).
 
 This document is normative for determining whether a concern, requirement, or design decision belongs in this repository.
 
@@ -18,6 +18,7 @@ This specification is responsible for:
 * Defining global invariants that apply across protocol, architecture, data, and security specifications.
 * Defining mandatory enforcement boundaries between components, including write paths and trust boundaries.
 * Defining repository-wide guarantees related to sequencing, validation, authorization, and persistence effects.
+* Defining PoC runtime and persistence constraints that are repository-wide in scope.
 * Defining deterministic rejection and failure handling requirements at the scope level.
 * Defining how conflicts between documents in this repository are identified and resolved.
 
@@ -40,6 +41,7 @@ Consistency requirements:
 * Apparent conflicts between documents are treated as correctness failures until resolved.
 * More specific documents override more general documents, unless doing so violates invariants defined in this file.
 * No document may introduce behavior that weakens or bypasses the invariants defined here.
+* Unresolved conflicts are recorded in ADRs under [09-decisions](../../../09-decisions/00-decisions-overview.md).
 
 ## 4. Allowed behaviors
 

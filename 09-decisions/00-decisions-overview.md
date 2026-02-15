@@ -285,15 +285,15 @@ adr-002-04-06-service-lifecycle-and-upgrade.md
 adr-002-04-07-service-interface-consistency.md
 ```
 
-## **2.5. Backend Extensions Installed by Apps**
+## **2.5. App Services Installed by Apps**
 
 ```
-adr-002-05-01-backend-extension-model.md
-adr-002-05-02-extension-registration.md
-adr-002-05-03-extension-permissions.md
-adr-002-05-04-extension-interoperability.md
-adr-002-05-05-extension-performance-constraints.md
-adr-002-05-06-extension-upgrade-compatibility.md
+adr-002-05-01-app-service-model.md
+adr-002-05-02-app-service-registration.md
+adr-002-05-03-app-service-permissions.md
+adr-002-05-04-app-service-interoperability.md
+adr-002-05-05-app-service-performance-constraints.md
+adr-002-05-06-app-service-upgrade-compatibility.md
 ```
 
 ## **2.6. Application Boundaries and Cross-App Interaction**
@@ -410,7 +410,7 @@ adr-003-05-01-app-manager-purpose.md
 adr-003-05-02-app-registration-process.md
 adr-003-05-03-app-id-assignment.md
 adr-003-05-04-schema-registration.md
-adr-003-05-05-backend-extension-registration.md
+adr-003-05-05-app-service-registration.md
 adr-003-05-06-app-upgrade-rules.md
 adr-003-05-07-app-removal-safety-rules.md
 adr-003-05-08-app-metadata-storage.md
@@ -494,16 +494,16 @@ adr-003-11-07-cross-app-message-embedding.md
 adr-003-11-08-message-search-indexing.md
 ```
 
-## **3.12. Backend Extensions Installed by Apps**
+## **3.12. App Services Installed by Apps**
 
 ```
-adr-003-12-01-extension-definition.md
-adr-003-12-02-extension-registration-path.md
-adr-003-12-03-extension-permission-scope.md
-adr-003-12-04-extension-consistency-rules.md
-adr-003-12-05-extension-interoperability.md
-adr-003-12-06-extension-performance-requirements.md
-adr-003-12-07-extension-error-handling.md
+adr-003-12-01-app-service-definition.md
+adr-003-12-02-app-service-registration-path.md
+adr-003-12-03-app-service-permission-scope.md
+adr-003-12-04-app-service-consistency-rules.md
+adr-003-12-05-app-service-interoperability.md
+adr-003-12-06-app-service-performance-requirements.md
+adr-003-12-07-app-service-error-handling.md
 ```
 
 # **4. Sync, Networking, and Tor**
@@ -660,10 +660,10 @@ adr-005-06-06-app-removal-safety-rules.md
 adr-005-06-07-app-error-recovery.md
 ```
 
-## **5.7. Frontend Developer Extensions and Local Logic**
+## **5.7. Frontend Developer Apps and Local Logic**
 
 ```
-adr-005-07-01-frontend-extension-points.md
+adr-005-07-01-frontend-apps.md
 adr-005-07-02-local-logic-and-data-transformations.md
 adr-005-07-03-cross-app-ui-integration.md
 adr-005-07-04-app-like-behavior-model.md
@@ -955,7 +955,7 @@ adr-009-01-01-protocol-versioning-model.md
 adr-009-01-02-stable-vs-experimental-features.md
 adr-009-01-03-version-capabilities-negotiation.md
 adr-009-01-04-breaking-change-policy.md
-adr-009-01-05-protocol-extension-mechanisms.md
+adr-009-01-05-protocol-enhancement-mechanisms.md
 adr-009-01-06-version-mismatch-behavior.md
 adr-009-01-07-protocol-deprecation-guidelines.md
 ```
@@ -1013,7 +1013,7 @@ adr-009-05-07-security-deprecation-policy.md
 ```
 adr-009-06-01-app-upgrade-compatibility.md
 adr-009-06-02-service-upgrade-compatibility.md
-adr-009-06-03-backend-extension-compatibility.md
+adr-009-06-03-app-service-compatibility.md
 adr-009-06-04-app-uninstallation-state-rules.md
 adr-009-06-05-deprecated-api-surface.md
 adr-009-06-06-ui-compatibility-contract.md
@@ -1026,7 +1026,7 @@ adr-009-06-07-app-metadata-versioning.md
 adr-009-07-01-protocol-governance-baseline.md
 adr-009-07-02-evolution-principles.md
 adr-009-07-03-change-adoption-process.md
-adr-009-07-04-community-driven-extension-model.md
+adr-009-07-04-community-driven-app-service-model.md
 adr-009-07-05-backward-compatible-protocol-expansion.md
 adr-009-07-06-future-removal-of-legacy-behavior.md
 adr-009-07-07-permanent-invariants.md

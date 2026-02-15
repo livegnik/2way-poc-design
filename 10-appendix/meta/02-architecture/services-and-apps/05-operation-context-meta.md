@@ -6,9 +6,9 @@
 
 ## 1. Purpose and scope
 
-OperationContext is the immutable per-request envelope that binds identity, application, capability intent, trust posture, execution origin, and trace metadata to every backend action. It is the single authoritative structure used by managers to enforce authorization, app isolation, auditability, and local versus remote semantics. No service, extension, or manager that executes request-scoped work may be invoked without a complete and valid OperationContext.
+OperationContext is the immutable per-request envelope that binds identity, application, capability intent, trust posture, execution origin, and trace metadata to every backend action. It is the single authoritative structure used by managers to enforce authorization, app isolation, auditability, and local versus remote semantics. No system service, app service, or manager that executes request-scoped work may be invoked without a complete and valid OperationContext.
 
-This overview defines the required fields, construction rules, lifecycle behavior, and consumption requirements for OperationContext across frontend requests, system services, app backend extensions, automation jobs, internal engines, and remote synchronization handling. It is the canonical source for OperationContext semantics referenced throughout the protocol and architecture, aligned with the component responsibilities in [02-architecture/01-component-model.md](../../../../02-architecture/01-component-model.md) and the data flow posture in [02-architecture/04-data-flow-overview.md](../../../../02-architecture/04-data-flow-overview.md), and complemented by manager and service specifications under [02-architecture/managers/**](../managers/) and [02-architecture/services-and-apps/**](./).
+This overview defines the required fields, construction rules, lifecycle behavior, and consumption requirements for OperationContext across frontend requests, system services, app services, automation jobs, internal engines, and remote synchronization handling. It is the canonical source for OperationContext semantics referenced throughout the protocol and architecture, aligned with the component responsibilities in [02-architecture/01-component-model.md](../../../../02-architecture/01-component-model.md) and the data flow posture in [02-architecture/04-data-flow-overview.md](../../../../02-architecture/04-data-flow-overview.md), and complemented by manager and service specifications under [02-architecture/managers/**](../managers/) and [02-architecture/services-and-apps/**](./).
 
 This overview references:
 
@@ -34,7 +34,7 @@ This overview references:
 * [02-architecture/managers/14-dos-guard-manager.md](../../../../02-architecture/managers/14-dos-guard-manager.md)
 * [02-architecture/services-and-apps/**](./)
 * [02-architecture/services-and-apps/01-services-vs-apps.md](../../../../02-architecture/services-and-apps/01-services-vs-apps.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../../02-architecture/services-and-apps/03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/03-app-services.md](../../../../02-architecture/services-and-apps/03-app-services.md)
 * [02-architecture/services-and-apps/04-frontend-apps.md](../../../../02-architecture/services-and-apps/04-frontend-apps.md)
 
 ### 1.1 Responsibilities and boundaries

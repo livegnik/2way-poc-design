@@ -16,7 +16,7 @@ folder as the authoritative source for service/app roles and constraints.
 - [`00-services-and-apps-overview.md`](00-services-and-apps-overview.md) - Taxonomy, invariants, and flow summary.
 - [`01-services-vs-apps.md`](01-services-vs-apps.md) - Service/app boundaries and shared rules.
 - [`02-system-services.md`](02-system-services.md) - Mandatory system services and their contracts.
-- [`03-app-backend-extensions.md`](03-app-backend-extensions.md) - App extension service lifecycle and constraints.
+- [`03-app-services.md`](03-app-services.md) - App service lifecycle and constraints.
 - [`04-frontend-apps.md`](04-frontend-apps.md) - Frontend responsibilities and security posture.
 - [`05-operation-context.md`](05-operation-context.md) - `OperationContext` structure and lifecycle.
 
@@ -26,7 +26,7 @@ Each document has a corresponding meta specification in [`10-appendix/meta/02-ar
 
 1. Start with [`00-services-and-apps-overview.md`](00-services-and-apps-overview.md) for taxonomy and invariants.
 2. Read [`01-services-vs-apps.md`](01-services-vs-apps.md) for boundary rules.
-3. Use [`02-system-services.md`](02-system-services.md) and [`03-app-backend-extensions.md`](03-app-backend-extensions.md) for backend service behavior.
+3. Use [`02-system-services.md`](02-system-services.md) and [`03-app-services.md`](03-app-services.md) for backend service behavior.
 4. Read [`04-frontend-apps.md`](04-frontend-apps.md) for client posture.
 5. Keep [`05-operation-context.md`](05-operation-context.md) open for request context rules.
 
@@ -41,11 +41,11 @@ Each document has a corresponding meta specification in [`10-appendix/meta/02-ar
 - Validation order is fixed by managers: structural -> schema -> ACL -> sequencing -> persistence.
 - App isolation is enforced by `app_id`; cross-app access requires explicit schema + ACL approval.
 - Services and apps never create alternate write paths; derived caches are non-authoritative.
-- Services and extensions are unloadable without breaking global correctness.
+- System services and app services are unloadable without breaking global correctness.
 - Startup/shutdown follows readiness gates; services register only after managers are ready.
 
 ## Using this folder in reviews
 
 - Treat any service that touches storage, keys, or sockets directly as non-compliant.
 - Verify [`OperationContext`](05-operation-context.md) binding for every service call and background job.
-- Ensure extensions can be removed without impacting core invariants.
+- Ensure app services can be removed without impacting core invariants.

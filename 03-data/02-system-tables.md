@@ -35,7 +35,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 * [State Manager](../02-architecture/managers/09-state-manager.md) may request read and write access to sync tracking state
 * [Config Manager](../02-architecture/managers/01-config-manager.md) may request read and write access to settings
 * [Network Manager](../02-architecture/managers/10-network-manager.md) may request read access to peers
-* No service, app, or extension may access system tables directly
+* No system service, app, or app service may access system tables directly
 * Direct SQL access outside Storage Manager is forbidden
 
 Violation of these rules is a fatal implementation error.

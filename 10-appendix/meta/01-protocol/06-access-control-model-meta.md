@@ -14,8 +14,11 @@ This specification references:
 - [02-object-model.md](../../../01-protocol/02-object-model.md)
 - [04-cryptography.md](../../../01-protocol/04-cryptography.md)
 - [05-keys-and-identity.md](../../../01-protocol/05-keys-and-identity.md)
+- [04-error-model.md](../../../04-interfaces/04-error-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [09-dos-guard-and-client-puzzles.md](../../../01-protocol/09-dos-guard-and-client-puzzles.md)
+- [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
+- [05-operation-context.md](../../../02-architecture/services-and-apps/05-operation-context.md)
 
 This document is normative for the PoC.
 

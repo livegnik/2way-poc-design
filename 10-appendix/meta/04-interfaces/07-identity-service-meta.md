@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-Defines the interface obligations implied by the Identity & Relationship Service specification.
+Defines the interface obligations implied by the Identity Service specification.
 
 This document references:
 
@@ -25,3 +25,4 @@ This specification is responsible for the following:
 This specification does not cover the following:
 
 * UI or frontend workflows.
+

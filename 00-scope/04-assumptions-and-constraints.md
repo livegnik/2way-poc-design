@@ -56,7 +56,7 @@ The PoC should also satisfy the following where defined elsewhere in this reposi
 The following invariants are mandatory across the PoC:
 - Backend code consists of managers and services only.
 - Frontend hosts all apps.
-- Apps may ship backend extensions, but all backend logic must still use manager interfaces.
+- Apps may ship app services, but all backend logic must still use manager interfaces.
 - All graph writes occur via [Graph Manager](../02-architecture/managers/07-graph-manager.md).
 - All access control occurs via [ACL Manager](../02-architecture/managers/06-acl-manager.md).
 - All schema definitions originate from the graph and are compiled and served by [Schema Manager](../02-architecture/managers/05-schema-manager.md).
@@ -102,7 +102,7 @@ The following behaviors are explicitly forbidden within the PoC scope:
 The system treats the following as untrusted inputs:
 - All network-delivered packages, envelopes, and payloads.
 - All frontend-initiated requests and submitted objects.
-- All app-provided data and app-provided backend extension logic inputs.
+- All app-provided data and app-provided app service logic inputs.
 
 ### 6.2 Trusted components
 

@@ -16,34 +16,29 @@ This document specifies local-only HTTP contracts for system services under `/sy
 
 | Service | Route | Method | Auth | Summary |
 | --- | --- | --- | --- | --- |
-| SBPS | `/system/bootstrap/install` | POST | Required | First-run installation and bootstrap. |
-| SBPS | `/system/bootstrap/invites` | POST | Required | Issue a bootstrap invite token. |
-| SBPS | `/system/bootstrap/devices` | POST | Required | Enroll a device using an invite. |
-| SBPS | `/system/bootstrap/recover` | POST | Required | Rotate bootstrap secrets or reset ACL templates. |
-| IRS | `/system/identity/identities` | POST | Required | Create or update an identity. |
-| IRS | `/system/identity/devices` | POST | Required | Link a device to an identity. |
-| IRS | `/system/identity/invites` | POST | Required | Issue a contact invite. |
-| IRS | `/system/identity/invites/accept` | POST | Required | Accept a contact invite. |
-| IRS | `/system/identity/capabilities/grant` | POST | Required | Grant a capability to an identity. |
-| IRS | `/system/identity/capabilities/revoke` | POST | Required | Revoke a capability from an identity. |
-| IRS | `/system/identity/directory` | GET | Required | Directory query by handle/capability/trust. |
-| BFS | `/system/feed/threads` | POST | Required | Create a feed thread. |
-| BFS | `/system/feed/messages` | POST | Required | Append a message to a thread. |
-| BFS | `/system/feed/reactions` | POST | Required | Add a reaction rating. |
-| BFS | `/system/feed/moderations` | POST | Required | Submit a moderation rating. |
-| BFS | `/system/feed/threads` | GET | Required | Read aggregated feed threads. |
-| SOS | `/system/sync/peers` | GET | Required | List peers with sync status. |
-| SOS | `/system/sync/plans` | POST | Required | Submit or update a sync plan. |
-| SOS | `/system/sync/peers/{peer_id}/pause` | POST | Required | Pause peer sync. |
-| SOS | `/system/sync/peers/{peer_id}/resume` | POST | Required | Resume peer sync. |
-| SOS | `/system/sync/diagnostics` | POST | Required | Trigger sync diagnostics package. |
-| OCS | `/system/ops/health` | GET | Required (admin) | Aggregated readiness/liveness snapshot. |
-| OCS | `/system/ops/config` | GET | Required (admin) | Export sanitized configuration. |
-| OCS | `/system/ops/service-toggles` | POST | Required (admin) | Enable or disable services. |
-| OCS | `/system/ops/capabilities` | POST | Required (admin) | Delegate capabilities via IRS. |
-| OCS | `/system/ops/audit/logs` | GET | Required (admin) | Query structured logs. |
-| OCS | `/system/ops/extensions/{slug}/diagnostics` | POST | Required (admin) | Extension diagnostics dump. |
-| OCS | `/system/ops/clients/telemetry` | POST | Required (admin) | Ingest client telemetry aggregates. |
+| Setup Service | `/system/bootstrap/install` | POST | Required | First-run installation and bootstrap. |
+| Setup Service | `/system/bootstrap/invites` | POST | Required | Issue a bootstrap invite token. |
+| Setup Service | `/system/bootstrap/devices` | POST | Required | Enroll a device using an invite. |
+| Setup Service | `/system/bootstrap/recover` | POST | Required | Rotate bootstrap secrets or reset ACL templates. |
+| Identity Service | `/system/identity/identities` | POST | Required | Create or update an identity. |
+| Identity Service | `/system/identity/devices` | POST | Required | Link a device to an identity. |
+| Identity Service | `/system/identity/invites` | POST | Required | Issue a contact invite. |
+| Identity Service | `/system/identity/invites/accept` | POST | Required | Accept a contact invite. |
+| Identity Service | `/system/identity/capabilities/grant` | POST | Required | Grant a capability to an identity. |
+| Identity Service | `/system/identity/capabilities/revoke` | POST | Required | Revoke a capability from an identity. |
+| Identity Service | `/system/identity/directory` | GET | Required | Directory query by handle/capability/trust. |
+| Sync Service | `/system/sync/peers` | GET | Required | List peers with sync status. |
+| Sync Service | `/system/sync/plans` | POST | Required | Submit or update a sync plan. |
+| Sync Service | `/system/sync/peers/{peer_id}/pause` | POST | Required | Pause peer sync. |
+| Sync Service | `/system/sync/peers/{peer_id}/resume` | POST | Required | Resume peer sync. |
+| Sync Service | `/system/sync/diagnostics` | POST | Required | Trigger sync diagnostics package. |
+| Admin Service | `/system/ops/health` | GET | Required (admin) | Aggregated readiness/liveness snapshot. |
+| Admin Service | `/system/ops/config` | GET | Required (admin) | Export sanitized configuration. |
+| Admin Service | `/system/ops/service-toggles` | POST | Required (admin) | Enable or disable services. |
+| Admin Service | `/system/ops/capabilities` | POST | Required (admin) | Delegate capabilities via Identity Service. |
+| Admin Service | `/system/ops/audit/logs` | GET | Required (admin) | Query structured logs. |
+| Admin Service | `/system/ops/app-services/{slug}/diagnostics` | POST | Required (admin) | app service diagnostics dump. |
+| Admin Service | `/system/ops/clients/telemetry` | POST | Required (admin) | Ingest client telemetry aggregates. |
 
 ## 3. Common requirements
 
@@ -59,9 +54,10 @@ Common errors (all endpoints):
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`envelope_invalid`) when required [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) fields are missing.
 * `400` (`network_rejected`) when [Network Manager](../02-architecture/managers/10-network-manager.md) is not ready for network-coupled work.
+* DoS Guard challenges are not issued on these local HTTP endpoints; admission failures are surfaced as `network_rejected`.
 * `500` (`internal_error`) for internal failures.
 
-## 4. SBPS endpoints
+## 4. Setup Service endpoints
 
 ### 4.1 POST /system/bootstrap/install
 
@@ -242,7 +238,7 @@ Errors:
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 
-## 5. IRS endpoints
+## 5. Identity Service endpoints
 
 ### 5.1 POST /system/identity/identities
 
@@ -487,213 +483,9 @@ Errors:
 * `400` (`storage_error`) for directory read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-## 6. BFS endpoints
+## 6. Sync Service endpoints
 
-### 6.1 POST /system/feed/threads
-
-Request body:
-
-```
-{
-  "app_id": <int>,
-  "thread": {
-    "title": "<string>",
-    "body": "<string>"
-  }
-}
-```
-
-Rules:
-
-* `thread.title` is required (1-120 chars).
-* `thread.body` is optional (1-2000 chars).
-* Unknown fields are rejected.
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-* `acl_denied`
-* `storage_error`
-* `config_invalid` when `service.feed.max_threads_per_app` is exceeded.
-* `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`identifier_invalid`) for malformed `app_id`.
-* `400` (`schema_validation_failed`) when `app_id` does not resolve to a feed-enabled app.
-* `401` (`auth_required`, `auth_invalid`) for authentication failures.
-
-Response:
-
-```
-{
-  "thread_id": "<parent_id>",
-  "global_seq": <int>
-}
-```
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-
-### 6.2 POST /system/feed/messages
-
-Request body:
-
-```
-{
-  "app_id": <int>,
-  "thread_id": "<parent_id>",
-  "message": {
-    "body": "<string>"
-  }
-}
-```
-
-Rules:
-
-* `message.body` is required (1-2000 chars).
-* Unknown fields are rejected.
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-* `acl_denied`
-* `storage_error`
-* `config_invalid` when `service.feed.max_replies_per_thread` is exceeded.
-* `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`identifier_invalid`) for malformed `app_id` or `thread_id`.
-* `400` (`object_invalid`) when `thread_id` does not resolve to a thread.
-* `400` (`schema_validation_failed`) when `app_id` does not resolve to a feed-enabled app.
-* `401` (`auth_required`, `auth_invalid`) for authentication failures.
-
-Response:
-
-```
-{
-  "message_id": "<attr_id>",
-  "global_seq": <int>
-}
-```
-
-### 6.3 POST /system/feed/reactions
-
-Request body:
-
-```
-{
-  "app_id": <int>,
-  "target_parent_id": "<parent_id>",
-  "reaction": {
-    "value": <int>
-  }
-}
-```
-
-Rules:
-
-* `reaction.value` is required and must be -1, 0, or 1.
-* Unknown fields are rejected.
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-* `acl_denied`
-* `storage_error`
-* `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`identifier_invalid`) for malformed `app_id` or `target_parent_id`.
-* `400` (`object_invalid`) when `target_parent_id` does not resolve to a target.
-* `400` (`schema_validation_failed`) when `app_id` does not resolve to a feed-enabled app.
-* `401` (`auth_required`, `auth_invalid`) for authentication failures.
-
-Response:
-
-```
-{
-  "reaction_id": "<rating_id>",
-  "global_seq": <int>
-}
-```
-
-### 6.4 POST /system/feed/moderations
-
-Request body:
-
-```
-{
-  "app_id": <int>,
-  "target_parent_id": "<parent_id>",
-  "moderation": {
-    "value": <int>,
-    "reason": "<string>"
-  }
-}
-```
-
-Rules:
-
-* `moderation.value` is required and must be -1, 0, or 1.
-* `moderation.reason` is optional (1-256 chars).
-* Unknown fields are rejected.
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-* `acl_denied`
-* `storage_error`
-* `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`identifier_invalid`) for malformed `app_id` or `target_parent_id`.
-* `400` (`object_invalid`) when `target_parent_id` does not resolve to a target.
-* `400` (`schema_validation_failed`) when `app_id` does not resolve to a feed-enabled app.
-* `401` (`auth_required`, `auth_invalid`) for authentication failures.
-
-Response:
-
-```
-{
-  "moderation_id": "<rating_id>",
-  "global_seq": <int>
-}
-```
-
-### 6.5 GET /system/feed/threads
-
-Query parameters:
-
-* `app_id` (required)
-* `cursor` (optional)
-* `limit` (optional)
-
-Response:
-
-```
-{
-  "items": [
-    {
-      "thread_id": "<parent_id>",
-      "title": "<string>",
-      "last_updated_at": "<rfc3339>"
-    }
-  ],
-  "next_cursor": "<string>"
-}
-```
-
-Rules:
-
-* `items` entries include `thread_id`, `title`, `last_updated_at`.
-* `next_cursor` is optional.
-
-Errors:
-
-* `ERR_FEED_CAPABILITY`
-* `acl_denied`
-* `storage_error`
-* `400` (`envelope_invalid`) for malformed query parameters.
-* `400` (`identifier_invalid`) for malformed `app_id`.
-* `400` (`schema_validation_failed`) when `app_id` does not resolve to a feed-enabled app.
-* `401` (`auth_required`, `auth_invalid`) for authentication failures.
-
-## 7. SOS endpoints
-
-### 7.1 GET /system/sync/peers
+### 6.1 GET /system/sync/peers
 
 Response:
 
@@ -715,7 +507,7 @@ Errors:
 * `400` (`storage_error`) for State Manager read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 7.2 POST /system/sync/plans
+### 6.2 POST /system/sync/plans
 
 Request body:
 
@@ -744,7 +536,7 @@ Errors:
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for State Manager persistence failures.
 
-### 7.3 POST /system/sync/peers/{peer_id}/pause
+### 6.3 POST /system/sync/peers/{peer_id}/pause
 
 Response:
 
@@ -760,7 +552,7 @@ Errors:
 * `400` (`acl_denied`) when the caller lacks sync permissions.
 * `400` (`storage_error`) for State Manager persistence failures.
 
-### 7.4 POST /system/sync/peers/{peer_id}/resume
+### 6.4 POST /system/sync/peers/{peer_id}/resume
 
 Response:
 
@@ -776,7 +568,7 @@ Errors:
 * `400` (`acl_denied`) when the caller lacks sync permissions.
 * `400` (`storage_error`) for State Manager persistence failures.
 
-### 7.5 POST /system/sync/diagnostics
+### 6.5 POST /system/sync/diagnostics
 
 Request body:
 
@@ -812,12 +604,12 @@ Errors:
 * `400` (`storage_error`) for State Manager persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-## 8. OCS endpoints
+## 7. Admin Service endpoints
 
-OCS routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes MUST reject requests.
+Admin Service routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes MUST reject requests.
 When disabled, all `/system/ops/*` routes return `400` with `config_invalid`.
 
-### 8.1 GET /system/ops/health
+### 7.1 GET /system/ops/health
 
 Response schema: see [11-ops-http.md](11-ops-http.md).
 
@@ -827,7 +619,7 @@ Errors:
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 * `500` (`internal_error`) when Health Manager is unavailable or the snapshot cannot be served.
 
-### 8.2 GET /system/ops/config
+### 7.2 GET /system/ops/config
 
 Response schema: see [11-ops-http.md](11-ops-http.md).
 
@@ -837,7 +629,7 @@ Errors:
 * `ERR_OPS_CONFIG_ACCESS`
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 8.3 POST /system/ops/service-toggles
+### 7.3 POST /system/ops/service-toggles
 
 Request body:
 
@@ -870,7 +662,7 @@ Errors:
 * `400` (`storage_error`) for Config Manager persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 8.4 POST /system/ops/capabilities
+### 7.4 POST /system/ops/capabilities
 
 Request body:
 
@@ -902,10 +694,10 @@ Errors:
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`storage_error`) for IRS persistence failures.
+* `400` (`storage_error`) for Identity Service persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 8.5 GET /system/ops/audit/logs
+### 7.5 GET /system/ops/audit/logs
 
 Query parameters:
 
@@ -951,7 +743,7 @@ Errors:
 * `400` (`storage_error`) for log read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 8.6 POST /system/ops/extensions/{slug}/diagnostics
+### 7.6 POST /system/ops/app-services/{slug}/diagnostics
 
 Response:
 
@@ -984,11 +776,11 @@ Rules:
 Errors:
 
 * `ERR_OPS_CAPABILITY`
-* `404` (`app_not_found`) when `slug` does not resolve to an installed extension.
+* `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
-### 8.7 POST /system/ops/clients/telemetry
+### 7.7 POST /system/ops/clients/telemetry
 
 Request/response schema: see [11-ops-http.md](11-ops-http.md).
 
@@ -1000,14 +792,14 @@ Errors:
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 * `500` (`internal_error`) for internal failures.
 
-## 9. Validation and ordering
+## 8. Validation and ordering
 
 * Structural validation occurs before schema, ACL, or persistence.
 * Schema validation occurs before ACL evaluation.
 * ACL evaluation occurs before persistence.
 * All failures are returned without partial state changes.
 
-## 10. Forbidden behaviors
+## 9. Forbidden behaviors
 
 * Accepting requests without a valid [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
 * Bypassing [Graph Manager](../02-architecture/managers/07-graph-manager.md) for any mutation.

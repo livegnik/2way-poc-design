@@ -6,12 +6,12 @@
 
 ## 1. Purpose and scope
 
-Defines the app lifecycle interface implied by App Manager and app extension lifecycle rules.
+Defines the app lifecycle interface implied by App Manager and app service lifecycle rules.
 
 This document references:
 
 * [02-architecture/managers/08-app-manager.md](../../../02-architecture/managers/08-app-manager.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../02-architecture/services-and-apps/03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/03-app-services.md](../../../02-architecture/services-and-apps/03-app-services.md)
 * [02-architecture/services-and-apps/05-operation-context.md](../../../02-architecture/services-and-apps/05-operation-context.md)
 * [01-protocol/03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md)
 

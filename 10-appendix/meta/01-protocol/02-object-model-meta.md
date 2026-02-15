@@ -16,6 +16,8 @@ This specification references:
 * [05-keys-and-identity.md](../../../01-protocol/05-keys-and-identity.md)
 * [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 * [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
+* [05-schema-manager.md](../../../02-architecture/managers/05-schema-manager.md)
+* [08-app-manager.md](../../../02-architecture/managers/08-app-manager.md)
 
 This document does not define [serialization formats](../../../01-protocol/03-serialization-and-envelopes.md), [envelope structures](../../../01-protocol/03-serialization-and-envelopes.md), [schema semantics](../../../02-architecture/managers/05-schema-manager.md), [ACL evaluation logic](../../../01-protocol/06-access-control-model.md), [persistence layout](../../../03-data/01-sqlite-layout.md), or [synchronization behavior](../../../01-protocol/07-sync-and-consistency.md). Those concerns are defined in other protocol and architecture documents and are referenced here only where required to establish correctness boundaries.
 

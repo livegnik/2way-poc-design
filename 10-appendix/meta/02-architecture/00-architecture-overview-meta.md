@@ -54,7 +54,7 @@ Each manager has a dedicated specification file that defines authoritative respo
 * [managers/05-schema-manager.md](../../../02-architecture/managers/05-schema-manager.md) - schema definition handling, validation ordering, and namespace enforcement.
 * [managers/06-acl-manager.md](../../../02-architecture/managers/06-acl-manager.md) - authorization inputs, evaluation semantics, and enforcement posture.
 * [managers/07-graph-manager.md](../../../02-architecture/managers/07-graph-manager.md) - mutation orchestration, sequencing, and envelope application behavior.
-* [managers/08-app-manager.md](../../../02-architecture/managers/08-app-manager.md) - app registration, lifecycle, extension loading, and namespace binding.
+* [managers/08-app-manager.md](../../../02-architecture/managers/08-app-manager.md) - app registration, lifecycle, app service loading, and namespace binding.
 * [managers/09-state-manager.md](../../../02-architecture/managers/09-state-manager.md) - sync domain definitions, sequencing, reconciliation, and replay protection.
 * [managers/10-network-manager.md](../../../02-architecture/managers/10-network-manager.md) - peer communication, transport abstraction, cryptographic binding, and DoS integration.
 * [managers/11-event-manager.md](../../../02-architecture/managers/11-event-manager.md) - event emission, subscription semantics, and WebSocket delivery contracts.
@@ -64,12 +64,12 @@ Each manager has a dedicated specification file that defines authoritative respo
 
 ### 3.3 Services and apps specifications ([02-architecture/services-and-apps](services-and-apps/))
 
-These documents define how system services, app extensions, and frontend experiences consume the managers:
+These documents define how system services, app services, and frontend experiences consume the managers:
 
 * [services-and-apps/00-services-and-apps-overview.md](../../../02-architecture/services-and-apps/00-services-and-apps-overview.md) - scope and shared responsibilities of backend services and frontend apps.
-* [services-and-apps/01-services-vs-apps.md](../../../02-architecture/services-and-apps/01-services-vs-apps.md) - differentiates long-lived system services from app-scoped extensions and UI apps.
+* [services-and-apps/01-services-vs-apps.md](../../../02-architecture/services-and-apps/01-services-vs-apps.md) - differentiates long-lived system services from app-scoped app services and UI apps.
 * [services-and-apps/02-system-services.md](../../../02-architecture/services-and-apps/02-system-services.md) - expectations for built-in services that ship with the node.
-* [services-and-apps/03-app-backend-extensions.md](../../../02-architecture/services-and-apps/03-app-backend-extensions.md) - constraints on optional backend extensions authored by apps.
+* [services-and-apps/03-app-services.md](../../../02-architecture/services-and-apps/03-app-services.md) - constraints on optional app services authored by apps.
 * [services-and-apps/04-frontend-apps.md](../../../02-architecture/services-and-apps/04-frontend-apps.md) - frontend posture, allowed backend interactions, and trust boundaries.
 * [services-and-apps/05-operation-context.md](../../../02-architecture/services-and-apps/05-operation-context.md) - definition of OperationContext, required fields, and propagation rules.
 

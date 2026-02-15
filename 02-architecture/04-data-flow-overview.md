@@ -135,10 +135,9 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 * API layer receives request through [04-interfaces/**](../04-interfaces/).
 * [OperationContext](services-and-apps/05-operation-context.md) is constructed.
-* [ACL Manager](managers/06-acl-manager.md) evaluates read permissions and domain membership.
-* Service or app backend extension defined in [02-architecture/services-and-apps/**](services-and-apps/) may compute query parameters and apply derived or cached read optimizations without database access.
-* [Storage Manager](managers/02-storage-manager.md) executes constrained read using parameters provided by the caller.
-* Service or app backend extension applies deterministic visibility suppression based on accessible Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) where defined.
+* Service or app service defined in [02-architecture/services-and-apps/**](services-and-apps/) computes query parameters and may apply derived or cached read optimizations without database access.
+* [Graph Manager](managers/07-graph-manager.md) evaluates authorization via [ACL Manager](managers/06-acl-manager.md) and executes constrained reads through [Storage Manager](managers/02-storage-manager.md).
+* Service or app service applies deterministic visibility suppression based on accessible Rating objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md) where defined.
 * Results are returned to caller.
 
 ### 4.3 Allowed behavior
@@ -146,11 +145,12 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 * Visibility filtering based on ACL and domain rules.
 * Deterministic suppression based on Rating interpretation.
 * Read optimization using derived or cached data that is non-authoritative.
-* Read only access to authoritative graph state through [Storage Manager](managers/02-storage-manager.md).
+* Read only access to authoritative graph state through [Graph Manager](managers/07-graph-manager.md).
 
 ### 4.4 Forbidden behavior
 
 * Reads that bypass [ACL Manager](managers/06-acl-manager.md) or domain checks.
+* Reads that bypass [Graph Manager](managers/07-graph-manager.md) for authoritative graph data.
 * Direct database access by apps or services.
 * Reads that aggregate across domains.
 * Read optimizations that introduce new authoritative state.

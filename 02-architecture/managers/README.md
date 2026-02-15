@@ -21,7 +21,7 @@ folder as the authoritative source for manager responsibilities and boundaries.
 - [`05-schema-manager.md`](05-schema-manager.md) - Schema compilation, type resolution, and validation.
 - [`06-acl-manager.md`](06-acl-manager.md) - Authorization for all reads and writes.
 - [`07-graph-manager.md`](07-graph-manager.md) - Single write path and authoritative read surface.
-- [`08-app-manager.md`](08-app-manager.md) - App registration, app identities, and extension wiring.
+- [`08-app-manager.md`](08-app-manager.md) - App registration, app identities, and app service wiring.
 - [`09-state-manager.md`](09-state-manager.md) - Sync metadata and package coordination.
 - [`10-network-manager.md`](10-network-manager.md) - Transport surfaces and edge cryptography.
 - [`11-event-manager.md`](11-event-manager.md) - Event publication and subscriber enforcement.

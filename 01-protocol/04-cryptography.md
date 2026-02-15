@@ -13,7 +13,7 @@ For the meta specifications, see [04-cryptography meta](../10-appendix/meta/01-p
 ## 1.1 Signing
 
 - All signatures use secp256k1.
-- Signatures are applied to protocol message bytes as defined by the message serialization used for transport.
+- Signatures are applied to canonical bytes as defined by the signed portion rules in this document.
 - Verification uses the corresponding public key supplied by local state as defined in [05-keys-and-identity.md](05-keys-and-identity.md).
 
 ### 1.1.1 Signature encoding
@@ -60,7 +60,7 @@ A node to node package that crosses the node trust boundary defined by [08-netwo
 - A signature over the package content.
 - Sender identification sufficient for the receiver to select the correct public key from local state.
 
-If confidentiality is required for the package payload, the payload must be encrypted using ECIES as specified in 3.2.
+If confidentiality is required for the package payload, the payload must be encrypted using ECIES as specified in 1.2.
 
 ## 2.2 Graph envelopes transmitted over remote sync
 
@@ -74,16 +74,26 @@ For cryptographic purposes, a remote sync envelope must include the following me
 - to_seq
 - signature
 
-## 2.3 Signature coverage
+The inner graph envelope is included in the signed portion and must not be altered after signing.
+
+### 2.3 Auth session payloads
+
+Authentication registration and token issuance flows use signatures defined by the auth session interface ([13-auth-session.md](../04-interfaces/13-auth-session.md)). Those payloads also use JCS canonicalization and secp256k1 signatures; their exact signed fields are defined in the auth session specification, not in this document.
+
+## 2.4 Signature coverage
 
 A signature must cover all bytes whose modification could change meaning, [authorization context](06-access-control-model.md), or replay semantics.
 
 At minimum, the signature must cover:
 
 - The operations contained in the package or envelope.
-- The sync metadata fields listed in 4.2 when present.
+- The sync metadata fields listed in 2.2 when present.
 
 A receiver must treat any message as invalid if signature verification succeeds but the receiver cannot associate the verified signature with the exact metadata and operations the receiver is about to apply.
+
+For sync packages, the signed portion is the full sync package envelope excluding the `signature` field, serialized using JCS as defined in [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md).
+
+Local graph envelopes submitted over local interfaces are not signed; they are authenticated via [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) and the auth session flow, and must not include a `signature` field.
 
 ## 3. Visibility requirements for cryptographic processing
 
@@ -92,6 +102,7 @@ Fields required for routing, [sync validation](07-sync-and-consistency.md), and 
 The protocol forbids encrypting the entire message in a way that prevents the receiver from:
 
 - Selecting the correct public key for signature verification from local state.
+- Reading the sender identity and signature required for verification.
 - Reading domain name and sequence range values needed to validate ordering and replay constraints.
 
 If partial encryption is used, the encrypted portion must be limited to payload bytes that are not required for the checks above.
@@ -199,7 +210,7 @@ The specification explicitly forbids:
 - Accepting any remote package or envelope that lacks a verifiable signature.
 - Accepting any message using an algorithm other than secp256k1 for signatures and ECIES for encryption.
 - Allowing components other than [Key Manager](../02-architecture/managers/03-key-manager.md) to access private keys for signing or decryption.
-- Allowing [Graph Manager](../02-architecture/managers/07-graph-manager.md) or app extensions to bypass [Network Manager](../02-architecture/managers/10-network-manager.md) and [State Manager](../02-architecture/managers/09-state-manager.md) to introduce remote envelopes.
+- Allowing [Graph Manager](../02-architecture/managers/07-graph-manager.md) or app services to bypass [Network Manager](../02-architecture/managers/10-network-manager.md) and [State Manager](../02-architecture/managers/09-state-manager.md) to introduce remote envelopes.
 - Encrypting required routing or [sync validation](07-sync-and-consistency.md) metadata such that the receiver cannot validate signature, domain name, or sequence range prior to decryption.
 
 ## 8. Failure and rejection behavior
@@ -211,6 +222,8 @@ If signature verification fails, the receiver must:
 - Reject the package or envelope.
 - Perform no further processing of the contained operations.
 - Perform no state changes, including [sync state updates](07-sync-and-consistency.md).
+
+When surfaced as a protocol error, cryptographic failures use the `ERR_CRYPTO_*` codes defined in [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md). Interface layers map these to `ErrorDetail` responses per [04-error-model.md](../04-interfaces/04-error-model.md).
 
 ## 8.2 Decryption failure
 

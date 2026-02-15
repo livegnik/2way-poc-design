@@ -30,7 +30,7 @@ A structurally valid envelope provides these guarantees:
 
 ### 2.1 Explicitly allowed
 
-* Local services, app extension services, and automation jobs may submit graph message envelopes to [Graph Manager](../02-architecture/managers/07-graph-manager.md) using an [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) supplied by the HTTP layer or constructed by the local entrypoint.
+* Local services, app services, and automation jobs may submit graph message envelopes to [Graph Manager](../02-architecture/managers/07-graph-manager.md) using an [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) supplied by the HTTP layer or constructed by the local entrypoint.
 * [State Manager](../02-architecture/managers/09-state-manager.md) may submit remote graph message envelopes to [Graph Manager](../02-architecture/managers/07-graph-manager.md) using an [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) that marks the request as remote and binds it to a [sync domain](07-sync-and-consistency.md).
 * A graph message envelope may contain a mixture of operation kinds, provided all are for supported object categories and pass validation.
 * A sync package may carry additional metadata fields that are required for sync state updates.
@@ -144,6 +144,8 @@ For `attr_create` and `attr_update`, `payload` MUST contain:
 * `parent_id`. The Parent the Attribute attaches to.
 * `value`. The attribute value.
 
+`parent_id` maps to the Attribute `src_parent_id` field defined in [02-object-model.md](02-object-model.md).
+
 For `attr_update`, `payload` MAY include:
 
 * `attr_id`. If present, it identifies the specific attribute record being updated. If absent, the update target resolution rules are defined in [02-object-model.md](02-object-model.md).
@@ -153,7 +155,7 @@ For `attr_update`, `payload` MAY include:
 For `edge_create` and `edge_update`, `payload` MUST contain:
 
 * `src_parent_id`. Source Parent id.
-* `dst_parent_id`. Destination Parent id.
+* Exactly one of `dst_parent_id` or `dst_attr_id`. Destination Parent or Attribute id.
 
 For `edge_update`, `payload` MAY include:
 
@@ -163,7 +165,7 @@ For `edge_update`, `payload` MAY include:
 
 For `rating_create` and `rating_update`, `payload` MUST contain:
 
-* `subject_parent_id`. The Parent being rated.
+* Exactly one of `target_parent_id` or `target_attr_id`. The object being rated.
 * `value`. The rating value.
 
 For `rating_update`, `payload` MAY include:
@@ -175,6 +177,7 @@ For `rating_update`, `payload` MAY include:
 * Operations MUST NOT include `global_seq`. `global_seq` is assigned during application by [Graph Manager](../02-architecture/managers/07-graph-manager.md) for local writes, and is not a client controlled field.
 * Operations MUST NOT include `sync_flags`. `sync_flags` is determined by [schema](../02-architecture/managers/05-schema-manager.md) and [domain membership](07-sync-and-consistency.md) during application.
 * Operations MUST NOT include ACL rule material inline. ACL evaluation inputs are defined by the [ACL model](06-access-control-model.md).
+* All operations in an envelope MUST share the same `app_id` and `owner_identity`.
 
 ## 7. Sync package envelope
 
@@ -190,8 +193,8 @@ A sync package envelope is a JSON object with these required fields:
 * `sync_domain`. String domain name, for example `messages` (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 * `from_seq`. Integer. The first sequence number included, computed as last known sequence plus one.
 * `to_seq`. Integer. The highest sequence number included.
-* `envelope`. A graph message envelope object as defined in Section 7.
-* `signature`. String. A secp256k1 signature over the signed portion defined in Section 9.3 (see [04-cryptography.md](04-cryptography.md)). Encoded as base64 of 64 bytes (`r || s`).
+* `envelope`. A graph message envelope object as defined in Section 5.
+* `signature`. String. A secp256k1 signature over the signed portion defined in Section 7.3 (see [04-cryptography.md](04-cryptography.md)). Encoded as base64 of 64 bytes (`r || s`).
 
 No other fields are permitted in a sync package envelope.
 

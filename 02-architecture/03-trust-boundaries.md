@@ -82,7 +82,7 @@ On invalid, malformed, or unauthorized input:
 
 Apps are not trusted by the backend.
 
-This applies equally to frontend-only apps and apps with backend extension services.
+This applies equally to frontend-only apps and apps with app services.
 
 ### 4.2 Allowed behaviors
 

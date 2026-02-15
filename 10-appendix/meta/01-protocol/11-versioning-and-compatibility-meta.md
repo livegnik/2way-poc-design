@@ -11,9 +11,11 @@ This document defines protocol versioning and compatibility rules for 2WAY. It s
 This specification references:
 
 - [03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md)
+- [04-cryptography.md](../../../01-protocol/04-cryptography.md)
 - [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
+- [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
 
 ## 2. Responsibilities and boundaries
 

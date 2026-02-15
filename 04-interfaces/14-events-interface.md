@@ -65,6 +65,8 @@ Rules:
 * `resume_token` must be a non-empty string.
 * Invalid or malformed client frames MUST emit an `error` event with `ErrorDetail.code=network_rejected` before the connection closes.
 * Unauthorized or admin-only channel subscriptions MUST emit an `error` event with `ErrorDetail.code=acl_denied` and close the connection with reason `permission_denied`.
+* Invalid or expired `resume_token` values MUST emit an `error` event with `ErrorDetail.code=network_rejected` and close the connection with reason `resume_invalid`.
+* `ack` frames that reference unknown or out-of-order `resume_token` values MUST emit an `error` event with `ErrorDetail.code=network_rejected` and close the connection with reason `frame_invalid`.
 
 Error event envelope:
 
@@ -95,13 +97,12 @@ Channel families are derived from the Event Manager and system services specs:
 * `system.*` for lifecycle and readiness events.
 * `network.*` for transport lifecycle events.
 * `security.*` for abuse and audit signals.
-* `app.<slug>.*` for app extension events.
+* `app.<slug>.*` for app service events.
 
 Examples of system events include:
 
 * `system.bootstrap.completed`
 * `system.identity.invite.accepted`
-* `system.feed.thread.updated`
 * `system.sync.plan.failed`
 * `system.ops.health_toggle`
 

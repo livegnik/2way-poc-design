@@ -82,7 +82,7 @@ The following invariants apply globally:
 
 - All backend code consists of Managers and Services.
 - Frontend applications run outside the backend.
-- Apps may include backend extension Services, but never bypass Managers.
+- Apps may include app service Services, but never bypass Managers.
 - All graph writes occur through [Graph Manager](../02-architecture/managers/07-graph-manager.md).
 - All authorization decisions occur through [ACL Manager](../02-architecture/managers/06-acl-manager.md).
 - All schemas are sourced from the graph and validated by [Schema Manager](../02-architecture/managers/05-schema-manager.md).

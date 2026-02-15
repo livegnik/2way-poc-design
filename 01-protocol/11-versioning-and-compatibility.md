@@ -25,7 +25,7 @@ The tuple is compared lexicographically.
 The semantic meaning of each component is as follows:
 
 - Major version denotes protocol incompatibility.
-- Minor version denotes backward compatible protocol extensions.
+- Minor version denotes backward compatible protocol enhancements.
 - Patch version denotes clarifications or corrections that do not affect protocol semantics.
 
 Patch version differences must not affect compatibility decisions or runtime behavior.
@@ -63,6 +63,8 @@ A peer must declare its protocol version during any interaction that establishes
 - Sync session establishment.
 
 Version declarations are treated as untrusted input.
+
+Version negotiation occurs before any sync package is accepted. Missing or malformed declarations are rejected before [signature verification](04-cryptography.md) or [sync processing](07-sync-and-consistency.md).
 
 ### 3.2 Validation boundary
 

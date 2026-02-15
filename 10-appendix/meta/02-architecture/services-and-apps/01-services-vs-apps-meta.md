@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This specification defines how backend services and applications relate inside the 2WAY PoC architecture. It explains why services and applications are separate architectural constructs, enumerates the invariants that keep them isolated, and provides implementation rules that every conforming backend must follow. It binds the component model, manager responsibilities, and OperationContext requirements into a single consumable contract that backend implementers must follow when writing system services, optional app extensions, or frontend applications that target this backend.
+This specification defines how backend services and applications relate inside the 2WAY PoC architecture. It explains why services and applications are separate architectural constructs, enumerates the invariants that keep them isolated, and provides implementation rules that every conforming backend must follow. It binds the component model, manager responsibilities, and OperationContext requirements into a single consumable contract that backend implementers must follow when writing system services, optional app services, or frontend applications that target this backend.
 
 This document does not redefine schemas, ACL policy, serialization, cryptography, or other protocol-level mechanics. Those topics remain governed by their dedicated specifications, and this document consumes them without restating their guarantees.
 

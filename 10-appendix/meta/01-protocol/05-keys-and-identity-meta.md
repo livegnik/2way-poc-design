@@ -14,9 +14,12 @@ This specification references:
 - [02-object-model.md](../../../01-protocol/02-object-model.md)
 - [03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md)
 - [04-cryptography.md](../../../01-protocol/04-cryptography.md)
+- [04-error-model.md](../../../04-interfaces/04-error-model.md)
 - [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
+- [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
+- [13-auth-session.md](../../../04-interfaces/13-auth-session.md)
 
 This document is normative for all 2WAY-compliant implementations.
 

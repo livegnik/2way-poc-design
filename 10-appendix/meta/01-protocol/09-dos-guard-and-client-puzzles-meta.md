@@ -11,6 +11,7 @@ This document defines the normative requirements for the DoS Guard Manager and t
 This specification references:
 
 - [04-cryptography.md](../../../01-protocol/04-cryptography.md)
+- [04-error-model.md](../../../04-interfaces/04-error-model.md)
 - [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)

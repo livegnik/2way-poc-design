@@ -23,18 +23,16 @@ Nodes never perform full graph replication. Only objects belonging to explicitly
 
 ## 2. Unit of synchronization
 
-### 2.1 Envelope
+### 2.1 Sync package envelope
 
-The atomic unit of synchronization is the [envelope](03-serialization-and-envelopes.md).
+The atomic unit of synchronization is the sync package envelope defined in [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md). It carries a graph message envelope plus sync metadata.
 
-An envelope contains:
+A sync package envelope contains:
 
-- A single authored operation.
-- One or more graph objects produced by that operation.
-- Author identity reference ([05-keys-and-identity.md](05-keys-and-identity.md)).
-- Domain identifier ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
-- Global sequence number assigned by the originating node.
-- [Signature](04-cryptography.md) covering the envelope contents.
+- A graph message envelope with one or more operations.
+- `sender_identity` identifying the sending node ([05-keys-and-identity.md](05-keys-and-identity.md)).
+- `sync_domain`, `from_seq`, and `to_seq` metadata used for ordering and replay protection.
+- A [signature](04-cryptography.md) covering the sync package contents.
 
 An envelope is indivisible. Partial acceptance is forbidden.
 
@@ -42,8 +40,8 @@ An envelope is indivisible. Partial acceptance is forbidden.
 
 Objects within an envelope must satisfy all of the following:
 
-- All objects share the same author.
-- All objects are created by the same operation.
+- All operations share the same `owner_identity` and `app_id`.
+- All objects are created by the same operation batch.
 - All objects belong to the same sync domain.
 - All objects are valid according to their [schema](../02-architecture/managers/05-schema-manager.md).
 
@@ -70,7 +68,7 @@ For each peer and each domain, the receiving node tracks:
 - The highest accepted global sequence value.
 - Whether gaps exist in the observed sequence.
 
-Incoming envelopes must advance the known sequence monotonically. Envelopes that would regress or overlap known sequence state are rejected.
+Incoming sync packages must advance the sender's global sequence monotonically using `from_seq` and `to_seq`. Packages that would regress or overlap known sequence state are rejected.
 
 ## 4. Sync state
 
@@ -98,13 +96,14 @@ Rejected envelopes do not modify sync state.
 
 Each incoming envelope must pass, in order:
 
-- [Structural validation](03-serialization-and-envelopes.md) of the envelope.
-- [Signature verification](04-cryptography.md) against the author identity.
+- [Structural validation](03-serialization-and-envelopes.md) of the sync package envelope.
+- [Signature verification](04-cryptography.md) against `sender_identity`.
+- [Sequence ordering validation](10-errors-and-failure-modes.md) using `from_seq` and `to_seq` against sync_state.
+- [Structural validation](03-serialization-and-envelopes.md) of the inner graph message envelope.
 - [Domain membership](01-identifiers-and-namespaces.md) validation.
 - [Schema validation](../02-architecture/managers/05-schema-manager.md) of all objects.
 - [Ownership](02-object-model.md) and immutability validation.
 - [Access control](06-access-control-model.md) validation.
-- [Sequence ordering validation](10-errors-and-failure-modes.md).
 
 Failure at any stage results in rejection.
 
@@ -112,11 +111,11 @@ Failure at any stage results in rejection.
 
 An envelope is accepted if and only if:
 
-- The author identity exists and is not revoked (see [05-keys-and-identity.md](05-keys-and-identity.md)).
-- The [signature](04-cryptography.md) is valid.
+- The sender identity exists and is not revoked (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+- The [signature](04-cryptography.md) is valid for the sync package.
 - The domain is known and permitted for the peer (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 - All objects are [schema-valid](../02-architecture/managers/05-schema-manager.md).
-- The author is permitted to create the objects (see [06-access-control-model.md](06-access-control-model.md)).
+- The author (operation `owner_identity`) is permitted to create the objects (see [06-access-control-model.md](06-access-control-model.md)).
 - Ownership invariants are preserved (see [02-object-model.md](02-object-model.md)).
 - The global sequence advances sync state correctly.
 

@@ -22,7 +22,7 @@ This specification is responsible for the following:
 
 * Declaring HTTP routes, request/response shapes, and error mappings for system services.
 * Recording OperationContext requirements and fail-closed validation order.
-* Declaring the extension diagnostics snapshot schema.
+* Declaring the app service diagnostics snapshot schema.
 
 This specification does not cover the following:
 

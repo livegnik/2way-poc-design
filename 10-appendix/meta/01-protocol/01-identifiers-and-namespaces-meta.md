@@ -10,6 +10,7 @@ This document defines the identifier classes and namespace rules used by the 2WA
 
 This specification references:
 
+* [03-definitions-and-terminology.md](../../../00-scope/03-definitions-and-terminology.md)
 * [02-object-model.md](../../../01-protocol/02-object-model.md)
 * [04-cryptography.md](../../../01-protocol/04-cryptography.md)
 * [05-keys-and-identity.md](../../../01-protocol/05-keys-and-identity.md)
@@ -17,6 +18,12 @@ This specification references:
 * [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 * [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
 * [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
+* [04-error-model.md](../../../04-interfaces/04-error-model.md)
+* [05-sync-transport.md](../../../04-interfaces/05-sync-transport.md)
+* [05-schema-manager.md](../../../02-architecture/managers/05-schema-manager.md)
+* [07-graph-manager.md](../../../02-architecture/managers/07-graph-manager.md)
+* [08-app-manager.md](../../../02-architecture/managers/08-app-manager.md)
+* [09-state-manager.md](../../../02-architecture/managers/09-state-manager.md)
 
 This document is authoritative only for identifier semantics and namespace isolation. It does not define [cryptographic primitives](../../../01-protocol/04-cryptography.md), [schema content](../../../01-protocol/02-object-model.md), [ACL logic](../../../01-protocol/06-access-control-model.md), [sync mechanics](../../../01-protocol/07-sync-and-consistency.md), [storage layout](../../../03-data/01-sqlite-layout.md), or [network transport](../../../01-protocol/08-network-transport-requirements.md), except where identifier structure directly constrains those systems. All such behavior is defined elsewhere and referenced implicitly.
 

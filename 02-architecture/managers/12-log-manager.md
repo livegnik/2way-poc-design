@@ -224,7 +224,7 @@ Constraints:
 * **[Auth Manager](04-auth-manager.md)**: Provides [OperationContext](../services-and-apps/05-operation-context.md) for HTTP and WebSocket calls. [Log Manager](12-log-manager.md) relies on this context to tag audit entries.
 * **[Network Manager](10-network-manager.md) and [DoS Guard Manager](14-dos-guard-manager.md)**: Emit security logs for admission decisions per [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md). [Log Manager](12-log-manager.md) ensures those logs are routed to security sinks and optionally to [Event Manager](11-event-manager.md) while preserving the requirement to log challenge metadata but not raw puzzle payloads. [DoS Guard Manager](14-dos-guard-manager.md) may consume derived alert signals, but [Log Manager](12-log-manager.md) does not initiate mitigations.
 * **[Storage Manager](02-storage-manager.md)**: Not used directly. Log retention occurs via filesystem operations performed by [Log Manager](12-log-manager.md) itself.
-* **[App Manager](08-app-manager.md)**: Registers app-defined log namespaces and enforces that app extension services can only emit logs through approved channels.
+* **[App Manager](08-app-manager.md)**: Registers app-defined log namespaces and enforces that app services can only emit logs through approved channels.
 
 ## 8. Failure handling and rejection behavior
 
@@ -270,6 +270,6 @@ The following actions violate this specification:
 * Emitting unstructured text logs or logs without [OperationContext](../services-and-apps/05-operation-context.md) metadata when one exists.
 * Rewriting or deleting accepted log entries prior to retention expiry.
 * Emitting security or audit payloads through [Event Manager](11-event-manager.md) or other broadcasts that bypass ACL-enforced query APIs.
-* Allowing app extensions to register sinks or routing policies without [App Manager](08-app-manager.md) mediation.
+* Allowing app services to register sinks or routing policies without [App Manager](08-app-manager.md) mediation.
 
 Implementations must demonstrate adherence to the ingestion pipeline, sink integrity guarantees, configuration contracts, and fail-closed behavior described above before the [Log Manager](12-log-manager.md) can be considered complete.

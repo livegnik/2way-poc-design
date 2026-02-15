@@ -4,7 +4,7 @@
 
 # 11 Ops HTTP Interfaces
 
-Defines the Operations Console HTTP endpoints used by administrators and authorized tooling.
+Defines the Admin Service HTTP endpoints used by administrators and authorized tooling.
 
 For the meta specifications, see [11-ops-http meta](../10-appendix/meta/04-interfaces/11-ops-http-meta.md).
 
@@ -21,9 +21,9 @@ Ops endpoints MUST be local-only.
 | `/system/ops/health` | GET | Required (admin) | Read readiness/liveness snapshot. |
 | `/system/ops/config` | GET | Required (admin) | Export sanitized configuration. |
 | `/system/ops/service-toggles` | POST | Required (admin) | Enable/disable services. |
-| `/system/ops/capabilities` | POST | Required (admin) | Capability grant/revoke via IRS. |
+| `/system/ops/capabilities` | POST | Required (admin) | Capability grant/revoke via Identity Service. |
 | `/system/ops/audit/logs` | GET | Required (admin) | Query structured logs. |
-| `/system/ops/extensions/{slug}/diagnostics` | POST | Required (admin) | Extension diagnostics snapshot. |
+| `/system/ops/app-services/{slug}/diagnostics` | POST | Required (admin) | app service diagnostics snapshot. |
 | `/system/ops/clients/telemetry` | POST | Required (admin) | Ingest client telemetry aggregates. |
 
 Ops routes are exposed only when `service.ops.admin_routes_enabled` is true. When disabled, all `/system/ops/*` routes return `400` with `config_invalid`.
@@ -123,7 +123,7 @@ Errors:
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
 * `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`storage_error`) for IRS persistence failures.
+* `400` (`storage_error`) for Identity Service persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) for internal failures.
 
@@ -214,7 +214,7 @@ Errors:
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) for internal failures.
 
-## 6.1 POST /system/ops/extensions/{slug}/diagnostics
+## 6.1 POST /system/ops/app-services/{slug}/diagnostics
 
 Response:
 
@@ -227,7 +227,7 @@ Response:
 Errors:
 
 * `ERR_OPS_CAPABILITY`
-* `404` (`app_not_found`) when `slug` does not resolve to an installed extension.
+* `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) for internal failures.

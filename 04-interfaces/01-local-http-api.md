@@ -21,6 +21,7 @@ This API does not cover remote peer sync, which uses [Network Manager](../02-arc
 
 * **Local only.** This interface must be bound to a local transport (loopback or IPC) and not exposed to untrusted networks.
 * **No framework requirement.** Implementations may use Flask, FastAPI, or a custom adapter, but must preserve the handler semantics defined here.
+* **No DoS challenges.** DoS Guard challenges are not issued on local HTTP routes; `dos_challenge_required` is not emitted on this interface.
 
 ## 3. Authentication
 

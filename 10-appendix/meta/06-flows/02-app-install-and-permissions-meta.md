@@ -11,7 +11,7 @@ Defines the flow for app registration, schema provisioning, and initial permissi
 This specification references:
 
 * [06-flows/02-app-install-and-permissions.md](../../../06-flows/02-app-install-and-permissions.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../02-architecture/services-and-apps/03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/03-app-services.md](../../../02-architecture/services-and-apps/03-app-services.md)
 * [02-architecture/managers/08-app-manager.md](../../../02-architecture/managers/08-app-manager.md)
 * [01-protocol/06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 

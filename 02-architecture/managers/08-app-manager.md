@@ -4,7 +4,7 @@
 
 # 08 App Manager
 
-Defines application registration, identity binding, and backend extension wiring. Specifies app registry invariants, lifecycle ordering, and isolation constraints. Defines startup/shutdown behavior and manager interactions for applications.
+Defines application registration, identity binding, and app service wiring. Specifies app registry invariants, lifecycle ordering, and isolation constraints. Defines startup/shutdown behavior and manager interactions for applications.
 
 For the meta specifications, see [08-app-manager meta](../../10-appendix/meta/02-architecture/managers/08-app-manager-meta.md).
 
@@ -15,7 +15,7 @@ An application is a locally registered system entity that defines a namespace, a
 * A unique, stable string slug.
 * A locally assigned numeric app_id.
 * A dedicated application identity represented in the system graph.
-* Zero or one backend extension service module.
+* Zero or one app service module.
 
 Applications are namespaces and authority scopes only. They do not define protocol behavior, do not modify core manager semantics, and do not act as execution sandboxes. These properties instantiate the application identifier semantics defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 
@@ -104,31 +104,31 @@ Registry backed lookup is the only valid mechanism for binding slugs to app_id v
 
 Failure to resolve an application is treated as a configuration or routing error and must fail closed.
 
-## 5. Backend extension services
+## 5. App services
 
 ### 5.1 Definition
 
-An application may provide an optional backend extension service. A backend extension service is a backend module bound to exactly one application slug and app_id.
+An application may provide an optional app service. A app service is a backend module bound to exactly one application slug and app_id.
 
-Backend extension services exist to perform backend only tasks such as indexing, heavy computation, or secure validation. They do not define protocol behavior.
+App services exist to perform backend only tasks such as indexing, heavy computation, or secure validation. They do not define protocol behavior.
 
 ### 5.2 Loading and wiring
 
 At backend startup, the [App Manager](08-app-manager.md) performs the following steps:
 
-* Discover declared backend extension modules.
+* Discover declared app service modules.
 * Resolve each module to a registered application slug.
-* Reject any extension whose slug is not registered.
-* Instantiate each extension service exactly once.
-* Wire each extension with explicit references to permitted managers so that authorization enforcement remains confined to the managers defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
-* Register extension service endpoints with the HTTP layer.
-* Ensure all extension calls originate through [OperationContext](../services-and-apps/05-operation-context.md) instances, consistent with the [OperationContext](../services-and-apps/05-operation-context.md) usage defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
+* Reject any app service whose slug is not registered.
+* Instantiate each app service exactly once.
+* Wire each app service with explicit references to permitted managers so that authorization enforcement remains confined to the managers defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* Register app service endpoints with the HTTP layer.
+* Ensure all app service calls originate through [OperationContext](../services-and-apps/05-operation-context.md) instances, consistent with the [OperationContext](../services-and-apps/05-operation-context.md) usage defined in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
 
-Backend extension services are inactive unless explicitly registered and wired.
+App services are inactive unless explicitly registered and wired.
 
 ### 5.3 Permitted interactions
 
-Backend extension services may interact only through the following managers:
+App services may interact only through the following managers:
 
 * [Graph Manager](07-graph-manager.md).
 * [Schema Manager](05-schema-manager.md).
@@ -142,7 +142,7 @@ The following interactions are explicitly forbidden:
 * Direct database access.
 * Direct key access.
 * Direct network access.
-* Direct inter extension communication.
+* Direct inter app service communication.
 * Invocation outside an [OperationContext](../services-and-apps/05-operation-context.md).
 
 These boundaries preserve the authorization layering rules in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
@@ -151,10 +151,10 @@ These boundaries preserve the authorization layering rules in [01-protocol/06-ac
 
 The [App Manager](08-app-manager.md) guarantees:
 
-* Extension services cannot access data belonging to other applications without ACL approval.
-* Extension services cannot modify protocol behavior or core manager invariants.
-* Failure or misbehavior of an extension service cannot corrupt core managers.
-* Extension services cannot impersonate other applications.
+* App services cannot access data belonging to other applications without ACL approval.
+* App services cannot modify protocol behavior or core manager invariants.
+* Failure or misbehavior of an app service cannot corrupt core managers.
+* App services cannot impersonate other applications.
 
 These guarantees restate the app domain and isolation rules defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md), [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md), and the authorization posture in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -187,8 +187,8 @@ The [App Manager](08-app-manager.md) must initialize after:
 
 During shutdown, the [App Manager](08-app-manager.md):
 
-* Stops routing requests to backend extension services.
-* Releases references to extension service instances.
+* Stops routing requests to app services.
+* Releases references to app service instances.
 * Performs no graph mutation.
 * Requires no persistence actions.
 
@@ -211,7 +211,7 @@ These inputs allow the [App Manager](08-app-manager.md) to satisfy the identifie
 The [App Manager](08-app-manager.md) provides:
 
 * app_id resolution to HTTP routing and [Auth Manager](04-auth-manager.md).
-* Backend extension service references to the HTTP layer ([04-interfaces/**](../../04-interfaces/)).
+* App service references to the HTTP layer ([04-interfaces/**](../../04-interfaces/)).
 * Application identity identifiers to [OperationContext](../services-and-apps/05-operation-context.md) consumers.
 
 These outputs satisfy the envelope construction requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the authorization inputs that rely on `app_id` and identity context defined in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
@@ -223,7 +223,7 @@ The [App Manager](08-app-manager.md) is trusted to:
 * Bind application slugs to identities correctly.
 * Enforce application isolation at wiring boundaries.
 
-Backend extension services are untrusted and sandboxed.
+App services are untrusted and sandboxed.
 
 These trust boundaries mirror the authorization posture documented in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -235,7 +235,7 @@ The [App Manager](08-app-manager.md) must reject or fail when:
 * An app_id is referenced that does not exist in the registry.
 * Registry state is inconsistent or corrupted.
 * Application identity material is missing or invalid.
-* Backend extension wiring violates declared constraints.
+* App service wiring violates declared constraints.
 
 Failure handling rules:
 
@@ -254,7 +254,7 @@ Across all components and boundaries defined in this file, the following invaria
 * Each `app_id` is bound to exactly one application identity as required by [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Application identities are cryptographically anchored per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Application boundaries are enforced regardless of caller or execution context, matching the requirements in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) and [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* Backend extension services cannot bypass managers, preserving the authorization ordering in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* App services cannot bypass managers, preserving the authorization ordering in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Application registry state is authoritative and local so that declaration rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) remain satisfied.
 * Application lifecycle changes do not delete or mutate graph data, upholding the structural persistence rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
@@ -265,7 +265,7 @@ These guarantees hold regardless of caller, execution context, input source, or 
 The following behaviors are explicitly allowed:
 
 * Local registration of applications by administrative authority, consistent with the declaration rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
-* Backend extension services performing application scoped queries through managers while respecting the authorization boundaries in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
+* App services performing application scoped queries through managers while respecting the authorization boundaries in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Applications participating in multiple sync domains when defined elsewhere, provided the sync semantics in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md) are followed.
 * Application identities being referenced in ACL rules, honoring the identity guarantees in [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md) and the ACL semantics in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 
@@ -278,6 +278,6 @@ The following behaviors are explicitly forbidden:
 * Reuse of `app_id` values, forbidden by [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Cross application access without ACL approval, which breaks the isolation requirements in [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
 * Application controlled mutation of the registry, which would bypass the guarantees in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
-* Backend extension services accessing raw storage, keys, or network directly, which would circumvent the trust boundaries enforced by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
+* App services accessing raw storage, keys, or network directly, which would circumvent the trust boundaries enforced by [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md) and [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 
 Any implementation permitting these behaviors is non compliant.

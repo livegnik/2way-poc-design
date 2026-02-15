@@ -4,13 +4,13 @@
 
 # 09 Derived cache tables
 
-Defines the data model for service and extension derived cache tables referenced by system service and app extension specifications.
+Defines the data model for service derived cache tables referenced by system service and app service specifications.
 
 For the meta specifications, see [09-derived-cache-tables meta](../10-appendix/meta/03-data/09-derived-cache-tables-meta.md).
 
 ## 1. Purpose and scope
 
-Derived cache tables provide non-authoritative, rebuildable indices for system services and app extensions. They exist solely for performance and are never part of sync or authoritative state.
+Derived cache tables provide non-authoritative, rebuildable indices for system services and app services. They exist solely for performance and are never part of sync or authoritative state.
 
 ## 2. Invariants and guarantees
 
@@ -25,7 +25,7 @@ Across all derived cache tables, the following invariants hold:
 ## 3. Ownership and access rules
 
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) owns cache table creation and access.
-* Services and extensions must register cache tables and use Storage Manager APIs to read or write them.
+* Services must register cache tables and use Storage Manager APIs to read or write them.
 * Direct SQL access outside Storage Manager is forbidden.
 
 ## 4. Table schema requirements
@@ -43,7 +43,7 @@ Services may add additional columns required for their indices, but must keep th
 
 * Cache table names MUST include the owning service or app identifier to avoid collisions.
 * System service cache tables are scoped to `app_0`.
-* App extension cache tables are scoped to the owning `app_id`.
+* App service cache tables are scoped to the owning `app_id`.
 
 ## 6. Failure posture
 

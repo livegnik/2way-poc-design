@@ -104,7 +104,7 @@ Canonical namespaces:
 * `health.*` health reporting and thresholds, owned by [Health Manager](13-health-manager.md).
 * `state.*` sync and consistency operational settings, owned by [State Manager](09-state-manager.md).
 * `service.<service_name>.*` system service settings owned by the service implementation.
-* `app.<slug>.*` app scoped settings owned by the app backend extension or [App Manager](08-app-manager.md).
+* `app.<slug>.*` app scoped settings owned by the app service or [App Manager](08-app-manager.md).
 
 Rules:
 

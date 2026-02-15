@@ -4,7 +4,7 @@
 
 # 06 App Lifecycle Interface
 
-Defines application lifecycle endpoints for app installation, enable/disable, open, uninstall, and repair. These endpoints are local-only and require authenticated admin or installer identities per [03-app-backend-extensions.md](../02-architecture/services-and-apps/03-app-backend-extensions.md) and [06-flows/02-app-install-and-permissions.md](../06-flows/02-app-install-and-permissions.md).
+Defines application lifecycle endpoints for app installation, enable/disable, open, uninstall, and repair. These endpoints are local-only and require authenticated admin or installer identities per [03-app-services.md](../02-architecture/services-and-apps/03-app-services.md) and [06-flows/02-app-install-and-permissions.md](../06-flows/02-app-install-and-permissions.md).
 
 For the meta specifications, see [06-app-lifecycle meta](../10-appendix/meta/04-interfaces/06-app-lifecycle-meta.md).
 
@@ -74,7 +74,7 @@ Rules:
 * The signature file MUST include a `signer_id` that resolves to a publisher identity in the graph, or a `publisher_public_key` that can be bound to a new publisher identity.
 * App installation MUST be blocked unless the publisher identity exists in the graph and is marked trusted for app publication. If the publisher identity is missing or untrusted, the caller MUST be prompted to add or trust the publisher before installation proceeds.
 * A publisher is trusted when its identity carries the `system.apps.publish` capability edge in `app_0`.
-* Signature file structure follows [02-architecture/services-and-apps/03-app-backend-extensions.md](../02-architecture/services-and-apps/03-app-backend-extensions.md).
+* Signature file structure follows [02-architecture/services-and-apps/03-app-services.md](../02-architecture/services-and-apps/03-app-services.md).
 * Filenames are informational; the manifest contents are authoritative.
 
 Response:
@@ -91,8 +91,8 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CONTEXT`
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CONTEXT`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `ERR_APP_SIGNATURE_INVALID`
 * `ERR_APP_PUBLISHER_UNTRUSTED`
 * `schema_validation_failed`
@@ -122,7 +122,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `internal_error`
@@ -143,7 +143,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `404` (`app_not_found`) when `slug` is unknown.
@@ -167,7 +167,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `404` (`app_not_found`) when `slug` is unknown.
@@ -191,7 +191,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `404` (`app_not_found`) when `slug` is unknown.
@@ -215,7 +215,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `404` (`app_not_found`) when `slug` is unknown.
@@ -244,7 +244,7 @@ Response:
 
 Errors:
 
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `storage_error`
 * `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`
 * `404` (`app_not_found`) when `slug` is unknown.
@@ -256,7 +256,7 @@ Errors:
 
 * All lifecycle endpoints MUST construct a complete [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) before invoking managers.
 * Missing or invalid payloads MUST be rejected before any manager mutation.
-* App Manager MUST enforce the lifecycle transitions described in [03-app-backend-extensions.md](../02-architecture/services-and-apps/03-app-backend-extensions.md).
+* App Manager MUST enforce the lifecycle transitions described in [03-app-services.md](../02-architecture/services-and-apps/03-app-services.md).
 
 ## 11. Forbidden behaviors
 

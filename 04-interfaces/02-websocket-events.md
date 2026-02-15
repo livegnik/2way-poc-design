@@ -25,6 +25,8 @@ A WebSocket connection is accepted only on the local endpoint path:
 
 * `GET /ws`
 
+Requests that are not `GET /ws` MUST be rejected with HTTP `404` and no `ErrorDetail` payload.
+
 A WebSocket connection must supply an authentication token during the handshake. The backend resolves the token via [Auth Manager](../02-architecture/managers/04-auth-manager.md). If authentication fails, the connection must be rejected.
 
 Errors:

@@ -20,7 +20,7 @@ Across all runtime topologies, the following invariants and guarantees hold:
 - All private keys remain local to the backend and are owned by the [Key Manager](managers/03-key-manager.md).
 - All network ingress and egress occurs through the [Network Manager](managers/10-network-manager.md).
 - Frontend apps never execute backend logic directly.
-- Backend services and extensions never bypass managers.
+- System services and app services never bypass managers.
 - Local state correctness is independent of network availability.
 
 These guarantees must hold regardless of process layout, frontend presence, or network conditions.
@@ -46,7 +46,7 @@ The backend runs as a single long-lived process hosting all managers and service
 
 - Backend managers. Single process.
 - System services. Same process as managers.
-- App extension services. Same process as managers.
+- App services. Same process as managers.
 - Storage. Local SQLite database owned by [Storage Manager](managers/02-storage-manager.md).
 - Key material. Local filesystem owned by [Key Manager](managers/03-key-manager.md).
 - Frontend apps. Local browser or UI process.
@@ -68,7 +68,7 @@ The backend runs as a single long-lived process hosting all managers and service
 
 - Frontend apps accessing backend storage or keys directly.
 - Frontend apps invoking managers or services without API mediation.
-- App extension services accessing SQLite or key files directly.
+- App services accessing SQLite or key files directly.
 - Any component bypassing Graph Manager for graph mutation.
 
 ### 3.6 Failure behavior

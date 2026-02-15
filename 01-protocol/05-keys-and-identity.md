@@ -72,24 +72,30 @@ Multiple public keys may be bound to the same identity Parent, subject to [schem
 
 ### 3.1 Authorship assertion
 
-Every [operation envelope](03-serialization-and-envelopes.md) declares exactly one author identity.
+Authorship for graph operations is asserted by:
 
-Authorship is asserted by:
+- The `owner_identity` field on each operation record ([03-serialization-and-envelopes.md](03-serialization-and-envelopes.md)).
+- The [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) created by the interface layer after successful authentication.
 
-- Including the identity reference in the envelope.
-- Signing the envelope with a private key corresponding to a public key bound to that identity, as defined in [04-cryptography.md](04-cryptography.md).
+Local graph envelopes are not signed; they are authenticated via auth tokens and OperationContext binding.
+
+Remote sync packages are signed by the sender node identity and carry `sender_identity` plus a signature over the sync package. That signature authenticates the sender node, not the author identity of each enclosed operation.
 
 The backend never infers authorship from [transport](08-network-transport-requirements.md), session state, or network metadata.
 
 ### 3.2 Signature verification
 
+Signature verification rules depend on the input surface:
+
+- **Remote sync packages**: the signature must verify against a public key bound to `sender_identity` ([04-cryptography.md](04-cryptography.md)). Verification occurs before any schema or ACL validation.
+- **Auth registration payloads**: the signature must verify against the submitted public key as defined in the auth session interface ([13-auth-session.md](../04-interfaces/13-auth-session.md)).
+- **Local graph envelopes**: no signature is present; authenticity is derived from auth token validation and OperationContext binding.
+
 An operation is considered authentic if and only if:
 
-- The claimed author identity exists.
-- The identity has at least one bound public key.
-- The envelope signature verifies against one of the bound public keys.
-
-Signature verification is mandatory and precedes all other validation steps, including [schema validation](../02-architecture/managers/05-schema-manager.md) and [ACL evaluation](06-access-control-model.md).
+- The referenced author identity exists as a Parent in `app_0`.
+- The author identity has at least one bound public key.
+- For remote inputs, the required signature verifies against the appropriate key for that surface.
 
 ## 4. Invariants and guarantees
 
@@ -102,6 +108,7 @@ The following invariants are enforced by the protocol:
 - Every identity Parent has at least one bound public key.
 - Identity Parents are immutable after creation.
 - Public keys cannot change identity ownership.
+- Remote sync packages must be signed by the sender node identity and must verify before any envelope processing.
 
 ### 4.2 Guarantees
 
@@ -125,12 +132,12 @@ The following behaviors are explicitly allowed:
 
 The following behaviors are explicitly forbidden:
 
-- Accepting an operation without a valid signature.
+- Accepting a remote sync package without a valid signature.
 - Accepting an operation signed by a key not bound to the claimed identity.
 - Rebinding a public key to a different identity.
 - Mutating an identity Parent after creation.
 - Inferring identity from IP address, session, or [transport](08-network-transport-requirements.md) channel.
-- Treating unsigned or partially signed data as authoritative.
+- Treating unsigned or partially signed remote sync packages or auth registration payloads as authoritative.
 
 ## 7. Interaction with other components
 
@@ -138,7 +145,7 @@ The following behaviors are explicitly forbidden:
 
 This specification consumes:
 
-- [Operation envelopes](03-serialization-and-envelopes.md) with declared author identities.
+- [Operation envelopes](03-serialization-and-envelopes.md) that include `owner_identity` fields.
 - Public key [Attributes](02-object-model.md) stored on identity Parents.
 - [Schema definitions](../02-architecture/managers/05-schema-manager.md) that classify identity Parents and key Attributes.
 
@@ -161,13 +168,15 @@ No component may bypass identity verification.
 
 ## 8. Failure and rejection behavior
 
-An operation must be rejected if any of the following conditions occur:
+An operation or sync package must be rejected if any of the following conditions occur:
 
 - The author identity does not exist.
 - The author identity has no bound public keys.
-- The envelope signature fails verification.
+- A required signature fails verification for its surface.
 - The signature does not correspond to the claimed identity.
 - The identity Parent violates schema invariants.
+
+When surfaced as protocol errors, identity and signature failures use the `ERR_CRYPTO_*` codes defined in [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md). Interfaces map these to `ErrorDetail` responses per [04-error-model.md](../04-interfaces/04-error-model.md).
 
 Rejected operations:
 

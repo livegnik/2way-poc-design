@@ -207,6 +207,17 @@ Sequence helpers are atomic.
 
 All queries are constrained and parameterized.
 
+### 6.5 Derived cache helpers
+
+Storage Manager exposes typed helpers for derived cache tables as defined in [03-data/09-derived-cache-tables.md](../../03-data/09-derived-cache-tables.md).
+
+* create or register cache tables
+* read cache entries
+* write cache entries
+* drop or rebuild cache tables
+
+These helpers are the only permitted way for services to interact with cache tables. Cache data remains non-authoritative and rebuildable; direct SQL access remains forbidden.
+
 Transaction helpers guarantee that the entire envelope defined in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) is processed atomically; partial application is forbidden.
 
 ## 7. Transactions and concurrency

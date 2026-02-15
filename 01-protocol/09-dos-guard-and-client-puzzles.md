@@ -94,11 +94,12 @@ On success, the admission decision upgrades to `allow`; on failure, DoS Guard Ma
 - Challenges expire automatically after `expires_at` or when the underlying connection closes, whichever occurs first.
 - Expired challenges are purged without side effects other than emitting a telemetry event.
 - Puzzle responses received after expiration are rejected with `ERR_RESOURCE_PUZZLE_FAILED` (see [10-errors-and-failure-modes.md](10-errors-and-failure-modes.md)).
+  When surfaced via interfaces, this maps to `ErrorDetail.code=dos_challenge_required` with the active challenge included in `ErrorDetail.data` per [04-error-model.md](../04-interfaces/04-error-model.md).
 
 ## 5. Admission decision matrix
 
 - **Allow**: [Network Manager](../02-architecture/managers/10-network-manager.md) may proceed to Bastion admission and [cryptographic verification](04-cryptography.md). The decision may include throttling parameters (for example, maximum messages per second) that Network Manager must enforce.
-- **Require challenge**: Network Manager must hold the connection at the Bastion boundary until a valid puzzle response is validated. No payload data may flow inward during this phase.
+- **Require challenge**: Network Manager must hold the connection at the Bastion boundary until a valid puzzle response is validated. No payload data may flow inward during this phase. Interfaces must return `ErrorDetail.code=dos_challenge_required` and include the challenge payload in `ErrorDetail.data` per [04-error-model.md](../04-interfaces/04-error-model.md).
 - **Deny**: Network Manager must terminate the connection immediately and emit a rejection event with the provided reason code.
 
 Admission decisions must be logged with sufficient metadata (challenge id, peer reference hash, resource counters) for auditing (see [02-architecture/managers/12-log-manager.md](../02-architecture/managers/12-log-manager.md)), but logs must not store private payloads.

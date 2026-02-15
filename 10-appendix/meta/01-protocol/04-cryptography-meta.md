@@ -11,11 +11,14 @@ This file specifies the cryptographic algorithms and protocol level rules for si
 This specification references:
 
 - [03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md)
+- [04-error-model.md](../../../04-interfaces/04-error-model.md)
 - [05-keys-and-identity.md](../../../01-protocol/05-keys-and-identity.md)
 - [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
 - [09-dos-guard-and-client-puzzles.md](../../../01-protocol/09-dos-guard-and-client-puzzles.md)
+- [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
+- [13-auth-session.md](../../../04-interfaces/13-auth-session.md)
 
 Key lifecycle, key storage layout, identity creation, key rotation, revocation, alarm keys, delegated keys, and any identity binding semantics beyond providing a public key to verification are specified in [05-keys-and-identity.md](../../../01-protocol/05-keys-and-identity.md), [02-architecture/managers/03-key-manager.md](../../../02-architecture/managers/03-key-manager.md), and the [data layout documents](../../../03-data/01-sqlite-layout.md), and are out of scope here.
 

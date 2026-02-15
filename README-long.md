@@ -80,23 +80,26 @@ This repository does not ship production code. It records design intent, boundar
 
 ## 2. Repository guide
 
-This repository is the source of record for the 2WAY proof of concept. It defines scope, invariants, architecture, data, security, flows, and acceptance criteria so independent implementations can be judged against the same rules. It does not provide runnable code, deployment advice, governance policy, or shortcuts that weaken structural guarantees. The guiding question is: if identity, permissions, ordering, and sync are enforced locally and structurally, what systems become possible that centralized backends struggle to deliver?
+This repository is the source of record for the 2WAY proof of concept. Normative specifications live under `specs/` and define scope, invariants, architecture, data, security, flows, and acceptance criteria so independent implementations can be judged against the same rules. `docs-build/` is a non-normative build pack (requirements ledger, build plan, traceability) that must stay aligned with the specs. In conflicts, the specs win and any exception must be recorded as an ADR in `specs/09-decisions`.
 
-Lower-numbered directories hold higher authority: scope constrains protocol, protocol constrains architecture, and so on. When conflicts appear, record an Architecture Decision Record (ADR) to document the override.
+Lower-numbered spec directories hold higher authority: scope constrains protocol, protocol constrains architecture, and so on.
 
 | Folder | Authority focus | Typical questions |
 | --- | --- | --- |
-| `00-scope` | System boundary and vocabulary | What is in or out of scope? Which assumptions are mandatory? |
-| `01-protocol` | Wire format and invariants | How are identities, objects, and signatures encoded? |
-| `02-architecture` | Runtime composition | Which managers exist and how do they interact? |
-| `03-data` | Persistence model | How is state stored, versioned, and migrated locally? |
-| `04-interfaces` | APIs and event surfaces | How do components and applications integrate? |
-| `05-security` | Threat framing and controls | Which adversaries are assumed and how are they contained? |
-| `06-flows` | End-to-end operations | How do bootstrap, sync, and recovery behave? |
-| `07-poc` | Execution scope | What must the proof of concept build, demo, and test? |
-| `08-testing` | Testing and conformance | What test categories and conformance rules apply? |
-| `09-decisions` | Recorded trade-offs | Which ADRs modify previous rules and why? |
-| `10-appendix` / `11-examples` | Reference material | What supporting context or illustrations exist? |
+| `specs/00-scope` | System boundary and vocabulary | What is in or out of scope? Which assumptions are mandatory? |
+| `specs/01-protocol` | Wire format and invariants | How are identities, objects, and signatures encoded? |
+| `specs/02-architecture` | Runtime composition | Which managers exist and how do they interact? |
+| `specs/03-data` | Persistence model | How is state stored, versioned, and migrated locally? |
+| `specs/04-interfaces` | APIs and event surfaces | How do components and applications integrate? |
+| `specs/05-security` | Threat framing and controls | Which adversaries are assumed and how are they contained? |
+| `specs/06-flows` | End-to-end operations | How do bootstrap, sync, and recovery behave? |
+| `specs/07-poc` | Execution scope | What must the proof of concept build, demo, and test? |
+| `specs/08-testing` | Testing and conformance | What test categories and conformance rules apply? |
+| `specs/09-decisions` | Recorded trade-offs | Which ADRs modify previous rules and why? |
+| `specs/10-appendix` / `specs/11-examples` | Reference material | What supporting context or illustrations exist? |
+| `docs-build` | Build planning (non-normative) | How are requirements traced and implemented? |
+
+Meta specifications and diagrams live under `specs/10-appendix/meta` and `specs/10-appendix/diagrams`. Glossary, reference config, and open questions live in `specs/10-appendix`.
 
 Put each new artifact in the folder that matches its authority. Never let a lower folder contradict a higher one unless an ADR explains the exception.
 
@@ -169,13 +172,13 @@ History is append-only and rooted in per-device logs. Every change carries autho
 
 Because the graph lives on every node, the system is local-first. Writes land on the originating device, then propagate as signed deltas when peers connect. Synchronization is incremental and scoped by trust: peers request only the ranges they want, verify ordering deterministically, and merge when every prerequisite holds. Long offline periods are normal; reconnection is another validation and merge pass.
 
-Every proposal follows the lifecycle described in `01-protocol/00-protocol-overview.md` and enforced by the managers named in `02-architecture/01-component-model.md`:
+Every proposal follows the lifecycle described in `specs/01-protocol/00-protocol-overview.md` and enforced by the managers named in `specs/02-architecture/01-component-model.md`:
 
-1. An application or service constructs an `OperationContext` and graph message envelope that states the desired mutation.
+1. A service obtains an immutable `OperationContext` (Auth Manager for local requests; State Manager for remote sync).
 2. Graph Manager performs structural validation first, rejecting malformed envelopes before any other work occurs.
 3. Schema Manager validates references, types, and domain rules according to the active schema set.
 4. ACL Manager evaluates permissions using the supplied `OperationContext` and graph state; authorization must succeed before any write proceeds.
-5. Graph Manager assigns a monotonic `global_seq`, commits the mutation through Storage Manager, and State Manager later syncs the accepted history to peers in order.
+5. Graph Manager serializes the write, assigns a monotonic `global_seq`, commits through Storage Manager, and emits post-commit events and logs. State Manager records the new sequence for sync.
 
 If any step fails (missing reference, stale capability, conflicting order), the proposal never hits durable state. Rejection is deterministic, so correct nodes converge without negotiating or trusting the network.
 
@@ -183,7 +186,7 @@ If any step fails (missing reference, stale capability, conflicting order), the 
 
 ## 6. Protocol object model
 
-`01-protocol/02-object-model.md` defines the grammar of the shared graph. Facts fall into five canonical categories: Parent, Attribute, Edge, Rating, and ACL (ACL structures are encoded as constrained Parent plus Attribute records). Parent, Attribute, Edge, and Rating records carry the shared metadata set (`app_id`, record id, `type_id`, `owner_identity`, `global_seq`, `sync_flags`) so any peer can replay history, verify authorship, and enforce ordering without a coordinator or custom storage tricks.
+`specs/01-protocol/02-object-model.md` defines the grammar of the shared graph. Facts fall into five canonical categories: Parent, Attribute, Edge, Rating, and ACL (ACL structures are encoded as constrained Parent plus Attribute records). Parent, Attribute, Edge, and Rating records carry the shared metadata set (`app_id`, `id`, `type_id`, `owner_identity`, `global_seq`, `sync_flags`) so any peer can replay history, verify authorship, and enforce ordering without a coordinator or custom storage tricks.
 
 This small vocabulary can model any application schema:
 
@@ -207,89 +210,95 @@ Because structural validation runs first, malformed proposals (missing selectors
 
 ## 7. Backend component model
 
-If the object model defines what can be stored, `02-architecture/01-component-model.md` defines who can touch it. The backend is a long-lived process made of singleton managers (the protocol kernel) plus optional services layered on top. Each manager owns one domain, exposes a narrow API, and refuses to work outside that charter. Services orchestrate workflows but never bypass managers or mutate state on their own.
+If the object model defines what can be stored, `specs/02-architecture/01-component-model.md` defines who can touch it. The backend is a long-lived process made of singleton managers (the protocol kernel) plus optional services layered on top. Each manager owns one domain, exposes a narrow API, and refuses to work outside that charter. Services orchestrate workflows but never bypass managers or mutate state on their own.
 
 ### Manager roster and responsibilities
 
 Each manager is authoritative for its slice of behavior. Together they form the write path every mutation must follow:
 
-- **Config Manager** loads static and runtime configuration and shares read-only access with other managers.
-- **Storage Manager** is the sole interface to durable storage (SQLite in the PoC). All reads, writes, transactions, and durability guarantees pass through it.
-- **Key Manager** owns node, user, and app key lifecycle: generation, storage (PEM), signing, decryption. No other component handles private keys.
-- **Auth Manager** validates front-end credentials, establishes sessions, and resolves user or device identity.
-- **Schema Manager** stores canonical schema definitions, resolves type IDs, and validates proposed mutations.
-- **ACL Manager** evaluates permissions using `OperationContext` and graph data, then returns allow or deny decisions.
-- **Graph Manager** serializes mutations, enforces object model invariants, assigns global sequence numbers, and commits accepted writes via Storage Manager.
-- **State Manager** coordinates sync domains, reconciliation windows, and conflict handling so peers exchange ordered history safely.
-- **Network Manager** manages transports, peer authentication, message exchange, encryption, and framing.
-- **Event Manager** publishes internal events so services, apps, or tooling can react deterministically.
-- **Log Manager** handles structured logging for audit, diagnostics, and incident response.
-- **Health Manager** tracks liveness and health metrics for operations tooling.
-- **DoS Guard Manager** enforces throttling, client puzzles, and abuse controls.
-- **App Manager** registers applications, loads extension services, and binds them to `OperationContext` constraints.
+- **Config Manager** loads `.env` plus SQLite settings, validates them, and publishes immutable snapshots; no other component reads configuration directly.
+- **Storage Manager** is the sole interface to durable storage (SQLite in the PoC). All reads, writes, transactions, migrations, and sequencing go through it.
+- **Key Manager** owns node, identity, and app key lifecycle, signing, and decryption; private keys never leave this manager.
+- **Auth Manager** validates frontend authentication, establishes sessions, and constructs local `OperationContext`.
+- **Schema Manager** stores schema definitions, resolves type IDs, and validates proposed mutations.
+- **ACL Manager** evaluates permissions using `OperationContext` and graph data and returns allow or deny decisions.
+- **Graph Manager** validates envelopes, serializes mutations, coordinates reads, assigns `global_seq`, and commits accepted writes via Storage Manager.
+- **App Manager** registers apps, assigns app identities, and wires app services.
+- **State Manager** coordinates sync domains, ordering checks, and remote `OperationContext` construction.
+- **Network Manager** owns transport surfaces, admission, signature verification, and encryption/decryption, then hands verified packages to State Manager.
+- **Event Manager** publishes internal events for services and tooling after commit.
+- **Log Manager** emits structured audit and diagnostic logs.
+- **Health Manager** tracks liveness and readiness across managers.
+- **DoS Guard Manager** issues admission decisions, throttling, and client puzzles.
 
 These rules are structural. Graph mutations that skip Graph Manager, direct SQLite access without Storage Manager, or permission checks outside ACL Manager violate the specification.
 
 ### Services and OperationContext
 
-System services and per-app extension services translate user intent into manager calls:
+System services and per-app services translate user intent into manager calls:
 
 1. Accept API or automation input (always untrusted).
-2. Build an `OperationContext` with caller identity, app scope, requested capability, and tracing data.
-3. Call managers only through their public interfaces (Graph for writes, Schema for validation, ACL for authorization, Storage for permitted reads, Event for publication, Log for audit).
+2. Build an immutable `OperationContext` with caller identity, app scope, requested capability, and tracing data (Auth Manager for local requests; State Manager for remote sync; automation contexts follow the same rules).
+3. Call managers only through their public interfaces (Graph for writes/reads, Schema for validation, ACL for authorization, Storage for permitted reads or derived caches, Event for publication, Log for audit).
 
-Services never talk to other services directly, never read private keys, and never persist data on their own. App extension services are sandboxed to their app domain; removing an app simply unregisters its services without touching the kernel.
+Services never talk to other services directly without an explicit interface contract, never read private keys, and never persist authoritative data on their own. App services are sandboxed to their app domain; removing an app simply unregisters its services without touching the kernel.
+
+PoC system services are defined in `specs/02-architecture/services-and-apps/02-system-services.md` (Setup Service, Identity Service, Sync Service, Admin Service). They are always present, app services are optional, and both are untrusted relative to manager invariants.
 
 ### Trust boundaries and failure handling
 
-Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else (including other services) as untrusted. Network Manager and Auth Manager guard the boundary: they accept hostile traffic, authenticate it, and hand requests to services with minimal preprocessing. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains. Graph Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error.
+Managers trust only validated inputs from peer managers. Services trust manager outputs but treat everything else as untrusted. Local entrypoints rely on Auth Manager to bind identity into `OperationContext`. Remote entrypoints rely on DoS Guard and Network Manager admission followed by State Manager construction of a remote `OperationContext`. When a manager rejects a request (invalid structure, failed ACL, storage fault), no partial state remains. Storage Manager rolls back the transaction, Log Manager records the reason, and the caller receives a deterministic error. Canonical error shapes and transport mappings are defined in [04-error-model.md](specs/04-interfaces/04-error-model.md).
 
-Every write flows `Service → Graph Manager → Storage Manager`, and every validation step calls Schema, ACL, DoS Guard, and Network Manager verification explicitly. There are no parallel authority paths to forget. Changing services does not weaken guarantees; changing a manager requires an ADR because it rewires system invariants. This strict component model keeps implementations consistent even if runtime packaging differs.
+Every write flows `Service -> Graph Manager -> Storage Manager`, with Schema and ACL checks in order. DoS Guard and Network Manager verification apply at the network boundary, not inside local write processing. There are no parallel authority paths to forget. Changing services does not weaken guarantees; changing a manager requires an ADR because it rewires system invariants. This strict component model keeps implementations consistent even if runtime packaging differs.
 
 ---
 
 ## 8. One pipeline for reads and writes
 
-Writes and reads originate from different places (local services, remote peers, API calls), and the protocol treats that context explicitly. Local authorship starts with frontend credentials, while remote sync begins with signed packages that reference peer ids and sequence ranges. Even so, once input reaches the kernel, every path uses the same managers in the same order so the guarantees remain identical. The flows below summarize the normative behavior described in `01-protocol/00-protocol-overview.md` and the manager responsibilities in `02-architecture/01-component-model.md`.
+Writes and reads originate from different places (local services, remote peers, API calls), and the protocol treats that context explicitly. Local authorship starts with frontend credentials, while remote sync begins with signed packages that reference peer ids and sequence ranges. Even so, once input reaches the kernel, every path uses the same managers in the same order so the guarantees remain identical. The flows below summarize the normative behavior described in `specs/01-protocol/00-protocol-overview.md` and the manager responsibilities in `specs/02-architecture/01-component-model.md`.
 
 ### Local authorship
 
-1. **Authenticate and scope**: A frontend request hits Auth Manager, which verifies the user or device and produces an `OperationContext` that simply states who is acting and for which app.
-2. **Describe the change**: Services bundle the desired Parents, Attributes, Edges, Ratings, or ACL updates into a graph envelope. Every write, even purely local ones, uses that envelope format.
-3. **Check capacity**: DoS Guard Manager and Health Manager make sure the node can handle the work. Overloaded nodes reject the request early rather than accepting unsafe load.
+1. **Authenticate and scope**: A frontend request hits Auth Manager, which verifies the user or device and produces an immutable `OperationContext` that states who is acting and for which app.
+2. **Describe the change**: Services bundle the desired Parents, Attributes, Edges, Ratings, or ACL updates into a graph message envelope. Every write uses that envelope format.
+3. **Check readiness**: Health Manager readiness gates admission of new work. Interface-specific limits may reject requests before expensive validation.
 4. **Validate structure**: Graph Manager checks the envelope for missing selectors, wrong ancestry, or cross-app references and drops anything that fails.
 5. **Validate schemas**: Schema Manager confirms the data belongs to the right app, uses the right types, and meets schema rules.
 6. **Authorize**: ACL Manager decides whether the actor described in the `OperationContext` is allowed to make the change.
-7. **Commit**: Graph Manager assigns the next `global_seq`, Storage Manager writes the change atomically, and Event Manager hears about it only after the commit sticks.
+7. **Commit**: Graph Manager assigns the next `global_seq`, Storage Manager writes the change atomically, Event Manager emits post-commit events, and Log Manager records the outcome.
 8. **Prep for sync**: State Manager notes the new sequence so other peers can fetch it later.
 
 ### Remote synchronization
 
-1. **Receive safely**: Network Manager accepts the package, applies transport rules, and lets DoS Guard Manager add puzzles or throttles if needed.
-2. **Verify the sender**: Auth Manager and Network Manager confirm who signed the package before it reaches any business logic.
-3. **Check ranges**: State Manager looks at `from_seq` and `to_seq` and makes sure every prerequisite is already on disk. Missing history triggers a gap request instead of guessing.
-4. **Run the same pipeline**: Each envelope runs through the same Graph, Schema, and ACL checks as a local write. Remote never means trusted.
-5. **Store or reject**: Accepted envelopes get fresh `global_seq` numbers, Storage Manager commits them, and State Manager advances the peer’s cursor. If any envelope fails, the batch is rejected and the cursor stays put.
+1. **Admit the session**: Network Manager accepts the package only after Bastion admission and DoS Guard Manager directives (`allow`, `deny`, `require_challenge`).
+2. **Verify and bind**: Network Manager verifies the sync package signature, decrypts when required, and binds the sender identity to the package.
+3. **Check ordering**: State Manager validates `sync_domain`, `from_seq`, and `to_seq` against sync state, then constructs a remote `OperationContext`.
+4. **Run the same pipeline**: Each graph message envelope runs through the same Graph, Schema, and ACL checks as a local write. Remote never means trusted.
+5. **Store or reject**: Accepted envelopes get fresh `global_seq` numbers, Storage Manager commits them, and State Manager advances the peer cursor only after acceptance. Rejection leaves the cursor unchanged.
 
 ### Read path (local or remote callers)
 
-1. **Identify the caller**: Reads also start with Auth Manager so the system knows who is asking and which app they belong to. Remote peers must have synced the relevant history before they ask for it.
-2. **Watch the load**: DoS Guard Manager enforces read-side quotas (row limits, rate caps) and Health Manager can pause heavy reads when the node is degraded.
-3. **Ask Graph Manager**: Services call Graph Manager’s read helpers. Graph Manager checks ACLs, enforces schema boundaries, and translates the request into a constrained Storage Manager query.
-4. **Let Storage Manager do the read**: Storage Manager executes the query and returns immutable rows. Optional filters (for example, hiding data based on Ratings) happen after the read and never mutate state.
-5. **Return with context**: Results include ordering markers such as `global_seq` so clients know how the data lines up with their own history.
+1. **Identify the caller**: Reads start with Auth Manager so the system knows who is asking and which app they belong to. Remote peers receive data through sync packages, not ad-hoc read calls.
+2. **Apply limits**: Health Manager readiness gates heavy reads and Graph Manager enforces bounded read budgets. Services may apply additional interface-level rate limits.
+3. **Ask Graph Manager**: Services call Graph Manager read helpers. Graph Manager validates the request, consults ACL Manager for read authorization, and uses schema metadata to enforce boundaries.
+4. **Let Storage Manager do the read**: Storage Manager executes the bounded query and returns immutable rows. Optional visibility filters (for example, rating-based suppression) happen after the read and never mutate state.
+5. **Return with context**: Results include ordering markers such as `global_seq` or `snapshot_seq` so clients can align reads with history.
 
 ### Expressive and bounded queries
 
-Querying the graph is more than listing "all restaurants" or "all documents." Because every fact carries typed metadata, ownership, ratings, and ancestry, callers can combine those pieces into meaningful filters without leaving the safety of the protocol. A request can restrict results by object type (only restaurant Parents), by attribute type (only phone numbers), by arbitrary graph selectors (exclude a specific chain or category), by rating scales (scores above 1.75 out of 5), by rating signers (only friends, family, or identified guild members), and by degree of separation (only facts within two hops of the requester). Each clause refers to data the graph already stores, so Graph Manager can assemble the filters deterministically, ACL Manager can prove the caller is allowed to see the matches, and Storage Manager can execute the query without ad hoc code paths.
+Graph reads are explicit and bounded. Clients submit a `GraphReadRequest` (see `specs/04-interfaces/03-internal-apis-between-components.md`) that declares the target kind, type keys, filters, limits, and optional snapshot bounds. Filters are schema-aware and constrained (attribute checks, rating thresholds, group membership, edge existence), and bounded traversals are limited by depth and node caps. In the PoC, degree filters are explicitly limited to the contact graph (`app.contacts`) and to degrees 0-3, so reach remains predictable and enforceable.
 
-This capability changes what applications can offer users. A local dining app might surface "restaurants my trusted contacts recommend or endorse, excluding places they explicitly avoid." A reputation dashboard could show "engineers who passed code review from reviewers I already trust, excluding anyone flagged by moderation edges." A neighborhood safety tool might retrieve "alerts that happened within two hops of me, only if they were confirmed by multiple households I trust." These examples are illustrative; each app defines its own schema types, ratings, and opt-out tags, and the substrate simply enforces the rules the app describes.
+Because filters are part of the request, Graph Manager can validate them, ACL Manager can authorize them, and Storage Manager can execute them without ad hoc code paths. That yields deterministic results across nodes and makes it safe to build higher-level queries such as:
 
-The system keeps those searches bounded. Degree constraints (see Section 11) stop a query from jumping beyond the explicit trust radius unless the graph itself records those links. Schema-aware selectors ensure filters always point to defined types, preventing brittle string matching or hidden assumptions. Ratings remain signed, so users and auditors can see exactly who vouched for a result. Even opt-out lists, such as "exclude parents tagged with bad taste in food," are data recorded in the graph, not hard-coded in a service. Because the protocol enforces these filters, every node reaches the same conclusion, and every match traces back to the signer, parent, or rating that satisfied the request.
+- "Contacts within two degrees who rated this parent above 4.0."
+- "Records tagged with a schema-defined attribute and created within a time range."
+- "Objects authored by members of a specific system group."
+
+These examples are illustrative; the substrate enforces only the structural rules and authorization bounds the schema declares.
 
 ### Uniform guarantees
 
-Reads and writes inherit the same posture: the caller must prove identity, ACL Manager must approve scope, Storage Manager is the only database surface, and responses always reflect accepted, replayable history. Any service, extension, or transport that attempts to skip a manager or mutate state directly is out of spec and must be rejected.
+Reads and writes inherit the same posture: the caller must prove identity, ACL Manager must approve scope, Storage Manager is the only database surface, and responses always reflect accepted, replayable history. Any service or transport that attempts to skip a manager or mutate state directly is out of spec and must be rejected.
 
 ## 9. Security model and threat framing
 
@@ -297,64 +306,63 @@ Reads and writes inherit the same posture: the caller must prove identity, ACL M
 
 ### 9.1 Baseline posture
 
-- No safe perimeter: every packet is untrusted, and DoS Guard plus Network Manager must admit it before State Manager sees it.
-- Identity equals recorded parents + keys. OperationContext always references that record; IPs, TLS info, or UI accounts do not matter.
+- No safe perimeter: every packet is untrusted. DoS Guard and Network Manager admit remote traffic before State Manager sees it, and Auth Manager gates local entrypoints.
+- Identity equals recorded Parents plus keys. `OperationContext` always references that record; IPs, TLS info, or UI accounts do not matter.
 - Managers fail closed. If Config, Schema, ACL, Graph, Storage, State, or DoS Guard is degraded, the node denies work and logs why.
 - Offline nodes rejoin by replaying history under the same validation order, so downtime never skips checks.
 
 ### 9.2 Assets and boundaries
 
-Graph data (objects; parents, attributes, edges, ACLs, ratings) is append-only and written only by Graph + Storage after Schema/ACL approval. Keys and identities stay inside Key Manager; every call ties back to a proven key, including multi-device or delegated keys that must record explicit edges. Network edges belong to DoS Guard and Network Manager; puzzles, signatures, and envelope hashes block transport tampering or replay before State Manager sees the payload. Config snapshots act like code and stay versioned and audited. Log/Event/Health form the only observability plane and obey ACL capsules just like reads, while selective sync and visibility filters prevent curious peers from learning data they never earned.
+Graph data (Parents, Attributes, Edges, ACLs, Ratings) is append-only and written only by Graph + Storage after Schema and ACL approval. Keys and identities stay inside Key Manager; all private-key operations are centralized there. Network boundaries belong to DoS Guard and Network Manager; puzzles, signatures, and ordering checks block tampering or replay before State Manager sees the payload. Config snapshots are node-local and immutable, and no component reads `.env` or settings directly outside Config Manager. Log, Event, and Health managers form the observability plane, and selective sync plus ACL filtering determine what can leave the node.
 
 ### 9.3 Threats and claims
 
-2WAY defends against remote attackers, Sybil floods, compromised peers, malicious extensions, careless operators, hardware theft, hostile transports, and censorship attempts by keeping compromises local. Only the owning key can modify its namespace, validation always runs structural -> schema -> ACL -> storage, and rejected envelopes never touch disk. Degree limits and hop budgets prevent trust borrowing, DoS Guard sheds abusive traffic, and signed envelopes plus `global_seq` ordering block replay, reordering, or message forgery. Keys can be rotated or revoked by recording multi-sig down-vote objects from other trusted keys, which mark when the compromised key should no longer count and let peers down-vote envelopes authored after that timestamp once they replay history. Nodes can operate offline or without a central coordinator, so censorship or backend outages cannot force trust leaps. Every decision is recorded so investigations can replay what happened.
+2WAY defends against remote attackers, Sybil floods, compromised peers, malicious app services, careless operators, hardware theft, hostile transports, and censorship attempts by keeping compromises local. Validation always runs structural -> schema -> ACL -> storage, and rejected envelopes never touch disk. Degree-of-separation limits and domain scoping prevent trust borrowing, DoS Guard sheds abusive traffic, and signed sync packages plus `global_seq` ordering block replay, reordering, or message forgery. Keys can be rotated or revoked by recording graph objects or ratings, and those revocations apply prospectively without rewriting history. Nodes can operate offline or without a central coordinator, so outages cannot force trust leaps. Every decision is recorded so investigations can replay what happened.
 
-### 9.4 Limits and operator duties
+### 9.4 Privacy and selective sync
+
+Privacy is enforced structurally. Sync domains are explicit and app-scoped, State Manager exports only eligible objects, and ACL visibility rules are enforced before any data leaves the node. Metadata is minimized to the fields required for validation and sync, and local-only fields never leave the device. See `specs/05-security/09-privacy-selective-sync-and-domain-scoping.md`.
+
+### 9.5 Limits and operator duties
 
 The platform does not protect against rooted hosts, broken hypervisors, or side-channel attacks. Metadata stays visible to the parties that participate in that slice of the graph, and end-to-end encryption of payloads is an application choice. Unsafe defaults (auto-accepting everyone, blanket delegates) can reintroduce risk, so schema and ACL changes deserve the same review as code. Regulatory tasks (retention, deletion, jurisdictional routing) remain with app owners.
 
-### 9.5 Failure and recovery behavior
+### 9.6 Failure and recovery behavior
 
-Missing configuration, schema mismatches, storage corruption, lost keys, or unavailable DoS Guard all trigger denial plus telemetry. Recovery means replaying trusted history while the same validation rules run; revocations prune edges, new keys slot into the graph, and offline peers catch up through the append-only log. Keep Log/Event sinks healthy so these transitions remain visible.
+Missing configuration, schema mismatches, storage corruption, lost keys, or unavailable DoS Guard all trigger denial plus telemetry. Recovery means replaying trusted history while the same validation rules run; revocations and key rotation are ordinary graph mutations, and offline peers catch up through the append-only log. Backup and restore behaviors are defined in `specs/03-data/08-backup-restore-and-portability.md`. Keep Log/Event sinks healthy so these transitions remain visible.
 
 ---
 
 ## 10. Structural impossibility
 
-2WAY encodes its rules so tightly that many unsafe actions have no execution path. If the graph lacks the required edges, ownership, or ancestry, the mutation cannot even be formed.
+2WAY encodes its rules so tightly that many unsafe actions have no valid execution path. If the graph lacks the required Parents, schema types, or ACL objects, the mutation is rejected before it can reach storage.
 
 This structural approach covers:
 
-* **Application isolation**: proposals cannot point at foreign state unless the graph already contains a delegation that allows it.
-* **Access control enforcement**: capabilities exist as graph objects and must be present before any write is considered.
-* **Graph mutation rules**: only the owning device can author changes for its portion of the graph because no other key can form the correct parent references.
-* **State ordering guarantees**: ancestry links and deterministic ordering keep history append-only; retroactive edits have nowhere to land.
+* **Application isolation**: proposals cannot point at foreign state unless the graph already contains explicit delegation objects that allow it.
+* **Access control enforcement**: capabilities and ACLs exist as graph objects and must be present before any write is authorized.
+* **Ownership immutability**: `owner_identity` and `type_id` cannot be rewritten, so authority does not drift over time.
+* **State ordering guarantees**: envelopes are applied atomically and ordered deterministically; retroactive edits have nowhere to land.
 
-Even if an application is compromised or a key is stolen, it emits only proposals that fail validation. It cannot fabricate privilege, rewrite history, or create structural hooks that cross authority boundaries. Rejection happens automatically and deterministically.
+Compromise is contained to the authority recorded in the graph. A stolen key can act only within its recorded scope; it cannot bypass schema, ACL, or app boundaries or rewrite accepted history. Rejection is deterministic and leaves no partial state.
 
 ---
 
 ## 11. Degrees of separation and influence limits
 
-Authority in 2WAY is local, not global. Every private key, whether it belongs to a person, device, service, or automation, only sees the network from its zeroth degree: the graph it already trusts and the history it has replayed. Anything beyond that view requires explicit edges that describe direction, ownership, and purpose so policies can decide who may act and how far their influence can travel. Because each node enforces the same hop rules, degree filtering comes from the substrate, not from a UI toggle. Until a new identity forms edges with trusted anchors, its proposals never leave the network buffer.
+Authority in 2WAY is local, not global. Every key only sees what its graph has accepted and replayed. Anything beyond that view requires explicit edges that describe direction, ownership, and purpose so policies can decide who may act and how far their influence can travel. Degree-of-separation limits are schema-declared, graph-derived constraints evaluated by ACL Manager, not UI heuristics.
 
 Practical effects:
 
-* **Zeroth-degree anchoring**: proposals are judged against the local view first. Subscribing to a broad topic does nothing until a first-degree link authorizes fetching and replay.
-* **Gradient trust**: first-degree collaborators get fast reads and writes, second-degree observers may see delayed or read-only data, and unknown nodes stay invisible. Schema, ACL, and sync policies all honor that gradient.
-* **Bounded broadcast and replication**: operations can declare a hop budget such as "friends of friends." Once that budget expires the mutation stops propagating, so spam bursts and storage growth stay tied to explicit consent.
-* **Structural ignore**: identities beyond the chosen radius never reach ACL Manager or State Manager. Degree filters shed that work before it hits CPU or disk, which doubles as DoS protection.
-* **Intentional expansion**: gaining reach means creating edges that every hop signs off on. Each hop records why it vouched for the next, so audits can trace influence and operators can retract it by pruning specific links.
-* **UI determinism**: applications that render feeds, alerts, marketplaces, or governance queues know that every record already passed the user's degree filters. The zeroth-degree view defines what "global" means for that key.
-* **Security layering**: degree filters form concentric rings. Unknown keys can send packets, but they cannot trigger schema validation, ACL evaluation, or disk writes until a trusted hop lets them through. Widening reach always leaves a recorded edge.
-* **Sybil drag**: cloned identities must earn approval at every hop. Hop budgets and per-hop policy make that expensive, and removing any one link collapses the entire route.
+* **Zeroth-degree anchoring**: own data is visible by default, everything else requires explicit edges or ACLs.
+* **Explicit expansion**: gaining reach means creating edges that every hop signs off on, leaving audit trails that can be revoked.
+* **Bounded visibility**: schemas can require degree limits, membership edges, or trust thresholds before reads or writes are allowed.
+* **Deterministic enforcement**: Graph Manager and ACL Manager enforce the same limits on every node; remote peers cannot widen reach by transport tricks.
+* **PoC constraints**: degree filters exposed via `GraphReadRequest` are limited to the contact graph (`app.contacts`) and to degrees 0-3, keeping reach predictable.
 
-These guardrails keep trust from spreading on its own, limit unsolicited reach, and make every relationship inspectable. Degrees of separation are an architectural tool that spans storage, sync, ACLs, and user experience instead of a loose moderation guideline.
+These guardrails keep trust from spreading on its own, limit unsolicited reach, and make relationships inspectable. Degree enforcement also feeds Sybil resistance (see Section 12) by forcing explicit, revocable paths rather than opportunistic broadcast.
 
-The same mechanics feed directly into Sybil resistance (see Section 11). Degree enforcement keeps anonymous floods away from ACL evaluation, shows exactly who vouched for each identity, and lets defenders cut off whole branches by revoking a single edge. Sybils cannot borrow trust because every hop is intentional, reviewable, and revocable.
-
-This approach is not the PGP Web of Trust. PGP attestations mostly claim that someone saw another key, and each client invents its own policy afterward. 2WAY edges bundle permissions, hop limits, and revocation behavior, so they carry governed capability rather than social proof. When a node withdraws an edge, reach shrinks immediately according to the recorded degree limits, not according to convention.
+This approach is not the PGP Web of Trust. PGP attestations mostly claim that someone saw another key, and each client invents its own policy afterward. 2WAY edges bundle permissions and revocation behavior, so they carry governed capability rather than social proof. When a node withdraws an edge, reach shrinks immediately according to recorded limits.
 
 ---
 
@@ -364,10 +372,10 @@ Perfect Sybil prevention is unrealistic for open networks, so 2WAY makes identit
 
 Structural guardrails:
 
-* **Anchoring required**: new keys have no influence until they form edges with trusted anchors. Without that path, their proposals never leave the network buffer.
+* **Anchoring required**: new keys have no influence until they form edges with trusted anchors. Without that path, their proposals are rejected or never authorized.
 * **Application-scoped trust**: reputation lives in the shared graph but is interpreted per application, so standing in one domain grants nothing elsewhere.
 * **Explicit delegation**: edges that convey authority must be recorded by both parties, include bounded capabilities, and stay revocable.
-* **Degree limits**: hop budgets block unsolicited fan-out. Nodes that never opted into a path will never see its traffic.
+* **Degree limits**: schema-declared degree constraints block unsolicited fan-out. Nodes that never opted into a path will never see its traffic.
 * **Cost matches intent**: forming real relationships requires effort (introductions, shared history, mutual acceptance), making it expensive for attackers to scale.
 
 Attackers can still generate packets, but without anchors, recognized capabilities, and degree-limited paths, they cannot mutate state, borrow reputation, or force attention.
@@ -376,37 +384,18 @@ Attackers can still generate packets, but without anchors, recognized capabiliti
 
 ## 13. Denial-of-service containment
 
-Because 2WAY is local-first, most defenses fire before the network sees anything. Every write proposal travels the same Service → Graph → Storage path, and each hop rejects malformed or abusive input cheaply:
+2WAY assumes abusive traffic and fails closed. Every write proposal travels the same `Service -> Graph Manager -> Storage Manager` path, and each hop rejects malformed input cheaply:
 
-- **Interface layer**: Services expose narrow, typed endpoints, publish cost hints, and throttle callers before domain work begins.
-- **Auth and interface layers**: Signature verification and OperationContext construction confirm enrollment before any proposal is considered.
-- **Schema Manager**: Structural validation kills malformed payloads without touching application logic.
-- **ACL Manager**: Capability checks run before mutations, so unauthorized traffic never triggers heavy computation.
-- **Graph Manager**: Deterministic ordering and ancestry checks discard duplicates and conflicting writes early.
-- **State Manager**: Sync windows limit how much history a peer can demand, stopping replay floods.
-- **Storage Manager**: Append-only commits happen last, after every other manager consents, so disk I/O cannot be weaponized.
+- **Interface layer**: endpoints validate inputs early and construct `OperationContext` through Auth Manager.
+- **Graph Manager**: structural validation rejects malformed envelopes before schema or ACL work.
+- **Schema Manager**: rejects invalid types or schema violations.
+- **ACL Manager**: rejects unauthorized actions.
+- **State Manager**: enforces sync windows and ordering for remote input.
+- **Storage Manager**: commits last, after every other manager consents.
 
-Because each manager fails closed, an attacker must bypass multiple deterministic gates just to reach durable state.
+Remote traffic is gated at the network boundary. Network Manager's Bastion Engine holds unadmitted sessions and consults DoS Guard Manager for `allow`, `deny`, or `require_challenge`. Only after admission does Network Manager verify signatures, decrypt when required, and forward packages to State Manager. DoS Guard uses `dos.*` policy plus Health Manager signals; missing telemetry or degraded readiness raises difficulty or denies admission. DoS Guard unavailability results in deny to preserve fail-closed behavior.
 
-Those local defenses keep most abuse from ever touching the network layer, but 2WAY still assumes attackers keep trying from across the wire. To contain them, the Network Manager's Bastion Engine receives each inbound or outbound handshake and immediately consults the DoS Guard Manager for an `allow`, `deny`, or `require_challenge` directive. Bastion and the DoS Guard Manager operate as a single admission loop: transport traffic stays in the holding area while the DoS Guard Manager evaluates telemetry and policy, and Bastion does not move the session forward without that decision. Only after the handshake clears this joint gate does Network Manager's Incoming and Outgoing Engine pair move envelopes between peers. Nothing expensive (schema checks, ACL evaluation, ordering, or storage) runs until that cheap admission filter succeeds.
-
-The DoS Guard Manager applies multiple defenses before puzzles ever appear:
-
-- **Admission gating**: Each connection gets one decision (`allow`, `deny`, or `require_challenge`) and anything but `allow` keeps the session outside the trusted surfaces. The Bastion Engine never proceeds without that verdict.
-- **Rate and burst limits**: Global caps, per identity budgets, and anonymous source heuristics throttle message rates, concurrent sessions, and outstanding challenges. Limits are configured through the `dos.*` namespace and enforced deterministically.
-- **Telemetry driven posture**: Network Manager streams byte counts, message rates, transport type, and resource pressure. The DoS Guard Manager biases toward denial when telemetry is missing or shows spikes, so abusive floods die at the edge rather than reaching Graph or Storage.
-- **Health-aware throttling**: When Health Manager marks the node `not_ready`, the DoS Guard Manager automatically raises the admission bar or shuts off new handshakes, preventing compromised subsystems from being overwhelmed.
-- **Fail-closed defaults**: Loss of configuration, Key Manager seeds, or internal capacity translates into denial of new sessions while existing admitted links drain safely.
-
-Only after those fast checks succeed does the DoS Guard Manager fall back to puzzles. Borrowing the "New Client Puzzle Outsourcing Techniques for DoS Resistance" approach from Ari Juels et al., it shifts work to the requester whenever telemetry, policy, or Health Manager signals still show strain. Every puzzle includes a unique `challenge_id`, opaque payload, context binding, expiration, and algorithm selector. Network Manager only relays the bytes. The DoS Guard Manager records success and failure per peer, per anonymous source, and across the node, so abusive senders see difficulty rise steadily and only see relief after they behave. Proofs expire fast, cannot be replayed on other connections, and take far more effort to solve than to verify, which keeps defenders cool while attackers burn CPU.
-
-The telemetry and policy loop keeps puzzles adaptive instead of static throttles:
-
-- **Telemetry-driven escalation**: Transport byte counts, message rates, and resource pressure feed the DoS Guard Manager's admission logic. Crossing configured `dos.*` limits raises puzzle cost or triggers a deny, and missing telemetry defaults to `require_challenge`.
-- **Health-aware gating**: When Health Manager reports `not_ready`, the DoS Guard Manager raises difficulty or stops admitting traffic so the node never accepts work it cannot finish safely.
-- **Config-bound ceilings**: Config Manager sets minimum and maximum difficulty, limits on outstanding puzzles, and decay periods, so puzzle outsourcing stays bounded and predictable across builds.
-
-Because untrusted traffic never leaves the shallow bastion zone until puzzles (if any) and crypto checks pass, abusive bursts die at the edge. Each node enforces these DoS Guard Manager rules on its own device and fails closed if the manager is unavailable, so a compromised or overloaded peer might lose connectivity, but it cannot drag honest nodes into storms or force them to redo work just by shouting louder.
+Client puzzles are opaque to Network Manager and verified only by DoS Guard. Challenges include a `challenge_id`, expiration, context binding, and difficulty parameters. Failed or expired puzzles escalate difficulty or trigger denial. These controls keep abusive bursts at the edge and prevent resource exhaustion from reaching Graph or Storage.
 
 ---
 
@@ -417,24 +406,22 @@ Because untrusted traffic never leaves the shallow bastion zone until puzzles (i
 Failure handling happens at multiple layers:
 
 - **Protocol gatekeeping**: Graph Manager enforces object-model invariants before Schema Manager or ACL Manager see the request. Invalid envelopes are dropped, a rejection reason is logged, and nothing touches Storage Manager.
-- **Authority pipeline**: Schema Manager, ACL Manager, and Graph Manager run deterministically with the supplied `OperationContext`. Any disagreement (missing schema, revoked capability, forked ancestry) returns a hard error that every peer will hit when replaying the same input.
-- **Transport boundary**: Network and DoS Guard Managers refuse traffic they cannot attribute, rate-limit, or puzzle-gate. Connections fail fast rather than letting junk flow toward storage.
+- **Authority pipeline**: Schema Manager, ACL Manager, and Graph Manager run deterministically with the supplied `OperationContext`. Any disagreement returns a hard error that every peer will hit when replaying the same input.
+- **Transport boundary**: DoS Guard and Network Manager refuse traffic they cannot admit or verify. Sync state does not advance on rejection.
 
 When a rule is violated (schema mismatch, missing capability, conflicting ordering), the input is rejected before it touches durable state. No speculative writes remain. Each write still travels the same serialized path, so local integrity holds even when the app above it is compromised.
-
-Operation continues with reduced scope. Nodes quarantine the faulty identity, mark incomplete state as suspect, and keep serving peers whose histories remain intact. Isolation beats availability: it is better to drop a misbehaving connection than to corrupt the graph. Health Manager and DoS Guard Manager cooperate to block new work if liveness or telemetry sinks, so overload becomes back-pressure, not inconsistent state.
 
 Recovery is explicit and auditable. Administrators or applications craft corrective actions (revocations, replays, migrations, repairs) that pass the same validation pipeline as any other write. There is no hidden admin override or silent reconciliation loop. If a fix cannot be encoded as a normal mutation, it does not happen.
 
 Different failure classes map to targeted containment strategies:
 
-- **Node or manager crash**: Storage Manager's append-only log lets the node replay accepted history after restart. Managers initialize independently, and any manager that cannot load reports `not_ready`, which keeps Network Manager from admitting fresh work until the fault clears.
-- **Divergent histories**: Graph Manager refuses to advance `global_seq` if ancestry is missing. State Manager requests the missing range, replays it deterministically, and only then resumes sync. Peers never speculate about intent; they insist on ordered, signed history.
-- **Key compromise or revocation**: Key Manager replaces trust roots only via explicit graph mutations (revocations, recovery flows). Once a revocation lands, ACL Manager removes the capability immediately because authorization decisions derive from recorded edges, not cached sessions.
-- **Storage corruption**: Checksums and parent pointers make tampering or disk errors obvious. A corrupted log segment fails validation and the node stops processing until the operator restores from a trusted snapshot. Partial data never leaks upward because Graph Manager refuses to commit on inconsistent storage.
-- **Unbounded input or spam**: Network Manager, DoS Guard Manager, and ACL Manager can independently cut a peer off. The system prefers deliberate disconnects over degraded correctness, so abusive sessions see puzzles escalate to denial long before they can saturate CPU.
+- **Node or manager crash**: Storage Manager's persisted state is authoritative. Managers restart, rebuild in-memory state, and Health Manager keeps admission closed until readiness returns.
+- **Divergent histories**: State Manager enforces ordering and requests missing ranges. Nodes replay signed history rather than speculate about intent.
+- **Key compromise or revocation**: Revocation is recorded as graph objects or ratings. ACL Manager enforces the change immediately because authorization derives from recorded edges, not cached sessions.
+- **Storage corruption**: Invariant checks fail closed and the node stops processing until the operator restores from a trusted backup (see `specs/03-data/08-backup-restore-and-portability.md`).
+- **Unbounded input or spam**: DoS Guard denies admission, Network Manager drops sessions, and ACL Manager rejects unauthorized operations long before disk writes.
 
-Because every mitigation is itself part of the ordered, signed record, auditors can see what failed, what was rejected, what was quarantined, and how it was repaired. Nodes never guess or silently heal; they either prove a fact in the graph or refuse the action.
+Accepted mutations and rejection reasons remain visible through Log Manager and Event Manager, so auditors can replay what happened and operators can trace which rule failed. Nodes never guess or silently heal; they either prove a fact in the graph or refuse the action.
 
 ---
 
@@ -442,18 +429,19 @@ Because every mitigation is itself part of the ordered, signed record, auditors 
 
 2WAY promises a grounded set of default behaviors. They stay small, testable, and tied to concrete managers so every implementation can be audited and every operator knows what the system delivers before any custom logic is added.
 
-* **Every change names its author**: Each mutation carries the key and device that signed it. Key Manager protects those keys, Graph Manager refuses unsigned input, and the ordered log records the lineage forever. Once a signature lands, nothing in the stack can edit or hide it, so provenance never turns into guesswork.
-* **History is append-only and replayable**: Storage Manager keeps an ordered log with parent pointers, hashes, and digests. Any peer can replay another device, verify the chain, and detect if entries went missing, moved, or changed. There is no hidden database with extra privileges, so restoring a node is the same exercise as auditing it.
-* **Validation and ordering always match**: Schema Manager, ACL Manager, and Graph Manager run in the same order on every device. Give them the same inputs and they either all accept or all reject, regardless of latency, topology, or who connects first. Convergence depends on structure, not timing or operator judgement.
-* **Schema and reference integrity never bend**: Graph Manager checks object-model rules first, then Schema Manager confirms that references exist, types match, and invariants hold. Malformed envelopes die before they touch storage, so every surviving record has the same anchors and selectors everywhere it travels.
-* **Applications stay in their lane**: Every app reads the same feed but can only touch graph segments it owns or that someone delegated through recorded edges. Crossing boundaries requires those edges. There is no config switch, trusted transport, or backdoor service that can bypass ACL Manager. Bugs and compromises stay scoped to their app.
-* **Delegation is provable and reversible**: Capabilities live entirely in the graph. Running on a special host or editing a config file never grants extra power. ACL Manager only honors edges that exist in data, so every privilege shows up in history and can be revoked by writing another mutation.
-* **Failures shut the door instead of corrupting data**: Missing context, stale parents, conflicting permissions, or health issues stop the write before it reaches storage. Health and DoS Guard Managers shed load when the node is strained, so failure shrinks the blast radius and leaves trusted history intact. Recovery actions flow through the same pipeline and leave an audit trail.
-* **Sync and recovery use the same rules**: The facts that make a write acceptable are the same facts peers check when syncing. There are no special bootstrapping modes or one-time migration grants. Rebuilding a node means replaying signed history until it catches up, proving the guarantees continued to hold.
-* **Local custody of identity and data is mandatory**: Every device stores its own keys, logs, and durable state. No central operator can pull privilege out from under a peer, and a device that goes offline can return later without asking permission because it still holds its authority.
-* **Decisions stay observable**: Log Manager records structured reasons for accept and reject paths, and Event Manager emits deterministic signals whenever a manager exercises authority. Auditors can read why something failed, operators can alert on it, and applications can respond without hidden heuristics.
-* **Network admission stays bounded**: Auth Manager, Network Manager, and DoS Guard Manager refuse traffic they cannot attribute or that would exceed configured budgets. Abusive peers see puzzles and throttles, and if health continues to drop the node simply stops admitting work rather than risking corruption.
-* **Portability across implementations is enforced**: Because every guarantee is structural, not policy text, the same ordered history will pass validation on any conformant build. Mixing runtimes, UI stacks, or storage backends does not weaken guarantees as long as each manager honors its contract.
+* **Every change names its author**: Each mutation records `owner_identity` bound to a graph identity. Sync packages are signed by node keys and verified before acceptance.
+* **History is append-only and replayable**: Storage Manager persists ordered graph records with `global_seq`. Nodes replay accepted history to recover or audit; there is no rewrite or delete path.
+* **Validation and ordering always match**: Schema Manager, ACL Manager, and Graph Manager run in the same order on every device. Give them the same inputs and they either all accept or all reject, regardless of latency, topology, or who connects first.
+* **Schema and reference integrity never bend**: Graph Manager checks object-model rules first, then Schema Manager confirms that references exist, types match, and invariants hold. Malformed envelopes die before they touch storage.
+* **Applications stay in their lane**: Every app reads the same feed but can only touch graph segments it owns or that someone delegated through recorded edges. Crossing boundaries requires those edges.
+* **Delegation is provable and reversible**: Capabilities live entirely in the graph. ACL Manager honors only recorded edges, and revocation is another mutation with an audit trail.
+* **Failures shut the door instead of corrupting data**: Missing context, stale parents, conflicting permissions, or health issues stop the write before it reaches storage. Failure shrinks the blast radius and leaves trusted history intact.
+* **Sync and recovery use the same rules**: The facts that make a write acceptable are the same facts peers check when syncing. There are no special bootstrapping modes or one-time migration grants.
+* **Local custody of identity and data is mandatory**: Every device stores its own keys, logs, and durable state. No central operator can pull privilege out from under a peer.
+* **Decisions stay observable**: Log Manager records structured reasons for accept and reject paths, and Event Manager emits post-commit signals. Auditors can read why something failed and operators can alert on it.
+* **Network admission stays bounded**: DoS Guard and Network Manager enforce admission, puzzles, and rate limits at the transport boundary, while Auth Manager gates local sessions. If health drops, the node stops admitting work rather than risking corruption.
+* **Portability across implementations is enforced**: Because every guarantee is structural, the same ordered history will pass validation on any conformant build. Mixing runtimes, UI stacks, or storage backends does not weaken guarantees as long as each manager honors its contract.
+
 
 If a build cannot prove each promise under its supported conditions, it is out of spec no matter how fast, convenient, or popular it may be.
 
@@ -533,7 +521,7 @@ Teams in these spaces gain:
 
 Messaging maps neatly to graph primitives. Conversations become `Parent` objects, participants are membership `Edge`s, individual messages are `Attribute` objects, and an `ACL` defines who may read or write. That layout is illustrative, not prescriptive; developers can model conversations, threads, or channels however their UX demands as long as the schema honors the object model.
 
-Each outbound message is a proposed mutation handled by Graph Manager. Graph Manager confirms that targets exist, references are well formed, and ordering constraints hold. ACL Manager evaluates the conversation ACL using the author identity that Auth Manager resolved, and once the write commits locally, State Manager coordinates replication while Network Manager offers it to peers. Because this pipeline runs locally and cannot be bypassed, malicious peers cannot inject unauthorized traffic or reorder history, offline writers keep working, and applications can focus on presentation, end-to-end encryption layered above the substrate, and retention policy instead of rebuilding the stack.
+Each outbound message is a proposed mutation handled by Graph Manager. Graph Manager confirms that targets exist, references are well formed, and ordering constraints hold. ACL Manager evaluates the conversation ACL using the author identity in the `OperationContext`, and once the write commits, State Manager coordinates replication while Network Manager offers it to peers. Because this pipeline runs locally and cannot be bypassed, malicious peers cannot inject unauthorized traffic or reorder history, offline writers keep working, and applications can focus on presentation, end-to-end encryption layered above the substrate, and retention policy instead of rebuilding the stack.
 
 ### 18.2 Social media and publishing
 
@@ -629,5 +617,3 @@ Credit to [Carsten Keutmann](https://x.com/keutmann/) for his work on the [Digit
 Credit to [Adam Back](https://x.com/adam3us) for his work on proof of work with Hashcash. It grounded how I think about resource-based abuse resistance. It also highlighted the trade-offs in making spam expensive at the protocol edge. It made DoS costs feel like a first-class design input.
 
 Credit to [Ari Juels](https://www.arijuels.com/) for his paper [New Client Puzzle Outsourcing Techniques for DoS Resistance](https://www.arijuels.com/wp-content/uploads/2013/09/WJHF04.pdf). It clarified how to structure puzzles so relays can resist abuse without outsourcing trust. That line of thinking connects directly to the DoS Guard Manager's puzzle flow in this design.
-
----

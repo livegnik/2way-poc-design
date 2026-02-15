@@ -110,10 +110,10 @@ Referenced in [02-system-services.md](../02-architecture/services-and-apps/02-sy
 * `ERR_OPS_CAPABILITY`
 * `ERR_OPS_CONFIG_ACCESS`
 
-Referenced in [03-app-backend-extensions.md](../02-architecture/services-and-apps/03-app-backend-extensions.md):
+Referenced in [03-app-services.md](../02-architecture/services-and-apps/03-app-services.md):
 
-* `ERR_APP_EXTENSION_CONTEXT`
-* `ERR_APP_EXTENSION_CAPABILITY`
+* `ERR_APP_SERVICE_CONTEXT`
+* `ERR_APP_SERVICE_CAPABILITY`
 * `ERR_APP_SIGNATURE_INVALID`
 * `ERR_APP_PUBLISHER_UNTRUSTED`
 
@@ -150,8 +150,8 @@ Service-specific `ERR_*` codes are surfaced to local callers using the canonical
 | `ERR_SYNC_PLAN_INVALID` | `structural` | Sync plan validation failure. |
 | `ERR_OPS_CAPABILITY` | `acl` | Missing admin capability. |
 | `ERR_OPS_CONFIG_ACCESS` | `config` | Config export denied or invalid. |
-| `ERR_APP_EXTENSION_CONTEXT` | `structural` | Missing or invalid OperationContext. |
-| `ERR_APP_EXTENSION_CAPABILITY` | `acl` | Missing capability for extension action. |
+| `ERR_APP_SERVICE_CONTEXT` | `structural` | Missing or invalid OperationContext. |
+| `ERR_APP_SERVICE_CAPABILITY` | `acl` | Missing capability for app service action. |
 | `ERR_APP_SIGNATURE_INVALID` | `auth` | App package signature invalid. |
 | `ERR_APP_PUBLISHER_UNTRUSTED` | `auth` | Publisher missing or not trusted. |
 | `ERR_CAPABILITY_REVOKED` | `acl` | Capability revoked after issuance. |

@@ -10,11 +10,11 @@ For the meta specifications, see [08-network-transport-requirements meta](../10-
 
 ## 1. Position in the system
 
-The network transport layer provides best effort delivery of opaque envelopes between peers.
+The network transport layer provides best effort delivery of opaque sync package envelopes between peers.
 
 It operates:
 
-- Below [envelope verification](03-serialization-and-envelopes.md), [signature validation](04-cryptography.md), [ACL enforcement](06-access-control-model.md), [schema validation](../02-architecture/managers/05-schema-manager.md), [sync state management](07-sync-and-consistency.md), and [graph mutation](../02-architecture/managers/07-graph-manager.md).
+- Below [structural envelope validation](03-serialization-and-envelopes.md), [signature validation](04-cryptography.md), [ACL enforcement](06-access-control-model.md), [schema validation](../02-architecture/managers/05-schema-manager.md), [sync state management](07-sync-and-consistency.md), and [graph mutation](../02-architecture/managers/07-graph-manager.md).
 - Above raw network connectivity and routing substrates.
 
 The transport layer is not a trust boundary and must be treated as adversarial by all consuming components.
@@ -23,8 +23,8 @@ The transport layer is not a trust boundary and must be treated as adversarial b
 
 This specification is responsible for the following:
 
-- Sending opaque envelopes to a specified peer endpoint.
-- Receiving opaque envelopes attributed to a peer endpoint.
+- Sending opaque sync package envelopes to a specified peer endpoint.
+- Receiving opaque sync package envelopes attributed to a peer endpoint.
 - Preserving envelope boundaries exactly.
 - Preserving envelope byte integrity.
 - Signaling connection establishment and termination.
@@ -37,7 +37,7 @@ This specification does not cover the following:
 
 - Authenticating peer identity (see [05-keys-and-identity.md](05-keys-and-identity.md)).
 - Authorizing operations (see [06-access-control-model.md](06-access-control-model.md)).
-- [Verifying cryptographic signatures](04-cryptography.md).
+- [Verifying cryptographic signatures](04-cryptography.md) or selecting public keys.
 - [Encrypting](04-cryptography.md) or decrypting payloads.
 - Enforcing replay protection (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 - Enforcing ordering or deduplication (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
@@ -76,8 +76,8 @@ The transport layer provides no guarantees of:
 
 Any transport implementation used by the PoC must expose the following abstract capabilities:
 
-- Send an opaque envelope to a peer reference.
-- Receive an opaque envelope with an associated peer reference.
+- Send an opaque sync package envelope to a peer reference.
+- Receive an opaque sync package envelope with an associated peer reference.
 - Notify higher layers of connection lifecycle events.
 - Notify higher layers of delivery failure or timeout.
 
@@ -126,7 +126,7 @@ All binding between envelopes and identities occurs through [cryptographic verif
 
 The transport layer accepts:
 
-- Opaque envelopes for outbound delivery.
+- Opaque sync package envelopes for outbound delivery.
 - Peer addressing or routing references.
 - Connection lifecycle directives from the [Network Manager](../02-architecture/managers/10-network-manager.md).
 
@@ -134,7 +134,7 @@ The transport layer accepts:
 
 The transport layer emits:
 
-- Opaque inbound envelopes.
+- Opaque inbound sync package envelopes.
 - Advisory peer references.
 - Connection state events.
 - Delivery failure or timeout events.
@@ -145,7 +145,6 @@ The transport layer emits:
 Transport outputs may be consumed only by:
 
 - [Network Manager](../02-architecture/managers/10-network-manager.md).
-- [State Manager](../02-architecture/managers/09-state-manager.md) for sync coordination.
 - [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) mechanisms for behavioral analysis.
 
 No other component may directly access the transport.
@@ -154,7 +153,7 @@ No other component may directly access the transport.
 
 - Transport implementations must surface connection lifecycle events, delivery failures, timeouts, disconnects, and associated telemetry so that the [Network Manager](../02-architecture/managers/10-network-manager.md) can forward them to [Event Manager](../02-architecture/managers/11-event-manager.md) and [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) without mutation.
 - Telemetry may include byte counters, message counters, routing metadata, latency samples, and local resource pressure indicators. All such data is advisory and must not be treated as authenticated identity or authorization evidence.
-- [State Manager](../02-architecture/managers/09-state-manager.md) consumes only the verified package deliveries supplied by [Network Manager](../02-architecture/managers/10-network-manager.md); telemetry shared with State Manager is limited to the readiness signals necessary for [sync](07-sync-and-consistency.md) scheduling and may not expose raw transport payloads.
+- [State Manager](../02-architecture/managers/09-state-manager.md) consumes only verified package deliveries supplied by [Network Manager](../02-architecture/managers/10-network-manager.md). Telemetry shared with State Manager, if any, is limited to readiness signals necessary for [sync](07-sync-and-consistency.md) scheduling and must not expose raw transport payloads.
 
 ## 9. Failure and rejection handling
 

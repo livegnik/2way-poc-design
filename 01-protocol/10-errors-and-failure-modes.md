@@ -15,7 +15,7 @@ The following invariants apply to all failures defined in this file:
 * No rejected operation produces persistent state changes (see [02-architecture/managers/02-storage-manager.md](../02-architecture/managers/02-storage-manager.md)).
 * No rejected operation advances global or domain [sequence counters](07-sync-and-consistency.md).
 * Validation failures are deterministic for identical inputs and state.
-* Rejection reason depends only on [envelope](03-serialization-and-envelopes.md) content and local state.
+* Rejection reason depends only on sync package or [envelope](03-serialization-and-envelopes.md) content and local state.
 * Rejected remote input is never re-broadcast or re-synced (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
 
 The protocol guarantees:
@@ -43,7 +43,7 @@ The protocol forbids:
 * Partial application of an invalid operation.
 * Automatic correction or mutation of invalid input.
 * Acceptance of objects with unverifiable authorship (see [05-keys-and-identity.md](05-keys-and-identity.md)).
-* Acceptance of operations signed by revoked keys (see [05-keys-and-identity.md](05-keys-and-identity.md)).
+* Acceptance of sync packages signed by revoked keys (see [05-keys-and-identity.md](05-keys-and-identity.md)).
 * Acceptance of out-of-order or replayed [sync packages](07-sync-and-consistency.md).
 
 ### 3. Error classification
@@ -52,7 +52,7 @@ Errors are classified by the validation stage that detects them. Each operation 
 
 #### 3.1 Structural errors
 
-Structural errors indicate that an [envelope](03-serialization-and-envelopes.md) or [package](07-sync-and-consistency.md) is not well-formed.
+Structural errors indicate that an [envelope](03-serialization-and-envelopes.md) or sync package is not well-formed.
 
 * Missing required envelope fields. `ERR_STRUCT_MISSING_FIELD`
 * Invalid object types or unknown object kinds. `ERR_STRUCT_INVALID_TYPE`
@@ -63,12 +63,12 @@ Structural errors are terminal for the input and must be rejected immediately.
 
 #### 3.2 Cryptographic and identity errors
 
-Cryptographic errors indicate that identity or authorship cannot be verified (see [04-cryptography.md](04-cryptography.md) and [05-keys-and-identity.md](05-keys-and-identity.md)).
+Cryptographic errors indicate that sender identity or authorship cannot be verified (see [04-cryptography.md](04-cryptography.md) and [05-keys-and-identity.md](05-keys-and-identity.md)).
 
 * Invalid or unverifiable signature. `ERR_CRYPTO_INVALID_SIGNATURE`
-* Missing author identity reference. `ERR_CRYPTO_MISSING_AUTHOR`
-* Public key not present or not bound to the author [Parent](02-object-model.md). `ERR_CRYPTO_KEY_NOT_BOUND`
-* Signature mismatch with declared author. `ERR_CRYPTO_AUTHOR_MISMATCH`
+* Missing sender identity reference on a sync package. `ERR_CRYPTO_MISSING_AUTHOR`
+* Public key not present or not bound to the sender or author [Parent](02-object-model.md). `ERR_CRYPTO_KEY_NOT_BOUND`
+* Signature mismatch with declared sender or author. `ERR_CRYPTO_AUTHOR_MISMATCH`
 * Use of a revoked or superseded key. `ERR_CRYPTO_KEY_REVOKED`
 
 Cryptographic errors are terminal and indicate untrusted input.
@@ -87,7 +87,7 @@ Schema errors are terminal for the operation.
 
 #### 3.4 Authorization errors
 
-Authorization errors indicate that the author identity lacks permission (see [06-access-control-model.md](06-access-control-model.md)).
+Authorization errors indicate that the effective author identity lacks permission (see [06-access-control-model.md](06-access-control-model.md)).
 
 * Write attempted on an object not owned by the author. `ERR_AUTH_NOT_OWNER`
 * ACL evaluation denies the requested action. `ERR_AUTH_ACL_DENIED`

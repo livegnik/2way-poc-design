@@ -362,7 +362,7 @@ Examples:
   * this uses participants list and maybe ACL templates
 * rides.offers:
   * maybe only share offers with radius or region that both nodes care about
-  * that is app specific, but typically done by the frontend or a backend extension, not by the kernel
+  * that is app specific, but typically done by the frontend or a app service, not by the kernel
 
 If a frontend app on B asks for sync for a domain that no local app uses:
 

@@ -19,6 +19,7 @@ This specification references:
 * [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 * [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)
 * [09-dos-guard-and-client-puzzles.md](../../../01-protocol/09-dos-guard-and-client-puzzles.md)
+* [04-error-model.md](../../../04-interfaces/04-error-model.md)
 
 ### 2. Responsibilities and boundaries
 

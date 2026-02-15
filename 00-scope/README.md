@@ -13,7 +13,7 @@ authoritative source and record exceptions in an ADR.
 
 ## What lives here
 
-- [`00-scope-overview.md`](00-scope-overview.md) - Global invariants, trust boundaries, and invalid input handling.
+- [`00-scope-overview.md`](00-scope-overview.md) - Repository-wide authority, invariants, trust boundaries, PoC constraints, and invalid input handling.
 - [`01-scope-and-goals.md`](01-scope-and-goals.md) - System scope, goals, allowed/forbidden behavior, and guarantees.
 - [`02-non-goals-and-out-of-scope.md`](02-non-goals-and-out-of-scope.md) - Explicit exclusions and non-goals with rejection expectations.
 - [`03-definitions-and-terminology.md`](03-definitions-and-terminology.md) - Canonical terms and object names used throughout the repo.
@@ -33,15 +33,17 @@ Each document has a corresponding meta specification in [`10-appendix/meta/00-sc
 - Trust boundaries are explicit: network, frontend, and app inputs are untrusted until validated.
 - Graph writes are only permitted via Graph Manager.
 - Raw database access is restricted to Storage Manager.
-- All request-scoped work is bound to a complete [`OperationContext`](../02-architecture/services-and-apps/05-operation-context.md).
-- Authentication and requester resolution are mediated by Auth Manager.
 - Schema validation and ACL authorization are required for all persisted mutations.
-- Sync state transitions are applied by State Manager.
-- Event emission and audit logging are mediated by Event Manager and Log Manager.
+- Authentication and requester resolution are mediated by Auth Manager.
+- All request-scoped work is bound to a complete [`OperationContext`](../02-architecture/services-and-apps/05-operation-context.md).
+- Sync state transitions are applied by State Manager and network I/O is mediated by Network Manager and DoS Guard.
+- Runtime configuration flows only through Config Manager snapshots.
+- Event emission, audit logging, and readiness reporting are mediated by Event Manager, Log Manager, and Health Manager.
 - Private keys are owned and accessed only by Key Manager.
 - `global_seq` is strictly monotonic for accepted writes.
-- Rejections produce no persistent state changes and do not advance sequence.
+- Rejections produce no persistent state changes and do not advance sequence or sync cursors.
 - Rejections do not emit state-changing events.
+- Ratings provide suppression semantics; there is no delete path and derived data is non-authoritative.
 - PoC process and persistence constraints assume a single long-running backend process
   with a single serialized writer path using SQLite.
 

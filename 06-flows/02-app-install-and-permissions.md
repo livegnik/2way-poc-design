@@ -52,7 +52,7 @@ Rules:
 Publisher trust rules:
 
 * The trusted publisher registry is the set of publisher identities that carry the `system.apps.publish` capability edge in `app_0`.
-* Adding a publisher to the registry is a graph mutation handled by the Identity Service or Operations Console under a privileged [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
+* Adding a publisher to the registry is a graph mutation handled by the Identity Service or Admin Service under a privileged [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
 
 Response body (JSON):
 
@@ -119,8 +119,8 @@ Failure mapping:
 
 * Signature verification failure -> `ERR_APP_SIGNATURE_INVALID`.
 * Missing or untrusted publisher -> `ERR_APP_PUBLISHER_UNTRUSTED`.
-* Missing or invalid OperationContext -> `ERR_APP_EXTENSION_CONTEXT`.
-* Missing installer capability -> `ERR_APP_EXTENSION_CAPABILITY`.
+* Missing or invalid OperationContext -> `ERR_APP_SERVICE_CONTEXT`.
+* Missing installer capability -> `ERR_APP_SERVICE_CAPABILITY`.
 * Schema object validation failure -> `schema_validation_failed`.
 * ACL object validation failure -> `schema_validation_failed`.
 * ACL authorization failure -> `acl_denied`.

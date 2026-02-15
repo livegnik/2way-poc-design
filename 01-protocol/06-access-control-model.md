@@ -27,7 +27,7 @@ The following guarantees are provided:
 
 Authorization evaluation operates on the following inputs:
 
-- Authenticated identity identifier ([05-keys-and-identity.md](05-keys-and-identity.md)).
+- Authenticated identity identifier ([05-keys-and-identity.md](05-keys-and-identity.md)). For local requests this is `OperationContext.requester_identity_id`. For remote sync, the effective actor identity is the operation `owner_identity`.
 - Device or delegated key identifier, if present in the [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
 - Operation type, including create, update, or read.
 - Target object identifiers and object types ([01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
@@ -51,6 +51,7 @@ Rules:
 - Owned objects cannot be reassigned to another owner.
 - Only the owner may mutate owned objects unless an explicit ACL permits otherwise.
 - Remote operations attempting to mutate objects owned by another identity are rejected.
+- Ownership comparisons use the effective actor identity (local `OperationContext.requester_identity_id`, or remote operation `owner_identity`).
 
 ### 3.2 Schema level permissions
 
@@ -96,8 +97,9 @@ The ACL Manager MUST apply this matrix exactly.
 
 Definitions:
 
-- **Own data**: objects where `owner_identity` equals `OperationContext.requester_identity_id` (including the Parent and any attached Attributes, Edges, or Ratings with the same owner identity).
-- **Own parent**: a Parent whose `owner_identity` equals `OperationContext.requester_identity_id`.
+- **Effective requester identity**: `OperationContext.requester_identity_id` for local requests; operation `owner_identity` for remote sync.
+- **Own data**: objects where `owner_identity` equals the effective requester identity (including the Parent and any attached Attributes, Edges, or Ratings with the same owner identity).
+- **Own parent**: a Parent whose `owner_identity` equals the effective requester identity.
 - **Admin action**: an operation explicitly marked as admin-only by the interface surface and executed by an identity that holds the `system.admin` capability.
 
 | Action type | ACL check? | Notes |
@@ -181,6 +183,8 @@ Edge structure rules:
 - `src_parent_id` MUST reference the recipient identity Parent.
 - `dst_parent_id` MUST reference the `capability.definition` Parent.
 - Capability edges MUST reside in `app_0` regardless of the target app scope.
+- Capability edges with `expires_at` in the past MUST be treated as revoked.
+- Revoked or expired capability edges MUST NOT grant authorization and MUST produce `ERR_CAPABILITY_REVOKED` when the request relies on them.
 
 Publisher trust:
 
@@ -247,6 +251,16 @@ On authorization failure:
 - A deterministic error result is returned to the caller.
 
 Authorization failures do not modify graph state or authorization rules.
+
+Error mapping:
+
+- Ownership violation -> `ERR_AUTH_NOT_OWNER`.
+- ACL deny -> `ERR_AUTH_ACL_DENIED`.
+- Delegation or device scope exceeded -> `ERR_AUTH_SCOPE_EXCEEDED`.
+- Domain visibility denied -> `ERR_AUTH_VISIBILITY_DENIED`.
+- Revoked or expired capability -> `ERR_CAPABILITY_REVOKED`.
+
+When surfaced via interfaces, authorization failures use `ErrorDetail.code=acl_denied` unless the interface explicitly emits a service-level `ERR_*` code per [04-error-model.md](../04-interfaces/04-error-model.md).
 
 ## 8. Security properties
 

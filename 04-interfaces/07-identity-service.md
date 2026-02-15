@@ -4,13 +4,13 @@
 
 # 07 Identity Service Interface
 
-Defines identity and relationship service surfaces implied by the Identity & Relationship Service (IRS) specification. This document formalizes required routes and payload shapes.
+Defines identity and relationship service surfaces implied by the Identity Service specification. This document formalizes required routes and payload shapes.
 
 For the meta specifications, see [07-identity-service meta](../10-appendix/meta/04-interfaces/07-identity-service-meta.md).
 
 ## 1. Purpose and scope
 
-IRS provides identity lifecycle, contact invitations, and capability delegation within `app_0`. All endpoints require authenticated [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) and capability intent as described in [02-system-services.md](../02-architecture/services-and-apps/02-system-services.md). Endpoints are local-only.
+Identity Service provides identity lifecycle, contact invitations, and capability delegation within `app_0`. All endpoints require authenticated [OperationContext](../02-architecture/services-and-apps/05-operation-context.md) and capability intent as described in [02-system-services.md](../02-architecture/services-and-apps/02-system-services.md). Endpoints are local-only.
 
 ## 2. Endpoint index
 
@@ -325,3 +325,4 @@ Errors:
 
 * Creating identities without schema validation.
 * Delegating capabilities without ACL authorization.
+

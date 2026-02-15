@@ -28,7 +28,7 @@ All indexes defined here are owned exclusively by [Storage Manager](../02-archit
 * [Storage Manager](../02-architecture/managers/02-storage-manager.md) is the sole owner of all indexes
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) may request index presence checks but may not create or drop indexes
 * [State Manager](../02-architecture/managers/09-state-manager.md) may request index health diagnostics for sync performance only
-* No service, app, or extension may access SQLite index definitions directly
+* No system service, app, or app service may access SQLite index definitions directly
 * Direct SQL access outside Storage Manager is forbidden
 
 Violation of these rules is a fatal implementation error.

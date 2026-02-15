@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This overview defines how backend services and applications fit into the 2WAY architecture. It summarizes the shared responsibilities, trust boundaries, and lifecycle guarantees that apply across system services, app backend extension services, and frontend apps. It connects the component model and manager contracts to the concrete service and app specifications without repeating their detailed rules.
+This overview defines how backend services and applications fit into the 2WAY architecture. It summarizes the shared responsibilities, trust boundaries, and lifecycle guarantees that apply across system services, app services, and frontend apps. It connects the component model and manager contracts to the concrete service and app specifications without repeating their detailed rules.
 
 This overview is descriptive and binding for structure and boundaries, but it does not restate protocol mechanics, schema grammar, ACL syntax, or interface shapes. Those details remain authoritative in their dedicated specifications.
 
@@ -20,7 +20,7 @@ This overview references:
 * [02-architecture/services-and-apps/**](./)
 * [02-architecture/services-and-apps/01-services-vs-apps.md](../../../../02-architecture/services-and-apps/01-services-vs-apps.md)
 * [02-architecture/services-and-apps/02-system-services.md](../../../../02-architecture/services-and-apps/02-system-services.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../../02-architecture/services-and-apps/03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/03-app-services.md](../../../../02-architecture/services-and-apps/03-app-services.md)
 * [02-architecture/services-and-apps/04-frontend-apps.md](../../../../02-architecture/services-and-apps/04-frontend-apps.md)
 * [02-architecture/services-and-apps/05-operation-context.md](../../../../02-architecture/services-and-apps/05-operation-context.md)
 * [04-interfaces/**](../../04-interfaces/)
@@ -47,8 +47,8 @@ The architecture separates backend orchestration from application identity and f
 | Construct | Definition | Scope | Execution location |
 | --- | --- | --- | --- |
 | System service | Mandatory backend service that ships with every node and runs under `app_0`. | Platform-wide | Backend process |
-| App backend extension service | Optional backend service bound to one app slug and `app_id`. | Single app | Backend process |
+| App service | Optional backend service bound to one app slug and `app_id`. | Single app | Backend process |
 | Application (app) | Registered identity with schemas, ACL policy, and UX semantics. | Single app | [App Manager](../../../../02-architecture/managers/08-app-manager.md) registry |
 | Frontend app | Untrusted client surface that consumes backend APIs or sync flows. | Single app | Outside backend |
 
-The taxonomy is formalized in [02-architecture/services-and-apps/01-services-vs-apps.md](../../../../02-architecture/services-and-apps/01-services-vs-apps.md). The operational contracts for each class are defined in [02-architecture/services-and-apps/02-system-services.md](../../../../02-architecture/services-and-apps/02-system-services.md), [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../../02-architecture/services-and-apps/03-app-backend-extensions.md), and [02-architecture/services-and-apps/04-frontend-apps.md](../../../../02-architecture/services-and-apps/04-frontend-apps.md).
+The taxonomy is formalized in [02-architecture/services-and-apps/01-services-vs-apps.md](../../../../02-architecture/services-and-apps/01-services-vs-apps.md). The operational contracts for each class are defined in [02-architecture/services-and-apps/02-system-services.md](../../../../02-architecture/services-and-apps/02-system-services.md), [02-architecture/services-and-apps/03-app-services.md](../../../../02-architecture/services-and-apps/03-app-services.md), and [02-architecture/services-and-apps/04-frontend-apps.md](../../../../02-architecture/services-and-apps/04-frontend-apps.md).

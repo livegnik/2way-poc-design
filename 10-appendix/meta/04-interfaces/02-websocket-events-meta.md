@@ -25,6 +25,7 @@ This specification is responsible for the following:
 * Defining client subscription frames and rejection behavior for invalid or unauthorized subscriptions.
 * Defining transport rejection behavior for authentication failures.
 * Defining session handling when auth tokens expire or are revoked after connection establishment.
+* Defining rejection behavior for non-`GET /ws` requests.
 
 This specification does not cover the following:
 

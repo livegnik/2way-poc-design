@@ -49,6 +49,7 @@ All manager-level failures use `ErrorDetail` from [04-error-model.md](04-error-m
 * `set_domain_seq(peer_id, domain, seq)`
 * `create_app_tables(app_id)`
 * `backup_to(path)` / `restore_from(path)`
+* Derived cache helpers (create/read/write/drop) for non-authoritative cache tables as defined in [03-data/09-derived-cache-tables.md](../03-data/09-derived-cache-tables.md).
 
 ### 3.3 Schema Manager
 
@@ -121,7 +122,7 @@ Failure mapping (outbound preparation):
 
 ## 4. Forbidden behaviors
 
-* Calling Storage Manager from any component other than Graph Manager or State Manager.
+* Calling Storage Manager for authoritative graph reads or writes from any component other than Graph Manager or State Manager. Services may use Storage Manager only for derived cache tables or other explicitly sanctioned non-graph helpers.
 * Applying envelopes without Schema Manager and ACL validation.
 * Advancing sync cursors without successful persistence.
 * Accepting untrusted identities not resolved by Auth Manager.

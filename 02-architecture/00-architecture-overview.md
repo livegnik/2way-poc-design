@@ -26,7 +26,7 @@ Managers are singleton authorities. They initialize with the backend process, ex
 
 ### 2.2 Service responsibilities
 
-Services translate user intent into graph operations, aggregate reads, publish events, and expose backend endpoints. System services are always present and implement shared primitives. App extension services are optional, app-scoped, and must be removable without affecting global correctness. All services must supply a complete [OperationContext](services-and-apps/05-operation-context.md) for every manager invocation and must not attempt to enforce protocol rules independently.
+Services translate user intent into graph operations, aggregate reads, publish events, and expose backend endpoints. System services are always present and implement shared primitives. App services are optional, app-scoped, and must be removable without affecting global correctness. All services must supply a complete [OperationContext](services-and-apps/05-operation-context.md) for every manager invocation and must not attempt to enforce protocol rules independently.
 
 ### 2.3 Forbidden interactions
 
@@ -36,7 +36,7 @@ Neither managers nor services may bypass the single write path, the single stora
 
 [02-runtime-topologies.md](02-runtime-topologies.md) defines conforming placements:
 
-* **Integrated single-process** - managers, system services, and app extensions share one process on the same device as frontend apps. Trust boundary between frontend and backend remains strict; backend failure halts all backend work.
+* **Integrated single-process** - managers, system services, and app services share one process on the same device as frontend apps. Trust boundary between frontend and backend remains strict; backend failure halts all backend work.
 * **Split frontend-backend** - backend runs as a local service with separate frontend processes or devices. Backend treats frontend input as untrusted, and backend restarts invalidate frontend sessions.
 * **Headless backend** - backend runs without an attached frontend, continues to sync and enforce policy, and assumes all inbound data originates from untrusted peers.
 * **Multi-device** - multiple devices host independent backends for the same identity. No implicit trust exists between devices, and they synchronize solely through [State Manager](managers/09-state-manager.md) rules.
@@ -49,7 +49,7 @@ All topologies preserve singular ownership of managers, local-only storage and k
 Trust boundaries defined in [03-trust-boundaries.md](03-trust-boundaries.md) include:
 
 * **Frontend to backend** - frontend input (HTTP, WebSocket, [envelopes](../01-protocol/03-serialization-and-envelopes.md), tokens) is untrusted until verified by [Auth Manager](managers/04-auth-manager.md) and validated through [Schema](managers/05-schema-manager.md) and [ACL](managers/06-acl-manager.md) enforcement. No direct storage or key access is permitted.
-* **Apps to backend** - apps, including those with backend extensions, cannot modify protocol behavior, bypass [ACL evaluation](managers/06-acl-manager.md), or touch database connections. Violations are rejected within the app scope.
+* **Apps to backend** - apps, including those with app services, cannot modify protocol behavior, bypass [ACL evaluation](managers/06-acl-manager.md), or touch database connections. Violations are rejected within the app scope.
 * **Services to managers** - managers do not trust services. Services invoke managers via [OperationContext](services-and-apps/05-operation-context.md); managers enforce invariants and reject on violation.
 * **Manager to storage** - storage is untrusted. Managers rely on [Storage Manager](managers/02-storage-manager.md) for transactional integrity but never expect storage to enforce ACLs or schemas.
 * **Local node to remote node** - peers are untrusted. All inbound data is validated [cryptographically](../01-protocol/04-cryptography.md) and semantically before persistence; replay or ordering violations are rejected.
@@ -135,7 +135,7 @@ Operational, audit, and security records are emitted through [Log Manager](manag
 ### 7.2 Forbidden
 
 * Any mutation path bypassing [Graph Manager](managers/07-graph-manager.md), [Storage Manager](managers/02-storage-manager.md), [Schema Manager](managers/05-schema-manager.md), or [ACL Manager](managers/06-acl-manager.md).
-* Direct database, filesystem, or network access by services, apps, or extensions.
+* Direct database, filesystem, or network access by system services, apps, or app services.
 * Authorization decisions derived from transport metadata or inferred identity.
 * Partial envelope application, implicit retries that break ordering, or advancing [sync state](managers/09-state-manager.md) after a failure.
 * Accepting remote packages without full [cryptographic verification](../01-protocol/04-cryptography.md) or by guessing missing metadata.

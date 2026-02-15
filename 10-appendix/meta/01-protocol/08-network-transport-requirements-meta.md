@@ -16,6 +16,8 @@ This specification references:
 - [06-access-control-model.md](../../../01-protocol/06-access-control-model.md)
 - [07-sync-and-consistency.md](../../../01-protocol/07-sync-and-consistency.md)
 - [09-dos-guard-and-client-puzzles.md](../../../01-protocol/09-dos-guard-and-client-puzzles.md)
+- [10-network-manager.md](../../../02-architecture/managers/10-network-manager.md)
+- [14-dos-guard-manager.md](../../../02-architecture/managers/14-dos-guard-manager.md)
 
 ## 2. Position in the system
 

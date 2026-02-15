@@ -32,7 +32,7 @@ This specification is responsible for the following:
 * Enforcing authorization consistently for:
   * Local frontend requests.
   * Backend system services.
-  * Backend app extension services.
+  * Backend app services.
   * [State Manager](../../../../02-architecture/managers/09-state-manager.md) driven remote sync application.
 * Evaluating authorization using only:
   * Identity context.

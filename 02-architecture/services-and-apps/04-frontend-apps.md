@@ -97,7 +97,7 @@ Frontends must supply the following request metadata on every call before the ba
 ### 3.4 Capability negotiation
 
 * At authentication, the backend returns capability summaries scoped to the requesting identity and app. Frontends cache them but must re-fetch on ACL changes, token renewal via re-registration, or `ERR_CAPABILITY_REVOKED` responses ([01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md)).
-* Capabilities are hierarchical (`system.feed.read`, `app.crm.ticket.create`). Frontends must request the most specific verb required and must not degrade into super verbs.
+* Capabilities are hierarchical (`system.sync.manage`, `app.crm.ticket.create`). Frontends must request the most specific verb required and must not degrade into super verbs.
 * UI must hide or disable controls for missing capabilities but still allow users to discover the required permissions by referencing documentation provided by Identity Service or [App Manager](../managers/08-app-manager.md).
 
 ## 4. Interface consumption
@@ -256,7 +256,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 * Logs include timestamp, severity, correlation ID, [OperationContext](05-operation-context.md) summary (redacted), request and response identifiers, and error codes so backend auditors can map them to the canonical error catalog in [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md).
 * Sensitive payloads are redacted, replaced with stable tokens so operators can correlate logs without exposing content.
-* Logs are stored locally until uploaded via Operations Console diagnostics endpoints. Users must opt in before uploads occur.
+* Logs are stored locally until uploaded via Admin Service diagnostics endpoints. Users must opt in before uploads occur.
 
 ### 9.2 Metrics and health signals
 
@@ -283,7 +283,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 10.3 Device lifecycle
 
-* Installation registers the device via system bootstrap flows in [02-system-services.md](02-system-services.md) (SBPS device enrollment).
+* Installation registers the device via system bootstrap flows in [02-system-services.md](02-system-services.md) (Setup Service device enrollment).
 * Uninstallation triggers deregistration calls when connectivity exists, otherwise, the next bootstrap attempt must detect orphaned entries and clean up.
 * Wipes remove all local data, keys, caches, and pending writes, leaving nothing recoverable without re-authentication.
 
@@ -314,14 +314,13 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 ### 12.1 System service interactions
 
 * Frontends must obey service-specific requirements from [02-architecture/services-and-apps/02-system-services.md](02-system-services.md). For example:
-  * Bootstrap flows call SBPS endpoints sequentially, verifying each stage before advancing.
+  * Bootstrap flows call Setup Service endpoints sequentially, verifying each stage before advancing.
   * Identity actions follow Identity Service ACL prompts, ensuring capability edges exist before exposing contact management UI.
-  * Feed experiences honor Base Feed Service pagination, moderation flows, and cost hints.
 
-### 12.2 App extension coordination
+### 12.2 App service coordination
 
-* When an app extension exposes new APIs, the frontend must fetch the manifest (version, capability list, schema requirements) from [App Manager](../managers/08-app-manager.md) before calling them.
-* Extension unavailability is normal. Clients detect it by observing `503 ExtensionDisabled` errors and degrade gracefully (hide UI, queue operations, or reroute to fallback services).
+* When an app service exposes new APIs, the frontend must fetch the manifest (version, capability list, schema requirements) from [App Manager](../managers/08-app-manager.md) before calling them.
+* App service unavailability is normal. Clients detect it by observing `503 AppServiceDisabled` errors and degrade gracefully (hide UI, queue operations, or reroute to fallback services).
 
 ### 12.3 [OperationContext](05-operation-context.md) verification
 
@@ -372,5 +371,5 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 8. **Observability**: Structured logs, metrics sampling, crash diagnostics, and optional telemetry uploads wired through documented endpoints with user consent.
 9. **Security**: Key handling, sandboxing, dependency pinning, tamper detection, and supply-chain checks aligned with [05-security/**](../../05-security/00-security-overview.md).
 10. **Distribution**: Signed packages, auto-update policies, rollback capability, and manifest embedding to ensure compatibility enforcement.
-11. **Integration**: Service-specific behaviors implemented per system service specs, extension manifests respected, and [OperationContext](05-operation-context.md) hashes verified end to end.
+11. **Integration**: Service-specific behaviors implemented per system service specs, app service manifests respected, and [OperationContext](05-operation-context.md) hashes verified end to end.
 12. **Testing**: Automated tests cover [OperationContext](05-operation-context.md) assembly, capability gating, schema validation, pending write ordering, sync conflict handling, admission-feedback handling, and error rendering.

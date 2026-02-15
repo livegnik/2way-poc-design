@@ -22,6 +22,7 @@ This specification is responsible for the following:
 * Declaring client frames for subscriptions and resume behavior.
 * Defining error event envelopes and close reason mappings.
 * Enumerating auth-related error codes for event errors, including token expiry and revocation.
+* Defining rejection behavior for invalid resume and ack frames.
 
 This specification does not cover the following:
 

@@ -34,7 +34,7 @@ All tables defined here are owned exclusively by [Storage Manager](../02-archite
 * [Schema Manager](../02-architecture/managers/05-schema-manager.md) may request writes to `app_N_type` via Storage Manager
 * [State Manager](../02-architecture/managers/09-state-manager.md) may request read access for sync scans
 * [ACL Manager](../02-architecture/managers/06-acl-manager.md) may request read access for authorization evaluation
-* No service, app, or extension may access per app tables directly
+* No system service, app, or app service may access per app tables directly
 * Direct SQL access outside Storage Manager is forbidden
 
 Violation of these rules is a fatal implementation error.

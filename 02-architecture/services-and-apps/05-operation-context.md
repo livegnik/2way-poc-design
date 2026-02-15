@@ -65,7 +65,7 @@ All fields use lowercase snake_case. All required fields must be present at cons
 | `requester_identity_id`   | Local only  | [Auth Manager](../managers/04-auth-manager.md)               | Local user or delegated identity; nullable only for explicit public endpoints. |
 | `device_id`               | Optional    | [Auth Manager](../managers/04-auth-manager.md)               | Bound device identity for local users.                              |
 | `delegated_key_id`        | Optional    | [Auth Manager](../managers/04-auth-manager.md)               | Delegated signing key reference.                                    |
-| `actor_type`              | Yes         | Entry layer or service       | Declares the caller category: `user`, `service`, `automation`, or `delegation`, aligned with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md). |
+| `actor_type`              | Yes         | Entry layer or service       | Declares the caller category: `user`, `service`, `automation`, or `delegation`, aligned with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-services.md](03-app-services.md). |
 | `capability`              | Local only  | Service or engine            | Explicit verb evaluated by ACL.                                     |
 | `is_remote`               | Yes         | Construction layer           | Local or remote execution flag.                                     |
 | `sync_domain`             | Remote only | [State Manager](../managers/09-state-manager.md)             | Domain being synchronized.                                          |
@@ -106,7 +106,7 @@ Identity and app bindings must remain consistent with [01-protocol/05-keys-and-i
 Permitted enrichment:
 
 * Capability specialization.
-* Actor type refinement for automation or delegation, consistent with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
+* Actor type refinement for automation or delegation, consistent with [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-services.md](03-app-services.md).
 * Correlation metadata.
 
 Forbidden actions:
@@ -130,11 +130,11 @@ Remote contexts never include local requester identity fields.
 
 ### 4.4 Automation jobs and internal execution
 
-Automation and scheduled work execute under synthetic OperationContexts as described in [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
+Automation and scheduled work execute under synthetic OperationContexts as described in [02-architecture/services-and-apps/01-services-vs-apps.md](01-services-vs-apps.md) and [02-architecture/services-and-apps/03-app-services.md](03-app-services.md).
 
 Rules:
 
-* `actor_type` set according to the automation conventions defined in [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-backend-extensions.md](03-app-backend-extensions.md).
+* `actor_type` set according to the automation conventions defined in [02-architecture/services-and-apps/04-frontend-apps.md](04-frontend-apps.md) and [02-architecture/services-and-apps/03-app-services.md](03-app-services.md).
 * `capability` explicitly defined.
 * `requester_identity_id` set only when acting on behalf of a user.
 * Each execution builds a fresh OperationContext.

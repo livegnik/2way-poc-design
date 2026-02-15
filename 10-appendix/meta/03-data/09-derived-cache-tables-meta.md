@@ -6,12 +6,12 @@
 
 ## 1. Purpose and scope
 
-Defines non-authoritative cache table requirements for system services and app extensions.
+Defines non-authoritative cache table requirements for system services and app services.
 
 This document references:
 
 * [02-architecture/services-and-apps/02-system-services.md](../../../02-architecture/services-and-apps/02-system-services.md)
-* [02-architecture/services-and-apps/03-app-backend-extensions.md](../../../02-architecture/services-and-apps/03-app-backend-extensions.md)
+* [02-architecture/services-and-apps/03-app-services.md](../../../02-architecture/services-and-apps/03-app-services.md)
 * [02-architecture/managers/02-storage-manager.md](../../../02-architecture/managers/02-storage-manager.md)
 
 ## 2. Responsibilities and boundaries

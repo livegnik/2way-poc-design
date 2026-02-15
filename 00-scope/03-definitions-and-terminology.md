@@ -8,6 +8,8 @@ Defines canonical terms used across the 2WAY design repository. Specifies normat
 
 For the meta specifications, see [03-definitions-and-terminology meta](../10-appendix/meta/00-scope/03-definitions-and-terminology-meta.md).
 
+Previous drafts used SBPS, IRS, SOS, OCS and 'extension/plugin' terminology. These are now Setup Service, Identity Service, Sync Service, Admin Service, and app service(s).
+
 ## 1. Invariants and guarantees
 
 ### 1.1 Terminology invariants

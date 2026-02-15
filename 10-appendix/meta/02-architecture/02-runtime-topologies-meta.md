@@ -23,7 +23,7 @@ This specification references:
 
 This specification is responsible for the following:
 
-- Permitted runtime arrangements of backend managers, system services, app extension services, frontend apps, and network components defined in [01-component-model.md](../../../02-architecture/01-component-model.md) and [02-architecture/services-and-apps/**](services-and-apps/).
+- Permitted runtime arrangements of backend managers, system services, app services, frontend apps, and network components defined in [01-component-model.md](../../../02-architecture/01-component-model.md) and [02-architecture/services-and-apps/**](services-and-apps/).
 - Trust boundaries between backend, frontend, local storage, and remote peers as defined in [02-architecture/03-trust-boundaries.md](../../../02-architecture/03-trust-boundaries.md).
 - Mandatory interaction paths between runtime components aligned to [02-architecture/04-data-flow-overview.md](../../../02-architecture/04-data-flow-overview.md).
 - Runtime behavior under failure, rejection, or partial availability.

@@ -19,6 +19,7 @@ The following invariants apply to all graph objects:
 * Every object has a single immutable author identity as defined in [05-keys-and-identity.md](05-keys-and-identity.md).
 * Object identifiers, ownership, and provenance metadata are immutable once assigned (see [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md)).
 * All references between objects are explicit and must resolve within the same `app_id` scope.
+* `app_id`, `type_id`, and `owner_identity` must resolve to registered identifiers before acceptance.
 
 ### 1.2 Guarantees
 
@@ -86,6 +87,16 @@ All object references are explicit and consist of:
 
 References MUST NOT rely on implicit `app_id` inheritance or contextual assumptions.
 
+### 3.4 Identifier resolution constraints
+
+Before acceptance, the following must be true:
+
+* `app_id` resolves to a registered application ([App Manager](../02-architecture/managers/08-app-manager.md)).
+* `type_id` resolves to a schema-defined type for the same `app_id` ([Schema Manager](../02-architecture/managers/05-schema-manager.md)).
+* `owner_identity` resolves to an identity Parent in `app_0` ([05-keys-and-identity.md](05-keys-and-identity.md)).
+
+If any of these identifiers fail to resolve, the mutation is rejected.
+
 ## 4. Parent
 
 ### 4.1 Definition
@@ -96,7 +107,7 @@ A Parent represents an entity root within an application domain. All other objec
 
 A Parent record includes:
 
-* Common metadata fields defined in Section 5.1.
+* Common metadata fields defined in Section 3.1.
 * `value_json`. Optional, schema defined payload.
 
 The contents of `value_json` are opaque to this specification.
@@ -128,7 +139,7 @@ An Attribute represents typed data attached to a source Parent.
 
 An Attribute record includes:
 
-* Common metadata fields defined in Section 5.1.
+* Common metadata fields defined in Section 3.1.
 * `src_parent_id`. Identifier of the Parent the Attribute attaches to.
 * `value_json`. Optional, schema defined payload.
 
@@ -159,7 +170,7 @@ An Edge represents a typed relationship issued from a source Parent to a destina
 
 An Edge record includes:
 
-* Common metadata fields defined in Section 5.1.
+* Common metadata fields defined in Section 3.1.
 * `src_parent_id`. Identifier of the source Parent.
 * `dst_parent_id` or `dst_attr_id`. Exactly one MUST be present.
 
@@ -205,7 +216,7 @@ A Rating represents a typed evaluation issued by an identity toward a target obj
 
 A Rating record includes:
 
-* Common metadata fields defined in Section 5.1.
+* Common metadata fields defined in Section 3.1.
 * `target_parent_id` or `target_attr_id`. Exactly one MUST be present.
 * `value_json`. Optional, schema defined payload.
 
@@ -302,6 +313,7 @@ A proposed mutation MUST be rejected if:
 * Referenced objects do not exist.
 * Application domain isolation is violated.
 * An immutable field would be modified.
+* `app_id`, `type_id`, or `owner_identity` fails to resolve.
 
 ### 11.2 Failure handling guarantees
 

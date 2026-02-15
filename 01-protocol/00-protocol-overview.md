@@ -37,7 +37,7 @@ For the meta specifications, see [00-protocol-overview meta](../10-appendix/meta
 
 * [Schema Manager](../02-architecture/managers/05-schema-manager.md) validates that referenced types belong to the declared app namespace, that values match their declared representation, and that relations respect allowed edge constraints.
 * [ACL Manager](../02-architecture/managers/06-acl-manager.md) evaluates permissions using [OperationContext](../02-architecture/services-and-apps/05-operation-context.md), schema defaults, object-level overrides, and ownership semantics.
-* If the envelope declares an author identity, the implementation must enforce that the author identity used for enforcement is explicit and consistent with the authenticated context, and must not be inferred from transport metadata.
+* Authorization uses the effective author identity as defined by [05-keys-and-identity.md](05-keys-and-identity.md) and [06-access-control-model.md](06-access-control-model.md); it is never inferred from transport metadata.
 
 ### 2.4 Sequencing and persistence
 
@@ -51,6 +51,7 @@ For the meta specifications, see [00-protocol-overview meta](../10-appendix/meta
 * Remote sync uses the same [graph message envelope](03-serialization-and-envelopes.md) format as local writes, wrapped with sync metadata, including sender identity, sync domain name, and a declared sequence range such as `from_seq` and `to_seq`.
 * [DoS Guard Manager](../02-architecture/managers/14-dos-guard-manager.md) enforces admission control and client puzzles before [Network Manager](../02-architecture/managers/10-network-manager.md) processes inbound connections, per [09-dos-guard-and-client-puzzles.md](09-dos-guard-and-client-puzzles.md).
 * [Network Manager](../02-architecture/managers/10-network-manager.md) handles transport and cryptography, including signature creation and verification, and ECIES encryption where confidentiality is required (see [04-cryptography.md](04-cryptography.md)).
+* Version compatibility is checked before any sync package is accepted (see [11-versioning-and-compatibility.md](11-versioning-and-compatibility.md)).
 * The receiver enforces per-peer, per-domain ordering rules and must reject packages that are replayed, out of order, malformed, or inconsistent with known sync state.
 
 ## 3. Guarantees and invariants
