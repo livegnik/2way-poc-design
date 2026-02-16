@@ -29,9 +29,15 @@ The [App Manager](08-app-manager.md) maintains a persistent registry stored in t
 
 * app_id
 * slug
-* title
 * version
-* creation timestamp
+* title (optional)
+* composition (`frontend`, `service`, or `hybrid`)
+* lifecycle_state (`installed_disabled`, `installed_enabled`, `degraded`, `draining`, `removed`)
+* enabled flag
+* publisher_identity_id (optional until publisher binding is complete)
+* manifest_hash
+* created_at timestamp
+* updated_at timestamp
 
 The registry is the sole authoritative source of application existence and identity. No other manager may declare, mutate, or infer application identifiers.
 
@@ -44,7 +50,8 @@ The following invariants apply to the application registry:
 * Each slug maps to exactly one app_id.
 * Each app_id maps to exactly one slug.
 * app_id values are unique and never reused.
-* Registry entries are append only.
+* Identity fields (`app_id`, `slug`, `created_at`) are immutable once created.
+* Lifecycle metadata (`version`, `lifecycle_state`, `enabled`, `updated_at`, diagnostics metadata) is mutable only through App Manager transitions.
 * Removal or deactivation of an application does not delete graph data.
 * An app_id must not appear in [OperationContext](../services-and-apps/05-operation-context.md) instances, schemas, or envelopes until its registry entry exists.
 * Lookup of a non existent app_id is a structural error.
@@ -80,25 +87,44 @@ Registration is not complete until the identity Parent and pubkey Attribute are 
 
 During application registration, the [App Manager](08-app-manager.md) performs the following actions in strict order:
 
-* Verify the package signature against raw ZIP bytes using publisher public key material supplied with the package or resolved from the trusted publisher registry in the graph.
-* Resolve the publisher identity from `signer_id` (or bind `publisher_public_key`) and ensure the publisher is trusted for app publication. If the publisher is missing or untrusted, registration must not proceed.
-* Allocate a new `app_id` per the uniqueness and monotonicity constraints in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
+* Parse `manifest.json` from the ZIP payload and validate required fields (`slug`, `version`, composition, capability/dependency/config metadata).
+* Reject artifacts that declare node-local identifiers (for example, `manifest.app_id`).
+* Verify the package signature against raw ZIP bytes using `publisher_public_key` from the detached signature metadata.
+* Resolve `publisher_public_key` to an existing publisher identity in the local graph and ensure the publisher is trusted for app publication. If the publisher is missing or untrusted, registration must not proceed and the caller must be prompted to add/trust the publisher before retry.
+* Resolve `slug` to an existing registry row when present. Allocate a new `app_id` only when `slug` is not registered.
 * Persist the registry entry so declaration-before-use rules in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md) are upheld.
 * Declare the application identifier as globally valid within the backend per [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Instruct the [Storage Manager](02-storage-manager.md) to create all per application tables so the per-app data isolation invariants in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) are satisfied.
 * Ensure an application keypair exists via the [Key Manager](03-key-manager.md) per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Ensure the application identity Parent and pubkey Attribute exist in the system graph, satisfying [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
-* Make the application available for schema loading and [OperationContext](../services-and-apps/05-operation-context.md) binding so that [OperationContext](../services-and-apps/05-operation-context.md) construction described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and the `app_id` field requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) have a registered target.
+* For `service` and `hybrid` apps, require `app-service/` payload plus `manifest.service` metadata, stage/upload the payload into backend runtime, and fail closed if payload validation or load fails.
+* Start staged app-service payload only after manifest/schema/ACL validation and storage commit succeed.
+* Persist lifecycle metadata (`version`, `lifecycle_state`, `enabled`, `publisher_identity_id`, `manifest_hash`) and make the application available for schema loading and [OperationContext](../services-and-apps/05-operation-context.md) binding so that [OperationContext](../services-and-apps/05-operation-context.md) construction described in [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and the `app_id` field requirements in [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) have a registered target.
 
-Registration is idempotent per slug. Re registration of an existing slug must resolve to the same app_id and identity.
+Registration is idempotent per slug and version. Re-registration of an existing slug and same version must resolve to the same app_id and identity.
 
-### 4.2 Resolution and lookup
+### 4.2 Lifecycle transitions
+
+App Manager enforces the lifecycle transition matrix used by [04-interfaces/06-app-lifecycle.md](../../04-interfaces/06-app-lifecycle.md):
+
+| Operation | Allowed from | Result |
+| --- | --- | --- |
+| register | no row, or same slug+version | `installed_enabled` or `installed_disabled` |
+| enable | `installed_disabled` or `degraded` | `installed_enabled` |
+| disable | `installed_enabled`, `degraded`, or `draining` | `installed_disabled` |
+| repair | `installed_enabled`, `installed_disabled`, `degraded`, or `draining` | preserves enabled posture and may clear degraded status |
+| open | `installed_enabled` | no state change |
+| uninstall | `installed_disabled` or `degraded` | `removed` |
+
+Any disallowed transition fails closed and must surface `object_invalid` when routed through lifecycle HTTP interfaces.
+
+### 4.3 Resolution and lookup
 
 The [App Manager](08-app-manager.md) provides lookup facilities for:
 
 * slug to app_id resolution.
 * app_id to slug resolution.
-* retrieval of immutable application metadata.
+* retrieval of immutable identity metadata and mutable lifecycle metadata.
 
 Registry backed lookup is the only valid mechanism for binding slugs to app_id values for routing, [OperationContext](../services-and-apps/05-operation-context.md) construction, schema compilation, and sync metadata. This ensures that the `app_id` field required in operation records by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and the application scoped object guarantees in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) are interpreted only through registered identifiers.
 

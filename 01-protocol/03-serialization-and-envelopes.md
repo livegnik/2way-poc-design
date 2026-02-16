@@ -54,7 +54,7 @@ A structurally valid envelope provides these guarantees:
 
 ### 3.2 JSON representation
 
-Envelopes and operations are represented as JSON objects in documentation and in the PoC API surfaces. Binary formats are avoided.
+Envelopes and operations are represented as JSON objects in documentation and protocol API surfaces. Binary formats are avoided.
 
 Constraints:
 
@@ -92,6 +92,28 @@ No other fields are permitted in a graph message envelope.
 * [Graph Manager](../02-architecture/managers/07-graph-manager.md) processes the envelope as a single transaction boundary.
 * If any operation is rejected by structural validation, [schema validation](../02-architecture/managers/05-schema-manager.md), [ACL enforcement](06-access-control-model.md), or [graph invariants](02-object-model.md), the entire envelope is rejected.
 
+### 5.4 Temporary minimal commit subset (Build Plan 3.4 only)
+
+During Build Plan step 3.4 ("Minimal Graph Commit Mode"), local `/graph/envelope` writes are restricted to the following subset:
+
+* Exactly one operation in `ops`.
+* Operation `op` must be `parent_create`.
+* Operation must include `app_id`, exactly one of `type_key` or `type_id`, `owner_identity`, and `payload`.
+* `payload` must be an object containing exactly one field, `value` (object).
+
+Forbidden during this temporary subset:
+
+* Any operation other than `parent_create`.
+* Any envelope containing more than one operation.
+* Any payload fields other than `value`, including `parent_id`, `attr_id`, `edge_id`, `rating_id`, `src_parent_id`, `dst_parent_id`, `dst_attr_id`, `target_parent_id`, `target_attr_id`, `acl`, `sync_flags`, and `global_seq`.
+* Any inline ACL object or graph mutation targeting Attribute, Edge, or Rating objects.
+
+Rejection and side effects for this subset:
+
+* Any subset violation must be rejected with `ErrorDetail.code=envelope_invalid` before persistence.
+* Successful processing writes exactly one Parent object append-only row and increments `global_seq` exactly once on commit.
+* Failures must not mutate graph state, emit events, or advance sequence state.
+
 ## 6. Operation records
 
 ### 6.1 Common fields
@@ -128,7 +150,7 @@ The supervised operation identifiers are:
 
 No other `op` values are permitted.
 
-Deletion operations do not exist in the PoC.
+Deletion operations are not part of this protocol version.
 
 ### 6.3 Parent operations
 
@@ -183,7 +205,7 @@ For `rating_update`, `payload` MAY include:
 
 ### 7.1 Purpose
 
-A sync package envelope is the unit transmitted between nodes for synchronization. It carries sync metadata and a graph message envelope. In the PoC, outbound sync packages are signed using the node key defined in [05-keys-and-identity.md](05-keys-and-identity.md).
+A sync package envelope is the unit transmitted between nodes for synchronization. It carries sync metadata and a graph message envelope. Outbound sync packages are signed using the node key defined in [05-keys-and-identity.md](05-keys-and-identity.md).
 
 ### 7.2 Structure
 

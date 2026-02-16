@@ -21,7 +21,8 @@ This specification references:
 This specification is responsible for:
 
 * Declaring which features are in scope for the PoC.
-* Declaring the in-scope app services (contact list, messaging, social, market).
+* Declaring the in-scope app services (Contacts, Messaging, Social, Market) and their app namespaces.
+* Declaring references to machine-readable PoC app artifact examples under [11-examples/**](../../../11-examples/00-examples-overview.md).
 
 This specification does not cover:
 

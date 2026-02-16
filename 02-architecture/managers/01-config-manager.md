@@ -422,3 +422,9 @@ Observability:
 * Storing node local operational configuration in the graph or syncing it to peers.
 * Allowing overrides to mutate `node.protocol.version` or any `.env` sourced key.
 * Allowing a manager to read another manager namespace without an explicit export contract.
+
+## 11. Requirement ID anchors
+
+This section is the canonical requirement anchor list for configuration behavior and generated config reference docs.
+
+R067, R077, R078, R079, R080, R085, R091, R113, R115.

@@ -329,3 +329,9 @@ When enforced as specified, this object model guarantees:
 * Strict structural validity of all graph objects.
 * Referential integrity within application domains.
 * Canonical representation of ACL structures using graph primitives.
+
+## 13. Requirement ID anchors
+
+This section is the canonical requirement anchor list for object-model invariants and generated data-model references.
+
+R025-R045.

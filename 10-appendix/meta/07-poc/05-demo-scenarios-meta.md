@@ -12,7 +12,7 @@ This specification references:
 
 * [07-poc/05-demo-scenarios.md](../../../07-poc/05-demo-scenarios.md)
 * [06-flows/**](../../../06-flows/)
-* [POC-APPS.md](../../../../docs-build/POC-APPS.md)
+* [POC-APPS.md](../../../../docs-build/automated/POC-APPS.md)
 
 ## 2. Responsibilities and boundaries
 
@@ -23,4 +23,3 @@ This specification is responsible for:
 This specification does not cover:
 
 * UI walkthroughs beyond the defined scenarios.
-

@@ -32,6 +32,7 @@ This overview is responsible for the following:
 * Defining [OperationContext](../../../../02-architecture/services-and-apps/05-operation-context.md) requirements, capability encoding requirements, and fail-closed behavior for every system service invocation.
 * Defining lifecycle sequencing for service startup, readiness gating, shutdown, and upgrades.
 * Defining configuration namespaces, schema obligations, capability catalogs, ACL templates, and observability requirements for system services.
+* Defining canonical `service.*` keys, including Admin Service policy-audit cadence (`service.ops.policy_audit_interval_ms`).
 * Defining service to manager integration contracts in terms of inputs, outputs, and trust boundaries, including [DoS Guard Manager](../../../../02-architecture/managers/14-dos-guard-manager.md) and [Health Manager](../../../../02-architecture/managers/13-health-manager.md) admission behavior.
 * Defining service availability error families (`ERR_SVC_SYS_*`) and per-service parent families (`ERR_SVC_SYS_<SERVICE>_*`) and when they must be surfaced.
 * Defining manager family naming alignment (`ERR_MNG_<MANAGER>_*`) for manager-originated errors surfaced through service boundaries.

@@ -4,7 +4,7 @@
 
 # 01 Scope and goals
 
-Defines system-level scope, goals, and required guarantees for the 2WAY PoC. Specifies global invariants, trust boundaries, and failure handling requirements. Defines allowed and forbidden behaviors at the system level.
+Defines system-level scope, goals, and required guarantees for 2WAY. Specifies global invariants, trust boundaries, and failure handling requirements. Defines allowed and forbidden behaviors at the system level.
 
 For the meta specifications, see [01-scope-and-goals meta](../10-appendix/meta/00-scope/01-scope-and-goals-meta.md).
 
@@ -12,7 +12,7 @@ For the meta specifications, see [01-scope-and-goals meta](../10-appendix/meta/0
 
 2WAY is a local-first, graph-based system for identity-anchored data ownership, access control, incentive-mediated interaction, and peer-to-peer synchronization over untrusted networks.
 
-This repository defines the complete design required to build and evaluate a single 2WAY proof-of-concept node and its interactions with peers.
+This repository defines the complete design required to build and evaluate a single 2WAY node and its interactions with peers.
 
 Within scope:
 
@@ -25,14 +25,14 @@ Within scope:
 - App-defined domains with isolated semantics enforced by schema and access control.
 - Economic and incentive mechanisms expressed as graph structures and enforced locally.
 - Protocol-level envelope and sync semantics as defined in [01-protocol](../01-protocol/).
-- Storage layout and indexing strategies for the PoC node as defined in [03-data](../03-data/).
+- Storage layout and indexing strategies for the node as defined in [03-data](../03-data/).
 
 Out of scope:
 
 - Centralized coordination, global consensus, or shared ledgers.
 - Externally enforced monetary policy or global settlement.
 - User interface or experience design beyond API boundary requirements.
-- Operational deployment strategies beyond a single-node PoC.
+- Operational deployment strategies beyond a single-node design.
 - Any behavior that requires implicit trust in peers, transports, or infrastructure.
 - Production-scale multi-node consensus or cluster management.
 
@@ -154,13 +154,3 @@ On failure or invalid input:
 - Partial failures do not create ambiguous or intermediate state.
 
 Silent acceptance, partial mutation, or best-effort processing are not permitted.
-
-## 8. Non-goals
-
-The following are explicitly not goals:
-
-- Universal consensus.
-- Global identity uniqueness.
-- Anonymous mutation without identity.
-- Automatic trust inference.
-- Enforcement of policy outside graph-encoded rules.

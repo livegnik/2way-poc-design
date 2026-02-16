@@ -47,7 +47,7 @@ Payload fields (these fields are signed):
 Notes:
 
 * `frontend_user_id` and `device_metadata` are client metadata only and MUST NOT affect identity binding decisions.
-* Device registration and device revocation are out of scope for PoC auth registration; no device identity is created or bound by this interface.
+* PoC auth registration issues auth identity and session material only; no device identity is created or bound by this interface.
 * Replay protection is mandatory: the backend MUST reject registration payloads with timestamps outside `auth.registration.max_skew_ms` and MUST reject any `(public_key, nonce)` reuse within `auth.registration.nonce_ttl_ms`.
 
 Signature field (not part of the signed payload):

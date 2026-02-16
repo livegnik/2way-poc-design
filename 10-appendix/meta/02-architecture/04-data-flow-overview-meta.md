@@ -29,6 +29,7 @@ This specification is responsible for the following:
 * Defining allowed and forbidden data movements.
 * Defining rejection and failure propagation behavior.
 * Defining visibility suppression semantics via Rating objects defined in [01-protocol/02-object-model.md](../../../01-protocol/02-object-model.md).
+* Maintaining canonical Requirement ID anchors consumed by generated build docs (`R068-R076`).
 
 This specification does not cover the following:
 

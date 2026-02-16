@@ -46,4 +46,4 @@ This specification does not cover the following:
 
 ### 3.1 Key type
 
-The specific algorithms and encodings are defined in [04-cryptography.md](../../../01-protocol/04-cryptography.md) and the PoC build guide.
+The specific algorithms and encodings are defined in [04-cryptography.md](../../../01-protocol/04-cryptography.md).

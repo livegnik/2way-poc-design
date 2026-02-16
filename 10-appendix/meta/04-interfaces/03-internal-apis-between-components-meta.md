@@ -25,6 +25,7 @@ This specification is responsible for the following:
 * Defining shared cross-cutting contracts like OperationContext and ErrorDetail.
 * Defining payload schemas for internal manager API inputs and outputs.
 * Defining canonical graph read request and ACL read decision shapes for complex queries.
+* Declaring `GraphManager.read_graph` as the canonical controlled-read internal execution path.
 * Declaring validation error mapping for internal payloads.
 * Declaring outbound preparation error mapping for Network Manager.
 

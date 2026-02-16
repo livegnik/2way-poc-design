@@ -42,7 +42,7 @@ This specification does not cover the following:
 
 ## 3. Graph envelopes transmitted over remote sync
 
-The full envelope and operation structure is defined in [03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md) and in the PoC build guide. This file defines only the cryptographic rules that apply to those structures.
+The full envelope and operation structure is defined in [03-serialization-and-envelopes.md](../../../01-protocol/03-serialization-and-envelopes.md). This file defines only the cryptographic rules that apply to those structures.
 
 ## 4. Signed portion
 

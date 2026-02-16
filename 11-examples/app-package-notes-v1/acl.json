@@ -1,0 +1,33 @@
+{
+  "objects": [
+    {
+      "op": "parent_create",
+      "type_key": "acl.root",
+      "payload": {
+        "target_app_slug": "notes",
+        "target_type_key": "notes.note",
+        "scope": "object"
+      }
+    },
+    {
+      "op": "attr_create",
+      "type_key": "acl.read.identity",
+      "payload": {
+        "parent_id": "TEMPLATE_ACL_ROOT_PARENT_ID",
+        "value_json": {
+          "allow_owner": true
+        }
+      }
+    },
+    {
+      "op": "attr_create",
+      "type_key": "acl.write.identity",
+      "payload": {
+        "parent_id": "TEMPLATE_ACL_ROOT_PARENT_ID",
+        "value_json": {
+          "allow_owner": true
+        }
+      }
+    }
+  ]
+}

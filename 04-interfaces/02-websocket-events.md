@@ -29,6 +29,8 @@ Requests that are not `GET /ws` MUST be rejected with HTTP `404` and no `ErrorDe
 
 A WebSocket connection must supply an authentication token during the handshake. The backend resolves the token via [Auth Manager](../02-architecture/managers/04-auth-manager.md). If authentication fails, the connection must be rejected.
 
+Successful authentication upgrades the request to WebSocket (`101 Switching Protocols`) and creates a bound session record as defined in Section 3.
+
 Errors:
 
 * Authentication failures reject the connection (`auth_required`, `auth_invalid`).
@@ -61,6 +63,16 @@ If a session token expires or is revoked after the WebSocket connection is estab
 A successful connection creates a session record:
 
 * `requester_identity_id` (required)
+* `is_admin` (required)
+* `connected_at` (required, RFC3339)
+* `auth_source` (required; one of `query`, `authorization_header`, `x_auth_token_header`, `cookie`)
+
+Session persistence and lifecycle:
+
+* Session records are in-memory only and must never be persisted to SQLite.
+* A session record is created exactly once on successful handshake.
+* A session record is removed on disconnect, auth failure close, or server shutdown.
+* Session creation/removal must not mutate graph state.
 
 The session is the authoritative binding between the WebSocket connection and the caller identity. It is used for any downstream event authorization.
 

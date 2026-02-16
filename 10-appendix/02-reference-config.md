@@ -1,3 +1,7 @@
+
+
+
+
 # 02 Reference config
 
 This file summarizes configuration namespaces and points to the authoritative configuration specs. It is non-normative.
@@ -5,7 +9,7 @@ This file summarizes configuration namespaces and points to the authoritative co
 Authoritative sources:
 
 - `specs/02-architecture/managers/01-config-manager.md` (namespace ownership, invariants, and load/reload rules).
-- `docs-build/CONFIG.md` (build-facing config checklist).
+- `docs-build/automated/CONFIG.md` (build-facing config checklist).
 
 ## Namespace index (non-normative)
 

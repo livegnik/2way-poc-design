@@ -22,6 +22,7 @@ This specification is responsible for:
 
 * Declaring system-wide security objectives.
 * Defining the trust boundaries enforced by the kernel.
+* Declaring requirement ID anchor ranges used by generated security posture summaries.
 
 This specification does not cover:
 

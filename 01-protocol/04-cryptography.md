@@ -46,7 +46,7 @@ When a specification defines a "signed portion" of a JSON payload, the bytes to 
 
 ## 1.3 Algorithm constraints
 
-- Nodes must not negotiate alternative signing or encryption algorithms within the PoC protocol scope.
+- Nodes must not negotiate alternative signing or encryption algorithms within protocol scope.
 - Nodes must not accept messages that claim an unsupported algorithm.
 
 ## 2. Cryptographically protected structures
@@ -126,7 +126,7 @@ Trust boundary:
 - [Key Manager](../02-architecture/managers/03-key-manager.md) is the only backend component that may access backend private keys for signing and decryption.
 - This backend-only restriction does not apply to frontend clients, which sign locally using their own private keys per the auth registration flow and envelope rules.
 - Signature verification and public-key encryption may be performed by authorized managers or services using identity data from the graph and an appropriate [OperationContext](../02-architecture/services-and-apps/05-operation-context.md).
-- Callers must treat [Key Manager](../02-architecture/managers/03-key-manager.md) outputs as cryptographic results only. Authorization semantics are out of scope for Key Manager.
+- Callers must treat [Key Manager](../02-architecture/managers/03-key-manager.md) outputs as cryptographic results only. Authorization decisions are enforced by [ACL Manager](../02-architecture/managers/06-acl-manager.md) and [Auth Manager](../02-architecture/managers/04-auth-manager.md).
 
 ## 4.2 Network Manager
 

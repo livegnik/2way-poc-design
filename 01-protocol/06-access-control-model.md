@@ -92,7 +92,7 @@ Rules:
 
 ### 3.5 ACL enforcement matrix and bypass rules
 
-Authorization must follow the matrix below. These rules are normative for the PoC and apply to both local and remote contexts unless explicitly scoped otherwise.
+Authorization must follow the matrix below. These rules are normative and apply to both local and remote contexts unless explicitly scoped otherwise.
 The ACL Manager MUST apply this matrix exactly.
 
 Definitions:
@@ -269,4 +269,4 @@ The access control model ensures:
 - Least privilege enforcement.
 - Explicit and auditable permission boundaries.
 - Deterministic authorization behavior.
-- Structural resistance to privilege escalation within the PoC design.
+- Structural resistance to privilege escalation within the protocol design.

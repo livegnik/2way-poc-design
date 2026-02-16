@@ -25,7 +25,7 @@ Across all relevant components, boundaries, or contexts defined in this file, th
 * Signature verification and public-key encryption may be performed by authorized managers or services when permitted by [OperationContext](services-and-apps/05-operation-context.md) and identity data in the graph; private keys never leave [Key Manager](managers/03-key-manager.md).
 * [OperationContext](services-and-apps/05-operation-context.md) is immutable once constructed and propagated unchanged.
 * Domain boundaries are enforced on all reads, writes, and sync operations per [01-protocol/06-access-control-model.md](../01-protocol/06-access-control-model.md) and [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
-* No delete or physical removal operations exist in the PoC.
+* No delete or physical removal operations exist in this design.
 
 These guarantees hold regardless of caller, execution context, input source, or peer behavior, unless explicitly stated otherwise.
 
@@ -54,7 +54,7 @@ This section defines two distinct but related flows:
 * One time node bootstrap and Server Graph initialization.
 * Repeated user provisioning and User Graph creation after bootstrap.
 
-For the PoC, frontend and backend execution are assumed to occur on the same physical device, so key generation is performed by the backend without altering trust assumptions, while later versions may relocate key generation without changing the data flow model.
+In this design, frontend and backend execution are assumed to occur on the same physical device, so key generation is performed by the backend without altering trust assumptions, while later versions may relocate key generation without changing the data flow model.
 
 ### 3.2 Node bootstrap and Server Graph initialization
 
@@ -206,7 +206,7 @@ For the PoC, frontend and backend execution are assumed to occur on the same phy
 
 ### 6.1 Scope
 
-Visibility suppression replaces delete semantics in the PoC and is implemented using Rating graph objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
+Visibility suppression replaces delete semantics in this design and is implemented using Rating graph objects defined in [01-protocol/02-object-model.md](../01-protocol/02-object-model.md).
 
 ### 6.2 Inputs
 
@@ -227,7 +227,7 @@ Visibility suppression replaces delete semantics in the PoC and is implemented u
 * Interpretation rules are deterministic and app scoped.
 * Interpretation respects ACL visibility of Rating objects.
 
-This Rating contains a vote value, where a value of zero represents a suppression signal and serves as the PoC substitute for delete semantics.
+This Rating contains a vote value, where a value of zero represents a suppression signal and serves as the design substitute for delete semantics.
 
 Additional fields may be present to represent scoring, reactions, comments, or other annotations, with interpretation defined entirely by the consuming app or service.
 
@@ -408,3 +408,9 @@ This data flow model guarantees:
 * Network retry decisions are owned by [State Manager](managers/09-state-manager.md) and driven by per-peer sync state per [01-protocol/07-sync-and-consistency.md](../01-protocol/07-sync-and-consistency.md).
 * Predictable fail-closed behavior under error or load.
 * No implicit or hidden data paths.
+
+## 14. Requirement ID anchors
+
+This section is the canonical requirement anchor list for generated dataflow and traceability references.
+
+R068-R076.

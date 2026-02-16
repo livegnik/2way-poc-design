@@ -128,6 +128,7 @@ All inputs are trusted only if they originate from registered managers or the ba
 | `log.event_bridge.enabled`    | Boolean                                 | Yes        | Enables the optional [Event Manager](11-event-manager.md) bridge described in Section 9.               |
 | `log.retention.days.audit`    | Integer                                 | Yes        | Retention window for audit logs.                                                |
 | `log.retention.days.security` | Integer                                 | Yes        | Retention window for security logs.                                             |
+| `log.retention.max_file_mb`   | Integer                                 | Yes        | Maximum file size before sink rotation (MB).                                    |
 | `log.ingest.journal_size`     | Integer                                 | Yes        | Size (in records) of the in-memory ingestion journal.                           |
 | `log.diagnostic.enabled`      | Boolean                                 | Yes        | Allows `diagnostic.*` logs to be emitted.                                       |
 

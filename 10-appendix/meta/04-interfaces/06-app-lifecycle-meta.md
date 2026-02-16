@@ -20,9 +20,14 @@ This document references:
 This specification is responsible for the following:
 
 * Declaring required lifecycle operations (install, list, enable, disable, uninstall, repair, open).
+* Declaring canonical lifecycle state values and transition matrix rules.
+* Declaring the canonical app artifact contract (ZIP layout, `manifest.json`, `schema.json`, optional `acl.json`, and `package_sig`).
 * Declaring install payload fields for manifests, schema bundles, and ACL bundles.
 * Declaring install payload constraints for schema/ACL objects (no `global_seq` or `sync_flags`).
 * Declaring app package upload requirements (ZIP contents and detached signature).
+* Declaring signature metadata schema (`publisher_public_key`, detached signature), local-graph publisher key resolution, and unknown-field rejection behavior for install artifacts.
+* Declaring composition-specific app-service artifact requirements and post-validation service load/start ordering.
+* Declaring slug-first package identity and forbidding node-local identifiers (for example, `manifest.app_id`) in package artifacts.
 * Declaring publisher trust requirements for app installation.
 * Stating validation, ordering, and fail-closed rules for lifecycle actions.
 * Declaring lifecycle endpoint error responses.

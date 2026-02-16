@@ -10,7 +10,7 @@ For the meta specifications, see [03-trust-boundaries meta](../10-appendix/meta/
 
 ## 1. Trust model and baseline assumptions
 
-The PoC assumes a hostile environment by default.
+This design assumes a hostile environment by default.
 
 No component, input source, or peer is trusted unless trust is explicitly established through validated identity, enforced invariants, and ordered execution.
 
@@ -262,7 +262,7 @@ The system fails closed. When a boundary cannot be enforced, the operation is re
 
 ## 10. Summary of enforced trust boundaries
 
-The PoC enforces strict trust separation:
+This design enforces strict trust separation:
 
 * All untrusted input is validated before use.
 * No component can escalate privileges across boundaries.

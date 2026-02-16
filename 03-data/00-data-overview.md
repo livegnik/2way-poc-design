@@ -10,7 +10,7 @@ For the meta specifications, see [00-data-overview meta](../10-appendix/meta/03-
 
 ## 1. Purpose and scope
 
-This overview establishes the data layer's boundaries, invariants, and responsibilities. It orients the reader to the data specifications in this folder and the guarantees they collectively provide. It does not restate table schemas or index definitions in full; those live in their dedicated files.
+This overview establishes the data layer's boundaries, invariants, and responsibilities. It orients the reader to the data specifications in this folder and the guarantees they collectively provide. Table schemas and index definitions live in their dedicated files.
 
 ## 2. Core invariants
 
@@ -30,7 +30,7 @@ These invariants apply to local writes, remote sync ingestion, maintenance tasks
 
 The data layer is anchored by a single SQLite database. It contains:
 
-* Global system tables for identities, apps, peers, settings, sync state, and sequencing.
+* Global system tables for identities, apps, peers, settings, sync state, sequencing, and auth session/replay state.
 * Per-app table families with deterministic prefixes (`app_N_*`) for Parents, Attributes, Edges, Ratings, and type mappings.
 * Log tables owned by Storage Manager for internal operational records.
 
@@ -101,3 +101,9 @@ The following behaviors are explicitly forbidden:
 * Network Manager and State Manager treat sync ingestion as untrusted input, but persistence still follows the same invariants.
 
 Detailed manager responsibilities are defined in [02-architecture/managers/**](../02-architecture/managers/).
+
+## 11. Requirement ID anchors
+
+This section is the canonical requirement anchor list for data-layer implementation and generated data-model references.
+
+R093-R100, R110.

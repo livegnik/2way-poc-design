@@ -18,6 +18,7 @@ This specification references:
 This specification is responsible for:
 
 * Defining launcher environment handling and process sequencing rules.
+* Defining canonical readiness marker and timeout configuration keys for launcher orchestration.
 * Declaring UI behaviors and lifecycle controls.
 
 This specification does not cover:

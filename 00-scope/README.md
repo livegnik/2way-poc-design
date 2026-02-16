@@ -4,7 +4,7 @@
 
 # 00 Scope
 
-This folder defines the system boundary for the 2WAY proof of concept. It establishes repository-wide
+This folder defines the system boundary for the 2WAY design. It establishes repository-wide
 invariants, trust boundaries, and rejection behavior, along with canonical terminology used across
 all other documents.
 
@@ -13,11 +13,11 @@ authoritative source and record exceptions in an ADR.
 
 ## What lives here
 
-- [`00-scope-overview.md`](00-scope-overview.md) - Repository-wide authority, invariants, trust boundaries, PoC constraints, and invalid input handling.
+- [`00-scope-overview.md`](00-scope-overview.md) - Repository-wide authority, invariants, trust boundaries, runtime and scope constraints, and invalid input handling.
 - [`01-scope-and-goals.md`](01-scope-and-goals.md) - System scope, goals, allowed/forbidden behavior, and guarantees.
 - [`02-non-goals-and-out-of-scope.md`](02-non-goals-and-out-of-scope.md) - Explicit exclusions and non-goals with rejection expectations.
 - [`03-definitions-and-terminology.md`](03-definitions-and-terminology.md) - Canonical terms and object names used throughout the repo.
-- [`04-assumptions-and-constraints.md`](04-assumptions-and-constraints.md) - PoC assumptions, constraints, and hard exclusions.
+- [`04-assumptions-and-constraints.md`](04-assumptions-and-constraints.md) - Scope assumptions, constraints, and hard exclusions.
 
 Each document has a corresponding meta specification in [`10-appendix/meta/00-scope/`](../10-appendix/meta/00-scope/).
 
@@ -25,7 +25,7 @@ Each document has a corresponding meta specification in [`10-appendix/meta/00-sc
 
 1. Start with [`00-scope-overview.md`](00-scope-overview.md) for the top-level invariants and trust boundaries.
 2. Read [`01-scope-and-goals.md`](01-scope-and-goals.md) and [`02-non-goals-and-out-of-scope.md`](02-non-goals-and-out-of-scope.md) to understand the boundary.
-3. Use [`04-assumptions-and-constraints.md`](04-assumptions-and-constraints.md) to confirm what the PoC must and must not rely on.
+3. Use [`04-assumptions-and-constraints.md`](04-assumptions-and-constraints.md) to confirm what this design must and must not rely on.
 4. Keep [`03-definitions-and-terminology.md`](03-definitions-and-terminology.md) open as a reference for canonical terms.
 
 ## Key guarantees this folder enforces
@@ -44,7 +44,7 @@ Each document has a corresponding meta specification in [`10-appendix/meta/00-sc
 - Rejections produce no persistent state changes and do not advance sequence or sync cursors.
 - Rejections do not emit state-changing events.
 - Ratings provide suppression semantics; there is no delete path and derived data is non-authoritative.
-- PoC process and persistence constraints assume a single long-running backend process
+- Process and persistence constraints assume a single long-running backend process
   with a single serialized writer path using SQLite.
 
 ## Using this folder in reviews

@@ -1,3 +1,7 @@
+
+
+
+
 # 03 Open questions
 
 This file tracks open questions that need ADRs or spec updates. It is non-normative.

@@ -193,6 +193,15 @@ Requests that do not are rejected.
 * Scope and key identifiers are never inferred.
 * Missing or invalid keys cause rejection.
 
+### 6.5 External route bindings
+
+The first externally observable routes that exercise Key Manager behavior are:
+
+* `POST /auth/identity/register`: successful responses are signed using the backend node key before returning `server_signature`.
+* `POST /system/sync/packages`: transport verification/decryption path may invoke Key Manager before forwarding accepted packages to State Manager.
+
+These route bindings are normative for hardened-path integration proof.
+
 ## 7. Startup and shutdown behavior
 
 ### 7.1 Startup

@@ -80,7 +80,7 @@ Each published snapshot contains:
 
 1. **Submission**: Components push signals into the ingestion queue. Backpressure applies if the queue reaches `health.ingest.max_signals`. Network telemetry forwarded through [Network Manager](10-network-manager.md) must respect the advisory-only guarantees in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md).
 2. **Validation**: Signals are checked for freshness, component identity, and schema correctness. Invalid signals are rejected and logged.
-3. **Normalization**: Valid signals are canonicalized into a fixed structure `{ component, state, metrics, expires_at }`. Expiration time is computed from `health.component_timeout`.
+3. **Normalization**: Valid signals are canonicalized into a fixed structure `{ component, state, metrics, expires_at }`. Expiration time is computed from `health.component_timeout_ms`.
 4. **Evaluation**: A deterministic evaluator aggregates all component states, applies thresholds, and determines global readiness and liveness according to Section 4.2.
 5. **Publication**: If the computed readiness and liveness differs from the current snapshot, a new snapshot is emitted, [Event Manager](11-event-manager.md) and [Log Manager](12-log-manager.md) are notified, and `health_seq` increments. Even when the global state is unchanged, component-level deltas are published to interested subscribers.
 
@@ -98,6 +98,8 @@ Key configuration entries owned by [Health Manager](13-health-manager.md) includ
 | `health.event_notifications`  | Boolean | Yes        | Enables [Event Manager](11-event-manager.md) bridge.                                                          |
 | `health.log_notifications`    | Boolean | Yes        | Enables structured log emission (always on in production).                             |
 | `health.admin_capability`     | String  | Yes        | Capability required to access detailed health data via HTTP.                           |
+| `health.ingest.max_signals`   | Integer | Yes        | Maximum queued health signals before Signal Intake applies backpressure.               |
+| `health.publication.max_retries` | Integer | Yes     | Maximum publication retries per sink before Health Manager fails closed.                |
 
 Configuration reloads follow [Config Manager](01-config-manager.md)'s prepare/commit flow. [Health Manager](13-health-manager.md) validates that thresholds are non-negative and that all listed components are registered.
 

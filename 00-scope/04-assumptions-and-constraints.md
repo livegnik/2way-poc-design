@@ -4,7 +4,7 @@
 
 # 04 Assumptions and constraints
 
-Defines PoC scope assumptions, mandatory invariants, and enforcement boundaries. Specifies inclusion and exclusion constraints and required validation gates. Defines trust assumptions and rejection requirements at the scope level.
+Defines scope assumptions, mandatory invariants, and enforcement boundaries. Specifies inclusion and exclusion constraints and required validation gates. Defines trust assumptions and rejection requirements at the scope level.
 
 For the meta specifications, see [04-assumptions-and-constraints meta](../10-appendix/meta/00-scope/04-assumptions-and-constraints-meta.md).
 
@@ -12,7 +12,7 @@ For the meta specifications, see [04-assumptions-and-constraints meta](../10-app
 
 ### 1.1 In scope
 
-The PoC design includes the following major elements:
+This design includes the following major elements:
 - A backend composed of managers and services only.
 - A frontend that hosts all apps.
 - A graph-based persistence model using SQLite for backend storage.
@@ -24,7 +24,7 @@ The PoC design includes the following major elements:
 
 ### 1.2 Out of scope
 
-Non-goals and exclusions are specified in [02-non-goals-and-out-of-scope.md](02-non-goals-and-out-of-scope.md). This file adds only the following hard exclusions because they materially affect PoC boundary correctness:
+Non-goals and exclusions are specified in [02-non-goals-and-out-of-scope.md](02-non-goals-and-out-of-scope.md). This file adds only the following hard exclusions because they materially affect boundary correctness:
 - No direct database writes by apps or services.
 - No manager bypass through alternative persistence paths.
 - No reliance on transport level security as a correctness requirement.
@@ -32,9 +32,9 @@ Non-goals and exclusions are specified in [02-non-goals-and-out-of-scope.md](02-
 
 ## 2. Goals
 
-### 2.1 Primary PoC goals
+### 2.1 Primary goals
 
-The PoC is complete only if it satisfies all of the following:
+The design is complete only if it satisfies all of the following:
 - Enforces manager and service separation and prevents raw persistence access outside Graph Manager-controlled writes.
 - Enforces schema validation and ACL enforcement for every graph mutation.
 - Ensures all operations are bound to an explicit author identity and are verifiable against stored public keys.
@@ -42,9 +42,9 @@ The PoC is complete only if it satisfies all of the following:
 - Implements peer sync over Tor with signature verification and sequence ordering constraints.
 - Preserves app isolation through app-scoped types, schemas, and domain rules.
 
-### 2.2 Secondary PoC goals
+### 2.2 Secondary goals
 
-The PoC should also satisfy the following where defined elsewhere in this repository:
+The design should also satisfy the following where defined elsewhere in this repository:
 - Maintain deterministic rejection behavior for invalid, malformed, or unauthorized operations.
 - Maintain stable persistence guarantees under process restart and partial failure.
 - Support selective sync and scoping controls as defined by sync domains and ACL visibility rules.
@@ -53,7 +53,7 @@ The PoC should also satisfy the following where defined elsewhere in this reposi
 
 ### 3.1 Invariants
 
-The following invariants are mandatory across the PoC:
+The following invariants are mandatory across this design:
 - Backend code consists of managers and services only.
 - Frontend hosts all apps.
 - Apps may ship app services, but all backend logic must still use manager interfaces.
@@ -69,7 +69,7 @@ The following invariants are mandatory across the PoC:
 
 ### 3.2 Scope-level guarantees
 
-Given adherence to the invariants in this file and the detailed specifications elsewhere, the PoC design guarantees the following at the scope level:
+Given adherence to the invariants in this file and the detailed specifications elsewhere, the design guarantees the following at the scope level:
 - There is a single enforced write path to persistent state.
 - There is a single enforced authorization gate for mutations.
 - There is a single enforced schema validation gate for type and relation correctness.
@@ -78,7 +78,7 @@ Given adherence to the invariants in this file and the detailed specifications e
 
 ## 4. Allowed behaviors
 
-The following behaviors are explicitly allowed within the PoC scope:
+The following behaviors are explicitly allowed within this scope:
 - Nodes may operate offline indefinitely and remain internally consistent.
 - Peers may be malicious, unreliable, or non-cooperative.
 - Sync relationships may be partial, asymmetric, and selective by domain.
@@ -87,7 +87,7 @@ The following behaviors are explicitly allowed within the PoC scope:
 
 ## 5. Forbidden behaviors
 
-The following behaviors are explicitly forbidden within the PoC scope:
+The following behaviors are explicitly forbidden within this scope:
 - Any persistent write that does not pass through Graph Manager.
 - Any authorization decision made outside ACL Manager.
 - Any acceptance of graph mutations that skip Schema Manager validation.
@@ -106,7 +106,7 @@ The system treats the following as untrusted inputs:
 
 ### 6.2 Trusted components
 
-Within the PoC scope, the following are treated as trusted to enforce correctness, provided the local execution environment assumptions hold:
+Within this scope, the following are treated as trusted to enforce correctness, provided the local execution environment assumptions hold:
 - Backend managers.
 - Validation pipeline ordering across Graph Manager, Schema Manager, and ACL Manager.
 - Storage Manager as a persistence primitive accessible only through manager-controlled paths.

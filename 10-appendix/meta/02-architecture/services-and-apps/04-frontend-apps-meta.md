@@ -33,7 +33,10 @@ This overview is responsible for the following:
 
 * Defining the canonical frontend app model, including layers, execution contexts, and how each context interacts with backend services and managers.
 * Describing how frontend apps assemble [OperationContext](../../../../02-architecture/services-and-apps/05-operation-context.md) inputs, authenticate users and devices, request capabilities, and respect ACL policy.
+* Declaring slug-first frontend package identity and local slug-to-`app_id` resolution expectations.
 * Detailing transport, sync, configuration, storage, and offline requirements so apps cannot weaken protocol guarantees.
+* Defining frontend-local runtime settings (`FRONTEND_DB_PATH`, `FRONTEND_KEYS_DIR`, `FRONTEND_BACKEND_PUBLIC_KEY`) that remain outside backend Config Manager ownership.
+* Defining the minimum frontend local database field set for account and backend token persistence (`frontend_user_id`, `username`, `bcrypt_hash`, `public_key`, `backend_identity_id`, `backend_token`, `backend_token_issued_at`, `backend_token_expires_at`, `backend_base_url`, `created_at`, `updated_at`).
 * Capturing observability, telemetry, logging, and diagnostics obligations for frontend behavior so operators can audit requests end-to-end.
 * Defining frontend handling expectations for service availability errors (`ERR_SVC_APP_*`).
 * Outlining security, privacy, release, and supply-chain controls for distributing and updating frontend apps across devices.

@@ -158,7 +158,7 @@ Rules:
 - Conflicting envelopes are rejected.
 - No merge or rollback is performed at the protocol level.
 
-Application-level conflict handling is outside the scope of this specification.
+Application-level conflict handling is defined by app and flow specifications layered above protocol sync rules.
 
 ## 8. Failure and rejection behavior
 

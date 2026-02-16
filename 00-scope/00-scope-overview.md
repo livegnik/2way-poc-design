@@ -10,21 +10,15 @@ For the meta specifications, see [00-scope-overview meta](../10-appendix/meta/00
 
 ## 1. Purpose, authority, and scope
 
-This document defines the top-level scope boundary and repository-wide invariants for the 2WAY PoC design. It is normative for all other specifications in this repository and for implementations derived from them.
+This document defines the top-level scope boundary and repository-wide invariants for the 2WAY design. It is normative for all other specifications in this repository and for implementations derived from them.
 
 This document defines:
 
 * Repository-wide invariants and enforcement boundaries.
 * Trust boundaries and mandatory interaction constraints.
-* PoC runtime and persistence constraints that apply regardless of topology.
+* Runtime and persistence constraints that apply regardless of topology.
 * Failure and rejection requirements that apply to all interaction surfaces.
 * Document authority and conflict resolution rules.
-
-This document does not define:
-
-* Protocol wire formats, envelopes, or cryptographic primitives beyond naming and boundary constraints.
-* Component APIs, storage schemas, or interface request and response shapes.
-* Application-specific semantics, UI behavior, or deployment operations.
 
 Details live in [01-protocol](../01-protocol/), [02-architecture](../02-architecture/), [03-data](../03-data/), [04-interfaces](../04-interfaces/), [05-security](../05-security/), and [06-flows](../06-flows/). Terminology is defined in [03-definitions-and-terminology.md](03-definitions-and-terminology.md).
 
@@ -83,16 +77,16 @@ Summary table (normative):
 * State-changing events are emitted only after successful commit. Operational events may be emitted without a commit but must not imply persistence. Logs may be emitted for success or rejection but must not imply a commit on failure.
 * Debug and inspection interfaces are administrative, read-only, and subject to explicit authorization.
 
-## 4. PoC runtime and persistence constraints
+## 4. Runtime and persistence constraints
 
-The PoC design requires the following constraints:
+This design requires the following constraints:
 
 * The backend executes as a single long-running process hosting all managers and services.
 * SQLite is used with a single serialized writer path mediated by [Graph Manager](../02-architecture/managers/07-graph-manager.md) and [Storage Manager](../02-architecture/managers/02-storage-manager.md).
 * Local HTTP and WebSocket interfaces are local-only and treated as untrusted inputs.
 * Remote sync uses untrusted transport; cryptographic verification and ordering enforcement are required before any state mutation.
-* The PoC transport operates over Tor as defined in [04-assumptions-and-constraints.md](04-assumptions-and-constraints.md); transport security is not a correctness dependency.
-* Signatures and encryption follow the PoC cryptography requirements in [04-assumptions-and-constraints.md](04-assumptions-and-constraints.md) and [04-cryptography.md](../01-protocol/04-cryptography.md).
+* The transport operates over Tor as defined in [04-assumptions-and-constraints.md](04-assumptions-and-constraints.md); transport security is not a correctness dependency.
+* Signatures and encryption follow the cryptography requirements in [04-assumptions-and-constraints.md](04-assumptions-and-constraints.md) and [04-cryptography.md](../01-protocol/04-cryptography.md).
 * Private keys remain local and are owned by [Key Manager](../02-architecture/managers/03-key-manager.md).
 * Local correctness is independent of network availability; nodes may operate offline indefinitely.
 * Runtime topologies defined in [02-runtime-topologies.md](../02-architecture/02-runtime-topologies.md) are allowed only if they preserve all invariants in this document.

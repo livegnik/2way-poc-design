@@ -1,0 +1,69 @@
+{
+  "objects": [
+    {
+      "op": "parent_create",
+      "type_key": "notes.note",
+      "payload": {
+        "kind": "schema.type",
+        "required": [
+          "title",
+          "body",
+          "created_at"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 120
+          },
+          "body": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 4000
+          },
+          "created_at": {
+            "type": "string",
+            "format": "rfc3339"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "rfc3339"
+          }
+        }
+      }
+    },
+    {
+      "op": "parent_create",
+      "type_key": "notes.tag",
+      "payload": {
+        "kind": "schema.type",
+        "required": [
+          "name",
+          "created_at"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 64
+          },
+          "created_at": {
+            "type": "string",
+            "format": "rfc3339"
+          }
+        }
+      }
+    },
+    {
+      "op": "edge_create",
+      "type_key": "notes.note_tag",
+      "payload": {
+        "src_parent_id": "TEMPLATE_NOTE_PARENT_ID",
+        "dst_parent_id": "TEMPLATE_TAG_PARENT_ID",
+        "value_json": {
+          "kind": "schema.edge"
+        }
+      }
+    }
+  ]
+}

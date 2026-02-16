@@ -74,6 +74,8 @@ All manager-level failures use `ErrorDetail` from [04-error-model.md](04-error-m
 * `apply_envelope(ctx, raw_envelope)` -> `global_seq`
 * `read_graph(ctx, read_request)` -> `GraphReadResult`
 
+`read_graph(ctx, read_request)` is the canonical controlled-read execution path for integration flows before HTTP read routes are exposed.
+
 ### 3.6 State Manager
 
 **Responsibilities:** sync ingestion and ordering.

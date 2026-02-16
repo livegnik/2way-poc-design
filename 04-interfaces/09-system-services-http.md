@@ -128,14 +128,15 @@ Response (success):
 Errors:
 
 * `ERR_SVC_SYS_SETUP_SCHEMA`, `ERR_SVC_SYS_SETUP_ACL`, `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION`.
+* `ERR_SVC_SYS_SETUP_BOOTSTRAP_TOKEN_INVALID`, `ERR_SVC_SYS_SETUP_ALREADY_INSTALLED`.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 
 Additional rules:
 
-* Invalid or expired `bootstrap_token` MUST return `ERR_SVC_SYS_SETUP_ACL`.
+* Invalid or expired `bootstrap_token` MUST return `ERR_SVC_SYS_SETUP_BOOTSTRAP_TOKEN_INVALID`.
 * `storage_path_confirmation` mismatch MUST return `ERR_SVC_SYS_SETUP_SCHEMA`.
-* If the node is already installed, the request MUST return `ERR_SVC_SYS_SETUP_ACL`.
+* If the node is already installed, the request MUST return `ERR_SVC_SYS_SETUP_ALREADY_INSTALLED`.
 
 ### 4.2 POST /system/bootstrap/invites
 
@@ -172,9 +173,9 @@ Rules:
 Errors:
 
 * `ERR_SVC_SYS_SETUP_ACL` when the caller lacks bootstrap invite capability.
+* `ERR_SVC_SYS_SETUP_INVITE_LIMIT` when `service.bootstrap.max_pending_invites` is exceeded.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
-* `400` (`config_invalid`) when `service.bootstrap.max_pending_invites` is exceeded.
 
 ### 4.3 POST /system/bootstrap/devices
 
@@ -218,7 +219,7 @@ Errors:
 * `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION` on attestation failure.
 * `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
 * `ERR_SVC_SYS_SETUP_ACL` when the invite lacks `system.bootstrap.device`.
-* `400` (`object_invalid`) when `invite_token` does not resolve to a pending invite.
+* `ERR_SVC_SYS_SETUP_INVITE_NOT_FOUND` when `invite_token` does not resolve to a pending invite.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for persistence failures.
 
@@ -324,9 +325,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `identity_id`.
-* `400` (`object_invalid`) when `identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 * `auth_invalid` for invalid or expired attestation proof.
@@ -399,8 +400,8 @@ Rules:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_INVITE_NOT_FOUND` when `invite_token` does not resolve to an invite.
 * `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`object_invalid`) when `invite_token` does not resolve to an invite.
 * `410 Gone` when invite is expired.
 * `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
 * `400` (`storage_error`) for persistence failures.
@@ -427,9 +428,9 @@ Response:
 
 Errors:
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
@@ -453,9 +454,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
@@ -517,7 +518,7 @@ Response:
 
 Errors:
 
-* `400` (`acl_denied`) when the caller lacks sync permissions.
+* `ERR_SVC_SYS_SYNC_CAPABILITY` when the caller lacks sync permissions.
 * `400` (`storage_error`) for State Manager read failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 
@@ -543,9 +544,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_SYNC_PLAN_INVALID`
+* `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND` when `peer_id` does not resolve to a peer.
+* `ERR_SVC_SYS_SYNC_CAPABILITY` when the caller lacks sync permissions for the peer or domain.
 * `400` (`identifier_invalid`) for malformed `peer_id`.
-* `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
-* `400` (`acl_denied`) when the caller lacks sync permissions for the peer or domain.
 * `400` (`sequence_error`) for ordering or range violations.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for State Manager persistence failures.
@@ -561,9 +562,9 @@ Response:
 Errors:
 
 * `400` (`identifier_invalid`) for malformed `peer_id`.
-* `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
-* `400` (`sequence_error`) for invalid pause transitions.
-* `400` (`acl_denied`) when the caller lacks sync permissions.
+* `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND` when `peer_id` does not resolve to a peer.
+* `ERR_SVC_SYS_SYNC_TRANSITION_INVALID` for invalid pause transitions.
+* `ERR_SVC_SYS_SYNC_CAPABILITY` when the caller lacks sync permissions.
 * `400` (`storage_error`) for State Manager persistence failures.
 
 ### 6.4 POST /system/sync/peers/{peer_id}/resume
@@ -577,9 +578,9 @@ Response:
 Errors:
 
 * `400` (`identifier_invalid`) for malformed `peer_id`.
-* `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
-* `400` (`sequence_error`) for invalid resume transitions.
-* `400` (`acl_denied`) when the caller lacks sync permissions.
+* `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND` when `peer_id` does not resolve to a peer.
+* `ERR_SVC_SYS_SYNC_TRANSITION_INVALID` for invalid resume transitions.
+* `ERR_SVC_SYS_SYNC_CAPABILITY` when the caller lacks sync permissions.
 * `400` (`storage_error`) for State Manager persistence failures.
 
 ### 6.5 POST /system/sync/diagnostics
@@ -610,9 +611,9 @@ Rules:
 Errors:
 
 * `ERR_SVC_SYS_SYNC_PLAN_INVALID` for structural plan validation failures.
+* `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND` when `peer_id` does not resolve to a peer.
+* `ERR_SVC_SYS_SYNC_CAPABILITY` when the caller lacks sync permissions for the peer or domain.
 * `400` (`identifier_invalid`) for malformed `peer_id`.
-* `400` (`object_invalid`) when `peer_id` does not resolve to a peer.
-* `400` (`acl_denied`) when the caller lacks sync permissions for the peer or domain.
 * `400` (`sequence_error`) for ordering or range violations.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for State Manager persistence failures.
@@ -706,7 +707,7 @@ Errors:
 * `ERR_SVC_SYS_OPS_CAPABILITY`
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for Identity Service persistence failures.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
@@ -790,7 +791,7 @@ Rules:
 Errors:
 
 * `ERR_SVC_SYS_OPS_CAPABILITY`
-* `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
+* `ERR_SVC_SYS_OPS_APP_NOT_FOUND` when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`) for authentication failures.
 

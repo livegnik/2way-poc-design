@@ -25,6 +25,7 @@ This document does not define [object semantics](../../../01-protocol/02-object-
 This specification is responsible for the following:
 
 * Envelope types and their required fields.
+* Temporary minimal-commit subset constraints used during early durable-write bring-up.
 * Operation identifiers and operation record shapes for [Parent](../../../01-protocol/02-object-model.md), [Attribute](../../../01-protocol/02-object-model.md), [Edge](../../../01-protocol/02-object-model.md), [Rating](../../../01-protocol/02-object-model.md).
 * Serialization constraints for interoperability, including field naming conventions.
 * The signed portion of envelopes that carry signatures.
@@ -43,7 +44,7 @@ This file does not define [authorization](../../../01-protocol/06-access-control
 
 ## 4. Operation identifiers
 
-Pruning requires complexity outside of the scope of this PoC.
+Pruning requires complexity outside the scope of this protocol version.
 
 ## 5. Signed portion
 

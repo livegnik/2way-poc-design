@@ -13,12 +13,12 @@ For the meta specifications, see [03-app-services meta](../../10-appendix/meta/0
 Across all components and execution contexts described in this file, the following invariants hold:
 
 * App services never bypass managers. All mutations flow through [Graph Manager](../managers/07-graph-manager.md), preserving the structural -> schema -> ACL -> persistence ordering mandated by [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md).
-*  param($m) $m.Value -replace 'App services', 'app services' 
+* App services are app-owned and optional. Adding, removing, or replacing an app service never changes system service contracts or manager boundaries.
 * Every entry point constructs an immutable [OperationContext](05-operation-context.md) before calling managers, matching [01-protocol/00-protocol-overview.md](../../01-protocol/00-protocol-overview.md) and [02-architecture/services-and-apps/05-operation-context.md](05-operation-context.md).
 * Namespace isolation follows [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md). App services operate only on their owning `app_id` and never impersonate `app_0`.
 * All failures are handled fail closed with canonical error classes from [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). Partial writes, best-effort retries, or out-of-band repairs are forbidden.
 * Removal, upgrade, or rollback of an app service never corrupts graph state because [Graph Manager](../managers/07-graph-manager.md) remains the sole write authority under [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
-* PoC app domains (contacts, messaging, social, market) are ordinary app services. They ship by default but remain optional and replaceable without changing system services or manager boundaries.
+* Default app domains (contacts, messaging, social, market) are ordinary app services. They ship by default but remain optional and replaceable without changing system services or manager boundaries.
 
 ## 2. App service contract
 
@@ -28,14 +28,20 @@ App services sit between frontend applications and protocol managers. They share
 
 | Term | Definition |
 | --- | --- |
-| **App service manifest** | Metadata describing the app service module (slug, `app_id`, version, capability catalog, dependencies, scheduler jobs, configuration requirements, DoS Guard hints). Stored in [App Manager](../managers/08-app-manager.md)'s registry. |
+| **App service manifest** | Metadata describing the app service module (slug, version, composition mode, capability catalog, dependencies, scheduler jobs, configuration requirements, DoS Guard hints). Stored in [App Manager](../managers/08-app-manager.md)'s registry. |
 | **App service** | The in-process code module implementing backend logic for the owning app. It invokes managers exclusively via [OperationContext](05-operation-context.md), never through private back channels. |
 | **App service surface** | HTTP, WebSocket, scheduler, or helper RPC entry points registered through the interface layer described in [04-interfaces/**](../../04-interfaces/). |
 | **App service package** | The signed distributable that contains the app service code, manifest, schemas, defaults, and migrations. |
 
+Manifest composition modes:
+
+* `frontend`: frontend-only app package; no backend app service module.
+* `service`: backend app-service package; no bundled frontend payload required.
+* `hybrid`: both frontend payload and backend app-service module.
+
 ### 2.2 Ownership and namespace rules
 
-* Every app service belongs to exactly one registered `app_id != app_0` and runs wholly inside that application's trust boundary. [App Manager](../managers/08-app-manager.md) enforces slug uniqueness and binds [OperationContext](05-operation-context.md) metadata per [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
+* Every app service belongs to exactly one registered `app_id != app_0` and runs wholly inside that application's trust boundary. [App Manager](../managers/08-app-manager.md) enforces slug uniqueness, resolves slug to node-local `app_id`, and binds [OperationContext](05-operation-context.md) metadata per [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * App services may expose APIs, jobs, or events that belong exclusively to their owning app. Cross-app behavior must traverse graph data structures and ACL policy; no direct cross-app RPC is allowed.
 * App services cannot claim ownership of graph objects outside their app domain unless schema delegation and ACL policy explicitly permit it, mirroring the object rules in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md).
 
@@ -92,6 +98,19 @@ App services must never:
 * Persist state outside graph-owned storage or rely on mutable local caches that cannot be recomputed deterministically from Graph reads.
 * Share runtime state with other app services or apps via global variables, in-memory message passing, or filesystem side channels; all coordination occurs through manager-governed graph data or documented system service APIs.
 
+### 2.10 Default app service inventory
+
+For this scope, the default shipped app services are:
+
+| Service name | Slug / app namespace | Primary domain scope | Primary references |
+| --- | --- | --- | --- |
+| Contacts service | `contacts` / `app.contacts` | Contact profiles, links, trust ratings, and contact-scoped reads | [04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md) |
+| Messaging service | `messaging` / `app.messaging` | Threads, messages, participants, reactions, and messaging feed reads | [04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md) |
+| Social service | `social` / `app.social` | Posts, comments, mentions, reactions, and social feed reads | [04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md) |
+| Market service | `market` / `app.market` | Listings, offers, contracts, feedback, and market read surfaces | [04-interfaces/01-local-http-api.md](../../04-interfaces/01-local-http-api.md) |
+
+`Marketplace` remains a frontend discovery and install flow, not a backend app service. It consumes app lifecycle and app read routes while keeping backend app service ownership in the four slugs above.
+
 ## 3. Lifecycle, deployment, and runtime coordination
 
 ### 3.1 Lifecycle states and internal execution phases
@@ -125,25 +144,27 @@ State transitions are observable through [App Manager](../managers/08-app-manage
 
 App service packages delivered to [App Manager](../managers/08-app-manager.md) include:
 
+Canonical artifact validation (manifest, schema/ACL bundles, signature shape, unknown-field policy, and slug-first identity rules) is defined in [04-interfaces/06-app-lifecycle.md](../../04-interfaces/06-app-lifecycle.md#2.3-Canonical-app-artifact-contract).
+
 * A ZIP container (`<slug>_app.zip`) plus a detached signature file (`<slug>_app_sig.txt`). Filenames are informational; the manifest is authoritative.
-* Manifest file covering slug, `app_id`, semantic version, required platform version, capability catalog, dependency graph, scheduler jobs, configuration defaults, and DoS Guard hints.
+* Manifest file covering slug, semantic version, composition mode, required platform version, capability catalog, dependency graph, scheduler jobs, configuration defaults, and DoS Guard hints.
 * Signed binaries or modules. Signing and verification follow [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), and unsigned packages are rejected per [01-protocol/05-keys-and-identity.md](../../01-protocol/05-keys-and-identity.md).
 * Schema definitions scoped to the owning app plus migration envelopes that respect the sequencing posture in [01-protocol/07-sync-and-consistency.md](../../01-protocol/07-sync-and-consistency.md).
 * Interface documentation references pointing to [04-interfaces/**](../../04-interfaces/) entries.
 
 Within the ZIP container, the following files are required unless noted:
 
-* `manifest.json` (required) - includes `slug`, `version`, `capabilities`, `dependencies`, and `config_keys` plus any app service-specific fields used by [App Manager](../managers/08-app-manager.md).
-* `schema.json` (required) - `{ "objects": [ ... graph objects ... ] }` in canonical Parent/Attribute form.
-* `acl.json` (optional) - `{ "objects": [ ... graph objects ... ] }` for default permissions.
-* `App service/` (optional) - app service module payload (native or interpreted).
+* `manifest.json` (required) - includes `slug`, `version`, `composition`, `capabilities`, `dependencies`, `config_keys`, and `requires.platform.min_version` plus any app-service-specific fields used by [App Manager](../managers/08-app-manager.md).
+* `schema.json` (required) - `{ "objects": [ ... graph object templates ... ] }` in canonical Parent/Attribute form, excluding node-local identifiers (`app_id`, `owner_identity`, `global_seq`, `sync_flags`).
+* `acl.json` (optional) - `{ "objects": [ ... graph object templates ... ] }` for default permissions, with the same identifier restrictions.
+* `app-service/` (required when `composition` is `service` or `hybrid`) - backend app service module payload.
 * `frontend/` (optional) - UI assets or client bundle metadata used by external installers.
+
+Manifest identifiers are slug-first. `manifest.json` MUST NOT contain `app_id`; `app_id` is node-local and assigned at registration by [App Manager](../managers/08-app-manager.md).
 
 The signature file is a UTF-8 JSON document with:
 
-* `signer_id` (int) - identity id for the signing key recognized by the identity registry.
-* `publisher_public_key` (string, optional) - base64 public key to bind if the publisher identity is not yet in the graph.
-* `algorithm` (string) - signature algorithm name.
+* `publisher_public_key` (string, required) - base64 public key that must resolve to an existing publisher identity in the local graph.
 * `signature` (string, base64) - detached signature over the raw ZIP bytes.
 
 Packages are rejected if the signature is missing, malformed, or fails verification.
@@ -153,7 +174,7 @@ Packages are also rejected if the publisher identity is not present and trusted 
 
 * Registration loads the manifest into [App Manager](../managers/08-app-manager.md), validates slug ownership, dependency declarations, scheduler manifests, and capability catalogs.
 * Package signatures are verified by the installer or interface layer before registration or installation proceeds.
-* Installation stages the package, loads schemas through [Schema Manager](../managers/05-schema-manager.md), validates configuration defaults via [Config Manager](../managers/01-config-manager.md), and runs the security reviews mandated in [05-security/**](../../05-security/). Installation fails closed; nothing runs until all checks succeed.
+* Installation stages the package, loads schemas through [Schema Manager](../managers/05-schema-manager.md), validates configuration defaults via [Config Manager](../managers/01-config-manager.md), and runs the security reviews mandated in [05-security/**](../../05-security/). For `service` and `hybrid` packages, `app-service/` is uploaded/staged to backend runtime and only started after all validation and commit steps succeed. Installation fails closed; nothing runs until all checks succeed.
 * Upgrades use prepare/commit semantics. [App Manager](../managers/08-app-manager.md) stages the new version, validates compatibility, swaps modules atomically on success, and replays readiness checks. Rollbacks reinstall the previous signed version and rely on deterministic state reconstruction from [Graph Manager](../managers/07-graph-manager.md).
 
 ### 4.3 Compatibility matrix
@@ -229,7 +250,7 @@ Compatibility validation mirrors the negotiation rules in [01-protocol/11-versio
 
 ## 9. Implementation checklist
 
-1. **Manifest completeness**: Manifest covers slug, `app_id`, dependencies, configuration keys, scheduler jobs, resource budgets, capability catalog, and DoS Guard hints. Validated by [App Manager](../managers/08-app-manager.md).
+1. **Manifest completeness**: Manifest covers slug, version, composition mode, dependencies, configuration keys, scheduler jobs, resource budgets, capability catalog, and DoS Guard hints. Validated by [App Manager](../managers/08-app-manager.md).
 2. **[OperationContext](05-operation-context.md) discipline**: Every entry point constructs immutable [OperationContext](05-operation-context.md) objects with `app_id=<owning app>`, required capability names, tracing metadata, and trust posture before calling managers.
 3. **Manager-only access**: All state mutations flow through Schema, ACL, and Graph Managers in the structural -> schema -> ACL -> persistence order. No raw storage, network, or crypto access exists.
 4. **Interface documentation**: HTTP/WebSocket surfaces documented in [04-interfaces/**](../../04-interfaces/), including payload schemas, [OperationContext](05-operation-context.md) requirements, DoS Guard hints, and deterministic error codes.

@@ -18,12 +18,6 @@ This specification defines:
 * Service-specific `ERR_*` code mapping, including local HTTP status where relevant.
 * Error-code family naming and ownership rules for services and managers.
 
-This specification does not define:
-
-* UI message phrasing, localization, or frontend visuals.
-* Transport-independent protocol precedence rules (see [01-protocol/10-errors-and-failure-modes.md](../01-protocol/10-errors-and-failure-modes.md)).
-* Internal logging schema details.
-
 ## 2. Canonical `ErrorDetail` representation
 
 All interface-visible errors emitted by managers and service layers use `ErrorDetail`:
@@ -126,42 +120,96 @@ Naming rules:
 * Legacy singleton roots for service errors are forbidden in new interfaces (`ERR_APP_SERVICE_*`, `ERR_APP_SYS_*`).
 * Service-specific `ERR_*` codes MUST carry the correct parent family and must not be emitted as unscoped standalone symbols.
 
-### 6.2 Service code registry with category, status, and meaning
+### 6.2 Service code registry with category, status, retryability, and normalization policy
 
-| Service code | Parent family | Category | Local HTTP status | Meaning (when emitted) |
-| --- | --- | --- | --- | --- |
-| `ERR_SVC_SYS_APP_PUBLISHER_UNTRUSTED` | `ERR_SVC_SYS_APP_*` | `auth` | `400` | App registration/install rejects because signer identity is not trusted for app publication. |
-| `ERR_SVC_APP_CAPABILITY_REQUIRED` | `ERR_SVC_APP_*` | `acl` | `400` | Caller lacks the capability required by the target app service or app lifecycle action. |
-| `ERR_SVC_APP_CONTEXT_INVALID` | `ERR_SVC_APP_*` | `structural` | `400` | App service `OperationContext` is missing/invalid; reject before invoking managers or mutating state. |
-| `ERR_SVC_SYS_APP_SIGNATURE_INVALID` | `ERR_SVC_SYS_APP_*` | `auth` | `400` | Detached app package signature is missing, malformed, or fails verification. |
-| `ERR_AUTH_REPLAY` | `ERR_AUTH_*` | `auth` | `401` | Auth registration replay or skew checks failed. |
-| `ERR_AUTH_SIGNATURE_INVALID` | `ERR_AUTH_*` | `auth` | `401` | Auth registration signature validation failed. |
-| `ERR_AUTH_TOKEN_EXPIRED` | `ERR_AUTH_*` | `auth` | `401` | Auth token lifetime expired. |
-| `ERR_AUTH_TOKEN_REVOKED` | `ERR_AUTH_*` | `auth` | `401` | Auth token or bound device was revoked. |
-| `ERR_SVC_SYS_SETUP_ACL` | `ERR_SVC_SYS_SETUP_*` | `acl` | `400` | Setup Service authorization/capability checks failed (bootstrap token, invite scope, or installer gate). |
-| `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION` | `ERR_SVC_SYS_SETUP_*` | `auth` | `400` | Setup Service device attestation proof is invalid, missing, stale, or unverifiable. |
-| `ERR_SVC_SYS_SETUP_SCHEMA` | `ERR_SVC_SYS_SETUP_*` | `schema` | `400` | Setup payload/content fails schema/structure rules owned by Setup Service. |
-| `ERR_CAPABILITY_REVOKED` | frontend state guard | `acl` | `400` | A previously valid capability is now revoked. |
-| `ERR_CONFIG_STALE` | frontend state guard | `config` | `400` | Caller config hash is stale versus active backend config snapshot. |
-| `ERR_DEVICE_REVOKED` | frontend state guard | `auth` | `400` | Device binding was revoked after earlier issuance. |
-| `ERR_SVC_APP_FEED_CAPABILITY` | `ERR_SVC_APP_*` | `acl` | `400` | App feed operation requires a feed capability the caller does not hold. |
-| `ERR_SVC_SYS_IDENTITY_CAPABILITY` | `ERR_SVC_SYS_IDENTITY_*` | `acl` | `400` | Identity Service capability checks failed for the requested mutation/action. |
-| `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT` | `ERR_SVC_SYS_IDENTITY_*` | `acl` | `400` | Identity Service contact policy/limit check rejected the action. |
-| `ERR_AUTH_INVITE_EXPIRED` | `ERR_AUTH_*` | `auth` | `410` | Invite token/proof expired before acceptance or use. |
-| `ERR_OBJECT_VERSION` | frontend state guard | `state` | `400` | Optimistic version precondition failed (`expected_version` mismatch). |
-| `ERR_SVC_SYS_OPS_CAPABILITY` | `ERR_SVC_SYS_OPS_*` | `acl` | `400` | Admin/Ops capability checks failed for the requested ops route. |
-| `ERR_SVC_SYS_OPS_CONFIG_ACCESS` | `ERR_SVC_SYS_OPS_*` | `config` | `400` | Ops route cannot access requested config export/snapshot under policy. |
-| `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE` | `ERR_SVC_APP_*` | `state` | `503` | App service dependency is unavailable. |
-| `ERR_SVC_APP_DISABLED` | `ERR_SVC_APP_*` | `state` | `503` | App service is disabled by lifecycle/policy. |
-| `ERR_SVC_APP_DRAINING` | `ERR_SVC_APP_*` | `state` | `503` | App service is draining/unloading and refusing new work. |
-| `ERR_SVC_APP_LOAD_FAILED` | `ERR_SVC_APP_*` | `state` | `503` | App service failed to load/activate. |
-| `ERR_SVC_APP_NOT_READY` | `ERR_SVC_APP_*` | `state` | `503` | App service is initializing/degraded/not ready for work. |
-| `ERR_SVC_SYS_DEPENDENCY_UNAVAILABLE` | `ERR_SVC_SYS_*` | `state` | `503` | System service dependency (service or manager) is unavailable. |
-| `ERR_SVC_SYS_DISABLED` | `ERR_SVC_SYS_*` | `state` | `503` | System service is disabled by policy or configuration. |
-| `ERR_SVC_SYS_DRAINING` | `ERR_SVC_SYS_*` | `state` | `503` | System service is draining/shutting down and refusing new work. |
-| `ERR_SVC_SYS_LOAD_FAILED` | `ERR_SVC_SYS_*` | `state` | `503` | System service failed to start/activate. |
-| `ERR_SVC_SYS_NOT_READY` | `ERR_SVC_SYS_*` | `state` | `503` | System service is initializing/degraded/not ready for work. |
-| `ERR_SVC_SYS_SYNC_PLAN_INVALID` | `ERR_SVC_SYS_SYNC_*` | `structural` | `400` | Sync Service plan payload is structurally invalid after auth/context gates. |
+`retryable` means the same operation may succeed after bounded backoff with no payload change. "May be normalized away at interfaces" is `No` for contract-visible service/auth/frontend codes listed below.
+
+#### 6.2.1 Setup Service (`ERR_SVC_SYS_SETUP_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_SETUP_ACL` | `acl` | `400` | `false` | No | Setup Service capability checks failed (invite scope, bootstrap role, or installer gate). |
+| `ERR_SVC_SYS_SETUP_BOOTSTRAP_TOKEN_INVALID` | `auth` | `400` | `false` | No | Bootstrap token is invalid, expired, revoked, or otherwise unusable. |
+| `ERR_SVC_SYS_SETUP_ALREADY_INSTALLED` | `state` | `400` | `false` | No | Setup install flow was invoked after installation already completed. |
+| `ERR_SVC_SYS_SETUP_SCHEMA` | `schema` | `400` | `false` | No | Setup payload/content violates Setup-owned schema rules. |
+| `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION` | `auth` | `400` | `false` | No | Device attestation proof is missing, stale, malformed, or unverifiable. |
+| `ERR_SVC_SYS_SETUP_INVITE_LIMIT` | `config` | `400` | `true` | No | Setup invite issuance exceeded configured pending-invite limits. |
+| `ERR_SVC_SYS_SETUP_INVITE_NOT_FOUND` | `state` | `400` | `false` | No | Setup invite token does not resolve to a pending invite. |
+
+#### 6.2.2 Identity Service (`ERR_SVC_SYS_IDENTITY_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_IDENTITY_CAPABILITY` | `acl` | `400` | `false` | No | Identity Service capability checks failed for the requested mutation/action. |
+| `ERR_SVC_SYS_IDENTITY_CONTACT_LIMIT` | `acl` | `400` | `false` | No | Identity Service contact policy/limit rejected the action. |
+| `ERR_SVC_SYS_IDENTITY_NOT_FOUND` | `state` | `400` | `false` | No | Target identity does not exist for the requested Identity Service operation. |
+| `ERR_SVC_SYS_IDENTITY_INVITE_NOT_FOUND` | `state` | `400` | `false` | No | Identity invite token does not resolve to an active invite. |
+
+#### 6.2.3 Sync Service (`ERR_SVC_SYS_SYNC_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_SYNC_PLAN_INVALID` | `structural` | `400` | `false` | No | Sync plan payload is structurally invalid after auth/context gates. |
+| `ERR_SVC_SYS_SYNC_CAPABILITY` | `acl` | `400` | `false` | No | Caller lacks sync-management capability required by Sync Service policy. |
+| `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND` | `state` | `400` | `false` | No | Referenced peer does not exist in sync metadata. |
+| `ERR_SVC_SYS_SYNC_TRANSITION_INVALID` | `state` | `400` | `false` | No | Requested pause/resume transition is invalid for the current peer state. |
+
+#### 6.2.4 Admin/Ops Service (`ERR_SVC_SYS_OPS_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_OPS_CAPABILITY` | `acl` | `400` | `false` | No | Admin/Ops capability checks failed for the requested ops route. |
+| `ERR_SVC_SYS_OPS_CONFIG_ACCESS` | `config` | `400` | `false` | No | Ops route cannot access requested config export/snapshot under policy. |
+| `ERR_SVC_SYS_OPS_APP_NOT_FOUND` | `state` | `404` | `false` | No | Requested app service slug does not resolve to an installed app service. |
+
+#### 6.2.5 System app-lifecycle service (`ERR_SVC_SYS_APP_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_APP_SIGNATURE_INVALID` | `auth` | `400` | `false` | No | Detached app package signature is missing, malformed, or fails verification. |
+| `ERR_SVC_SYS_APP_PUBLISHER_UNTRUSTED` | `auth` | `400` | `false` | No | App registration/install rejects because signer identity is not trusted for app publication. |
+
+#### 6.2.6 App service (`ERR_SVC_APP_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_APP_CONTEXT_INVALID` | `structural` | `400` | `false` | No | App service `OperationContext` is missing/invalid; reject before invoking managers or mutating state. |
+| `ERR_SVC_APP_CAPABILITY_REQUIRED` | `acl` | `400` | `false` | No | Caller lacks capability required by the target app service/lifecycle action. |
+| `ERR_SVC_APP_FEED_CAPABILITY` | `acl` | `400` | `false` | No | App feed operation requires a feed capability the caller does not hold. |
+| `ERR_SVC_APP_DISABLED` | `state` | `503` | `false` | No | App service is disabled by lifecycle/policy. |
+| `ERR_SVC_APP_NOT_READY` | `state` | `503` | `true` | No | App service is initializing/degraded/not ready for work. |
+| `ERR_SVC_APP_DEPENDENCY_UNAVAILABLE` | `state` | `503` | `true` | No | App service dependency is unavailable. |
+| `ERR_SVC_APP_DRAINING` | `state` | `503` | `true` | No | App service is draining/unloading and refusing new work. |
+| `ERR_SVC_APP_LOAD_FAILED` | `state` | `503` | `false` | No | App service failed to load/activate. |
+
+#### 6.2.7 Auth/session boundary (`ERR_AUTH_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_AUTH_SIGNATURE_INVALID` | `auth` | `401` | `false` | No | Auth registration signature validation failed. |
+| `ERR_AUTH_REPLAY` | `auth` | `401` | `false` | No | Auth registration replay or timestamp skew checks failed. |
+| `ERR_AUTH_TOKEN_EXPIRED` | `auth` | `401` | `false` | No | Auth token lifetime expired. |
+| `ERR_AUTH_TOKEN_REVOKED` | `auth` | `401` | `false` | No | Auth token or bound device was revoked. |
+| `ERR_AUTH_INVITE_EXPIRED` | `auth` | `410` | `false` | No | Invite token/proof expired before acceptance or use. |
+
+#### 6.2.8 Frontend state-guard codes
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_CAPABILITY_REVOKED` | `acl` | `400` | `false` | No | A previously valid capability is now revoked. |
+| `ERR_DEVICE_REVOKED` | `auth` | `400` | `false` | No | Device binding was revoked after earlier issuance. |
+| `ERR_OBJECT_VERSION` | `state` | `400` | `true` | No | Optimistic version precondition failed (`expected_version` mismatch). |
+| `ERR_CONFIG_STALE` | `config` | `400` | `true` | No | Caller config hash is stale versus active backend config snapshot. |
+
+#### 6.2.9 Shared service availability codes (`ERR_SVC_SYS_*`)
+
+| Service code | Category | Local HTTP status | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- | --- |
+| `ERR_SVC_SYS_DISABLED` | `state` | `503` | `false` | No | System service is disabled by policy or configuration. |
+| `ERR_SVC_SYS_NOT_READY` | `state` | `503` | `true` | No | System service is initializing/degraded/not ready for work. |
+| `ERR_SVC_SYS_DEPENDENCY_UNAVAILABLE` | `state` | `503` | `true` | No | System service dependency (service or manager) is unavailable. |
+| `ERR_SVC_SYS_DRAINING` | `state` | `503` | `true` | No | System service is draining/shutting down and refusing new work. |
+| `ERR_SVC_SYS_LOAD_FAILED` | `state` | `503` | `false` | No | System service failed to start/activate. |
 
 ### 6.3 Service availability metadata (`ERR_SVC_SYS_*`, `ERR_SVC_APP_*`)
 
@@ -208,6 +256,122 @@ Availability-code selection rules:
 * `ERR_OBJECT_VERSION`: emitted when expected object version does not match current version.
 * `ERR_CONFIG_STALE`: emitted when caller config hash does not match current config snapshot.
 
+### 6.5 Manager-specific registry (`ERR_MNG_<MANAGER>_*`)
+
+Manager codes are authoritative at manager boundaries. Interface contracts may expose them directly, but the default posture is normalization into canonical local codes unless a route explicitly requires direct `ERR_MNG_*`.
+
+#### 6.5.1 Config Manager (`ERR_MNG_CONFIG_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_CONFIG_SCHEMA_INVALID` | `config` | `false` | Yes | Config key/value fails schema validation or registration policy. |
+| `ERR_MNG_CONFIG_UPDATE_QUEUE_FULL` | `config` | `true` | Yes | Config update queue is saturated and cannot accept more changes. |
+| `ERR_MNG_CONFIG_PERSISTENCE_FAILED` | `storage` | `true` | Yes | Config snapshot persistence failed atomically. |
+
+#### 6.5.2 Storage Manager (`ERR_MNG_STORAGE_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_STORAGE_UNAVAILABLE` | `storage` | `false` | Yes | SQLite surface is unavailable for read/write operations. |
+| `ERR_MNG_STORAGE_MIGRATION_FAILED` | `storage` | `false` | Yes | Startup migration/provisioning failed and storage is not usable. |
+| `ERR_MNG_STORAGE_TX_ABORTED` | `storage` | `true` | Yes | Storage transaction aborted and was rolled back without partial commit. |
+
+#### 6.5.3 Key Manager (`ERR_MNG_KEY_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_KEY_NODE_KEY_MISSING` | `auth` | `false` | Yes | Required node key material is missing or unreadable. |
+| `ERR_MNG_KEY_SCOPE_KEY_MISSING` | `auth` | `false` | Yes | Requested key scope has no usable key binding. |
+| `ERR_MNG_KEY_BINDING_MISMATCH` | `auth` | `false` | Yes | Key material does not match graph identity binding constraints. |
+
+#### 6.5.4 Auth Manager (`ERR_MNG_AUTH_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_AUTH_TOKEN_STORE_UNAVAILABLE` | `auth` | `true` | Yes | Auth token store is unavailable for validation/revocation checks. |
+| `ERR_MNG_AUTH_ADMIN_GATE_DENIED` | `acl` | `false` | Yes | Caller lacks admin gating requirements after successful authentication. |
+| `ERR_MNG_AUTH_CONTEXT_INCOMPLETE` | `structural` | `false` | Yes | Required auth context fields are missing to build `OperationContext`. |
+
+#### 6.5.5 Schema Manager (`ERR_MNG_SCHEMA_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_SCHEMA_TYPE_UNKNOWN` | `schema` | `false` | Yes | Referenced schema type is unknown/unregistered in active schema set. |
+| `ERR_MNG_SCHEMA_VALIDATION_FAILED` | `schema` | `false` | Yes | Payload violates compiled schema constraints. |
+| `ERR_MNG_SCHEMA_REGISTRY_UNAVAILABLE` | `internal` | `true` | Yes | Schema registry is unavailable/degraded for safe validation. |
+
+#### 6.5.6 ACL Manager (`ERR_MNG_ACL_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_ACL_IDENTITY_MISSING` | `acl` | `false` | Yes | ACL evaluation lacks required caller identity context. |
+| `ERR_MNG_ACL_POLICY_DENIED` | `acl` | `false` | Yes | ACL policy explicitly denies the requested action. |
+| `ERR_MNG_ACL_EVALUATION_UNAVAILABLE` | `internal` | `true` | Yes | ACL engine/caches are unavailable, forcing fail-closed rejection. |
+
+#### 6.5.7 Graph Manager (`ERR_MNG_GRAPH_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_GRAPH_OPERATION_INVALID` | `structural` | `false` | Yes | Graph operation set is malformed or violates graph-level invariants. |
+| `ERR_MNG_GRAPH_SEQUENCE_CONFLICT` | `storage` | `true` | Yes | Graph sequencing precondition failed before commit. |
+| `ERR_MNG_GRAPH_READ_BOUNDS_EXCEEDED` | `state` | `false` | Yes | Graph read exceeded deterministic traversal/resource bounds. |
+
+#### 6.5.8 App Manager (`ERR_MNG_APP_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_APP_SLUG_UNKNOWN` | `state` | `false` | Yes | App slug does not resolve in the app registry. |
+| `ERR_MNG_APP_REGISTRY_INCONSISTENT` | `internal` | `false` | Yes | App registry integrity checks failed. |
+| `ERR_MNG_APP_LOAD_REJECTED` | `state` | `true` | Yes | App load/start request was rejected due to transient runtime state. |
+
+#### 6.5.9 State Manager (`ERR_MNG_STATE_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_STATE_SEQUENCE_INVALID` | `storage` | `false` | Yes | Inbound/outbound sequence invariants were violated. |
+| `ERR_MNG_STATE_SYNC_CURSOR_CONFLICT` | `storage` | `true` | Yes | Sync cursor/checkpoint update conflicts with current persisted state. |
+| `ERR_MNG_STATE_OUTBOUND_ACL_UNAVAILABLE` | `internal` | `true` | Yes | Outbound sync ACL check could not be completed safely. |
+
+#### 6.5.10 Network Manager (`ERR_MNG_NETWORK_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_NETWORK_ADMISSION_CLOSED` | `network` | `true` | Yes | Admission surface is closed for new sessions/dials. |
+| `ERR_MNG_NETWORK_CHALLENGE_TIMEOUT` | `dos` | `true` | Yes | Required admission challenge timed out before completion. |
+| `ERR_MNG_NETWORK_PEER_UNREACHABLE` | `network` | `true` | Yes | Peer discovery/dial reached bounded failure thresholds. |
+
+#### 6.5.11 Event Manager (`ERR_MNG_EVENT_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_EVENT_SUBSCRIPTION_REJECTED` | `acl` | `false` | Yes | Subscription/authz rules reject the requested event scope/filter. |
+| `ERR_MNG_EVENT_BUFFER_OVERFLOW` | `state` | `true` | Yes | Event queue/buffer limits were exceeded under backpressure. |
+| `ERR_MNG_EVENT_RESUME_TOKEN_INVALID` | `structural` | `false` | Yes | Resume token is malformed, stale, or invalid for current stream state. |
+
+#### 6.5.12 Log Manager (`ERR_MNG_LOG_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_LOG_RECORD_INVALID` | `structural` | `false` | Yes | Submitted log record failed schema/normalization validation. |
+| `ERR_MNG_LOG_MANDATORY_SINK_UNAVAILABLE` | `internal` | `true` | Yes | Mandatory log sink is unavailable and fail-closed policy applies. |
+| `ERR_MNG_LOG_BACKPRESSURE_ACTIVE` | `state` | `true` | Yes | Log pipeline backpressure limits reject additional submissions. |
+
+#### 6.5.13 Health Manager (`ERR_MNG_HEALTH_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_HEALTH_SIGNAL_INVALID` | `structural` | `false` | Yes | Health signal payload is malformed or fails validation. |
+| `ERR_MNG_HEALTH_DEPENDENCY_DEGRADED` | `state` | `true` | Yes | Critical dependency health is degraded and readiness is blocked. |
+| `ERR_MNG_HEALTH_SNAPSHOT_UNAVAILABLE` | `internal` | `true` | Yes | Health snapshot cannot be produced safely from current signals. |
+
+#### 6.5.14 DoS Guard Manager (`ERR_MNG_DOS_*`)
+
+| Code | Category | `retryable` | May be normalized away at interfaces | Meaning (when emitted) |
+| --- | --- | --- | --- | --- |
+| `ERR_MNG_DOS_ADMISSION_DENIED` | `dos` | `true` | Yes | DoS policy denied admission for current telemetry/risk posture. |
+| `ERR_MNG_DOS_CHALLENGE_REQUIRED` | `dos` | `true` | Yes | Admission requires client puzzle/challenge completion. |
+| `ERR_MNG_DOS_PUZZLE_VERIFICATION_FAILED` | `dos` | `true` | Yes | Client puzzle response failed verification or expired. |
+
 ## 7. Transport mapping rules
 
 ### 7.1 Local HTTP
@@ -218,7 +382,7 @@ Status selection is deterministic and evaluated in this order:
 2. `internal_error`: `500`.
 3. Authentication codes (`auth_required`, `auth_invalid`, `ERR_AUTH_SIGNATURE_INVALID`, `ERR_AUTH_REPLAY`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`): `401`.
 4. `ERR_AUTH_INVITE_EXPIRED`: `410`.
-5. `app_not_found`: `404`.
+5. `app_not_found` and `ERR_SVC_SYS_OPS_APP_NOT_FOUND`: `404`.
 6. Service availability code families (`ERR_SVC_SYS_*`, `ERR_SVC_APP_*`): `503`.
 7. Any other `ErrorDetail` code defined by this spec: `400`.
 8. Unexpected failures without a canonical `ErrorDetail`: `500`.
@@ -265,3 +429,12 @@ The first failure encountered must be returned; later stages must not execute.
 * Emitting non-canonical error payload shapes.
 * Emitting unregistered error codes from this specification.
 * Leaking stack traces or internal implementation details over external interfaces.
+
+## 11. Requirement ID anchors
+
+This specification is authoritative for these error-model requirement IDs:
+
+* R108
+* R111
+* R178-R181
+* R185-R187

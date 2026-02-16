@@ -1,3 +1,7 @@
+
+
+
+
 # 01 Glossary
 
 This glossary is a quick index. Canonical definitions live in `specs/00-scope/03-definitions-and-terminology.md` and are authoritative.

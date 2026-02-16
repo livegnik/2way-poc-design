@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This file defines the normative terminology used across the 2WAY PoC design repository. It standardizes names for core entities and concepts so that other documents can be read and reviewed without ambiguity.
+This file defines the normative terminology used across the 2WAY design repository. It standardizes names for core entities and concepts so that other documents can be read and reviewed without ambiguity.
 
 This file does not define APIs, wire formats, database schemas, or protocol flows. Where a term depends on a formal structure, this file constrains meaning only and defers structure to the owning specification.
 

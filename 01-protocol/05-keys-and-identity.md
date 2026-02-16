@@ -34,14 +34,14 @@ Identities may represent:
 
 The protocol does not distinguish these categories at the identity layer. Distinctions, if any, are imposed by [schema](../02-architecture/managers/05-schema-manager.md), [ACL](06-access-control-model.md), or application logic.
 
-### 1.3 Identity versus device (PoC auth posture)
+### 1.3 Identity versus device (auth posture)
 
-For PoC authentication, identity and device are separate concepts:
+For authentication, identity and device are separate concepts:
 
 - **Identity** is a long-lived backend principal anchored to a public key.
 - **Device** is an optional, separate concept used for device enrollment and revocation.
 
-Device identifiers and device binding are defined in [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md) and service flows, but the PoC frontend auth flow MUST NOT conflate device identity with the backend identity used for authentication.
+Device identifiers and device binding are defined in [01-identifiers-and-namespaces.md](01-identifiers-and-namespaces.md) and service flows, but the frontend auth flow MUST NOT conflate device identity with the backend identity used for authentication.
 Frontend auth registration MUST NOT create, bind, or revoke device identities; device metadata is informational only.
 
 ## 2. Key model

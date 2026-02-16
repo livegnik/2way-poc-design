@@ -24,6 +24,7 @@ This specification is responsible for the following:
 * Declaring payload size bounds for event envelopes.
 * Defining client subscription frames and rejection behavior for invalid or unauthorized subscriptions.
 * Defining transport rejection behavior for authentication failures.
+* Defining successful session creation and in-memory session lifecycle behavior.
 * Defining session handling when auth tokens expire or are revoked after connection establishment.
 * Defining rejection behavior for non-`GET /ws` requests.
 

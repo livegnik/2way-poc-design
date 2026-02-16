@@ -10,7 +10,7 @@ For the meta specifications, see [04-frontend-apps meta](../10-appendix/meta/02-
 
 ## 1. Purpose and scope
 
-This contract specifies what frontend apps may call, the required payload discipline, and forbidden surfaces. It does not add new routes beyond those defined elsewhere.
+This contract specifies what frontend apps may call, the required payload discipline, and forbidden surfaces.
 
 ## 2. Allowed HTTP routes
 

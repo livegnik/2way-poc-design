@@ -34,6 +34,7 @@ This specification is responsible for the following:
 * Defining how failures are surfaced across trust boundaries (see [08-network-transport-requirements.md](../../../01-protocol/08-network-transport-requirements.md)).
 * Providing transport surfacing guidance to [04-error-model.md](../../../04-interfaces/04-error-model.md) where interface mapping is required.
 * Distinguishing protocol-stage `ERR_*` symbols from interface service-availability families (`ERR_SVC_SYS_*`, `ERR_SVC_APP_*`) and forbidding bare family-root placeholders without specific suffixes.
+* Declaring requirement-ID anchors for build-doc generated error references.
 
 This specification does not cover the following:
 

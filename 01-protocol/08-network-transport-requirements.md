@@ -31,20 +31,7 @@ This specification is responsible for the following:
 - Signaling delivery failure, timeout, or disconnect.
 - Supporting multiple concurrent peer connections.
 - Producing connection-level telemetry (byte and message counters, timing samples, resource pressure indicators) required for [DoS Guard](09-dos-guard-and-client-puzzles.md) and observability tooling while preserving envelope opacity.
-- Operating over untrusted and potentially anonymous networks as required by the PoC.
-
-This specification does not cover the following:
-
-- Authenticating peer identity (see [05-keys-and-identity.md](05-keys-and-identity.md)).
-- Authorizing operations (see [06-access-control-model.md](06-access-control-model.md)).
-- [Verifying cryptographic signatures](04-cryptography.md) or selecting public keys.
-- [Encrypting](04-cryptography.md) or decrypting payloads.
-- Enforcing replay protection (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
-- Enforcing ordering or deduplication (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
-- Inspecting or interpreting [envelope contents](03-serialization-and-envelopes.md).
-- Applying [schema](../02-architecture/managers/05-schema-manager.md), [ACL](06-access-control-model.md), or [domain rules](07-sync-and-consistency.md).
-- Persisting envelopes beyond transient buffering required for delivery.
-- Performing [sync](07-sync-and-consistency.md) reconciliation or state repair.
+- Operating over untrusted and potentially anonymous networks.
 
 All correctness and security guarantees are enforced above this layer, including those in [03-serialization-and-envelopes.md](03-serialization-and-envelopes.md) and [07-sync-and-consistency.md](07-sync-and-consistency.md).
 
@@ -74,7 +61,7 @@ The transport layer provides no guarantees of:
 
 ## 4. Transport abstraction requirements
 
-Any transport implementation used by the PoC must expose the following abstract capabilities:
+Any transport implementation must expose the following abstract capabilities:
 
 - Send an opaque sync package envelope to a peer reference.
 - Receive an opaque sync package envelope with an associated peer reference.

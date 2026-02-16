@@ -56,3 +56,9 @@ Managers form the kernel. They enforce the validation pipeline, persist state, a
 * Accepted operations are globally ordered and replayable.
 * Provenance links each object to its author and operation context.
 * Forensics rely on deterministic replay rather than mutable state.
+
+## 8. Requirement ID anchors
+
+This section is the canonical requirement anchor list for generated security posture references.
+
+R020-R066, R126, R177-R184.

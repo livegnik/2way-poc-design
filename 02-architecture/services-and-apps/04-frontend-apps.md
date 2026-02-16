@@ -66,9 +66,9 @@ Different surfaces share the same guarantees:
 
 ### 3.1 Application identity
 
-* Every frontend build is registered with [App Manager](../managers/08-app-manager.md), resulting in a slug and permanent `app_id` as defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
+* Every frontend build is registered with [App Manager](../managers/08-app-manager.md), resulting in a slug and node-local `app_id` as defined in [01-protocol/01-identifiers-and-namespaces.md](../../01-protocol/01-identifiers-and-namespaces.md).
 * Builds embed the slug, semantic version, and minimum backend compatibility version (`requires.platform.min_version`) inside signed metadata. Apps with mismatched versions must fail closed, prompting users to upgrade or downgrade before continuing.
-* Multi-surface apps (web plus native) share the same `app_id` but may ship different binaries. Each binary must advertise its surface identifier for telemetry.
+* Multi-surface apps (web plus native) share the same slug and may ship different binaries. Each node resolves that slug to its own local `app_id`. Each binary must advertise its surface identifier for telemetry.
 
 ### 3.2 User and device identity capture
 
@@ -85,7 +85,7 @@ Frontends must supply the following request metadata on every call before the ba
 
 | Field | Source | Notes |
 | --- | --- | --- |
-| `app_id` | Build metadata | Immutable per installation. |
+| `app_id` | App registry binding | Resolved locally from slug by App Manager before request admission. |
 | `app_version` | Build metadata | Allows backend compatibility enforcement. |
 | `capability` | Capability catalog | One verb per request, multi-step workflows decompose into separate calls. |
 | `actor_type` | Context | Values: `user`, `service`, `automation`. |
@@ -179,7 +179,7 @@ Frontends must supply the following request metadata on every call before the ba
 
 ### 6.4 Secret handling
 
-* Secrets (auth tokens, private keys, capability grants) remain in platform key stores when available. For the PoC, private keys are stored at `frontend/keys/<frontend_user_id>.pem` with owner-only permissions; auth tokens are stored in the frontend local database.
+* Secrets (auth tokens, private keys, capability grants) remain in platform key stores when available. In this design, private keys are stored at `frontend/keys/<frontend_user_id>.pem` with owner-only permissions; auth tokens are stored in the frontend local database.
 * The app retrieves secrets only when signing or authenticating requests per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), zeroing memory afterward.
 * Debug builds may expose key material only under explicit developer flags and must never be distributed to production users.
 
@@ -196,6 +196,8 @@ Frontend local storage must include, at minimum:
 - `backend_token_issued_at`
 - `backend_token_expires_at`
 - `backend_base_url`
+- `created_at`
+- `updated_at`
 
 ## 7. Offline behavior and synchronization
 
@@ -272,7 +274,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 10.1 Packaging
 
-* Builds embed manifest data: slug, `app_id`, semantic version, supported platforms, minimum backend version, capability catalog checksum, and commit hash so compatibility checks align with [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md).
+* Builds embed manifest data: slug, semantic version, supported platforms, minimum backend version, capability catalog checksum, and commit hash so compatibility checks align with [01-protocol/11-versioning-and-compatibility.md](../../01-protocol/11-versioning-and-compatibility.md). Frontend package manifests MUST NOT embed node-local `app_id`.
 * Packages are signed. Native apps use platform-specific signing (CodeSign, APK Signature Scheme, etc.). Web apps publish subresource integrity hashes for critical bundles.
 
 ### 10.2 Update strategy
@@ -336,6 +338,18 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 * Configuration snapshots are versioned. Clients include the current config hash in [OperationContext](05-operation-context.md) metadata so backend services can reject stale assumptions with `ERR_CONFIG_STALE`.
 * Sensitive configuration (API secrets, federation tokens) never travels through plaintext UI flows. Instead, clients request pre-signed upload slots that encrypt the value client side per [01-protocol/04-cryptography.md](../../01-protocol/04-cryptography.md), produce an object reference, and store only handles in configuration entries.
 
+### 13.1.1 Frontend-local runtime settings
+
+The frontend runtime requires local-only settings that are not owned by backend [Config Manager](../managers/01-config-manager.md).
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `FRONTEND_DB_PATH` | Yes | `frontend/instance/frontend.db` | Local frontend SQLite path for user records and auth token persistence. |
+| `FRONTEND_KEYS_DIR` | Yes | `frontend/keys` | Local directory for private key files (`<frontend_user_id>.pem`). |
+| `FRONTEND_BACKEND_PUBLIC_KEY` | Yes | `(none)` | Pinned backend public key used to verify auth registration responses. |
+
+These values are frontend-local boot settings and must not be written to backend `settings` tables.
+
 ### 13.2 Build and packaging workflow
 
 * Build pipelines ingest schemas, capability catalogs, and configuration defaults from the graph, generate strongly typed clients from [04-interfaces/**](../../04-interfaces/00-interface-overview.md), and embed immutable manifests plus compatibility metadata directly into artifacts.
@@ -345,7 +359,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ### 13.3 Environment and configuration separation
 
-* Development, staging, and production builds use distinct `app_id` values or `app_variant` markers when shared `app_id` is unavoidable. Mixing environments is forbidden because the backend treats `app_id` as an isolation boundary.
+* Development, staging, and production builds use distinct slugs (or explicit `app_variant` markers where slug reuse is unavoidable). Mixing environments is forbidden because backend app isolation is enforced per slug-to-`app_id` binding.
 * Environment-specific configuration (API endpoints, telemetry sinks, feature flags) is injected via signed config bundles, not by editing source code per environment. Bundles are validated by [Config Manager](../managers/01-config-manager.md) and hashed for attestation.
 * Rooted or jailbroken detection thresholds and logging verbosity may differ by environment, but admission requirements, [OperationContext](05-operation-context.md) structure, and capability enforcement remain identical to ensure staging faithfully exercises production rules.
 
@@ -361,7 +375,7 @@ Clients must map backend error codes (from [01-protocol/10-errors-and-failure-mo
 
 ## 14. Implementation checklist
 
-1. **App identity**: Slug, `app_id`, manifest, and compatibility matrix registered with [App Manager](../managers/08-app-manager.md).
+1. **App identity**: Slug, manifest, and compatibility matrix registered with [App Manager](../managers/08-app-manager.md); local `app_id` resolution verified after registration.
 2. **[OperationContext](05-operation-context.md) discipline**: Every request includes immutable [OperationContext](05-operation-context.md) data derived from authenticated tokens and build metadata, retries rebuild context.
 3. **Capability gating**: UI and automation surfaces inspect current capability catalogs before enabling actions, revoked capabilities disable controls immediately.
 4. **Transport compliance**: HTTP or WebSocket clients honor [04-interfaces/**](../../04-interfaces/00-interface-overview.md) contracts, enforce TLS or Noise, surface backend admission feedback, and implement structured retries.

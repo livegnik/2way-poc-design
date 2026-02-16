@@ -40,6 +40,7 @@ This specification is responsible for the following:
 * Supply DoS Guard policy snapshots (rate limits, burst windows, difficulty caps, abuse thresholds, telemetry verbosity) exactly as defined in [01-protocol/09-dos-guard-and-client-puzzles.md](../../../../01-protocol/09-dos-guard-and-client-puzzles.md), ensuring atomic visibility to [DoS Guard Manager](../../../../02-architecture/managers/14-dos-guard-manager.md).
 * Supply the canonical locally declared protocol version tuple required by [01-protocol/11-versioning-and-compatibility.md](../../../../01-protocol/11-versioning-and-compatibility.md).
 * Declare error mapping for configuration load, reload, update, and export failures.
+* Provide explicit requirement-ID anchors consumed by generated configuration references.
 
 This specification does not cover the following:
 

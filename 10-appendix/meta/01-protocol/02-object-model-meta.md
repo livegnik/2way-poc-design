@@ -30,6 +30,7 @@ This specification is responsible for the following:
 * Object level invariants that are enforced independently of schema or ACL logic.
 * Cross object and cross category structural constraints.
 * Explicit rejection conditions for structurally invalid objects.
+* Declaring requirement-ID anchors used by generated data-model references.
 
 This specification does not cover the following:
 

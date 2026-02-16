@@ -16,12 +16,6 @@ The debug logger provides:
 * A config-backed enable/disable mechanism with per-component overrides.
 * An environment fallback for modules that cannot access [Config Manager](managers/01-config-manager.md) during early startup or isolated utilities.
 
-It does not:
-
-* Replace or bypass [Log Manager](managers/12-log-manager.md) for structured logs.
-* Emit audit, security, or operational records.
-* Persist output or provide query APIs.
-
 ## 2. Configuration keys
 
 Debug logger configuration lives under the `debug.*` namespace and is owned by the debug logger utility.

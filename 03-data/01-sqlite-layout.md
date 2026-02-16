@@ -56,6 +56,8 @@ The required global tables are:
 * `domain_seq` stores per domain high water marks used to advance sync eligibility.
 * `global_seq` stores the single monotonic sequence cursor for the database.
 * `schema_migrations` stores applied migration identifiers to ensure ordered, idempotent upgrades.
+* `auth_tokens` stores opaque auth tokens bound to local backend identities and is never part of the graph.
+* `auth_registration_nonces` stores registration replay-protection nonces for `/auth/identity/register` and is never part of the graph.
 
 The initial `global_seq` row is seeded during bootstrap. Migrations are applied before any other manager becomes operational.
 

@@ -100,6 +100,8 @@ Global tables exist exactly once per database and are created at bootstrap.
 * domain_seq
 * global_seq
 * schema_migrations
+* auth_tokens
+* auth_registration_nonces
 
 These tables are durable system state. Some are caches. Authority remains in the graph as defined in [01-protocol/02-object-model.md](../../01-protocol/02-object-model.md) where applicable.
 

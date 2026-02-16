@@ -15,8 +15,6 @@ The local HTTP API provides a minimal surface for PoC interaction:
 * Health checks for readiness and liveness.
 * Submission of graph message envelopes for local writes.
 
-This API does not cover remote peer sync, which uses [Network Manager](../02-architecture/managers/10-network-manager.md) and the sync protocol.
-
 ## 2. Transport posture
 
 * **Local only.** This interface must be bound to a local transport (loopback or IPC) and not exposed to untrusted networks.
@@ -56,12 +54,33 @@ None.
 ```
 200 OK
 {
-  "ok": true
+  "status": "ok",
+  "ready": false,
+  "version": "<string>",
+  "git_commit": "<string>",
+  "schema_version": <int>,
+  "cfg_seq": <int>,
+  "global_seq": <int>,
+  "manager_states": [
+    {
+      "manager": "<string>",
+      "state": "<string>"
+    }
+  ]
 }
 ```
 
+Rules:
+
+* `status` MUST be `ok` when the probe is served.
+* `ready` reflects runtime readiness; `ready=false` is a valid success response and does not change HTTP status.
+* `git_commit` MAY be `unknown` when commit metadata is unavailable.
+* `schema_version`, `cfg_seq`, and `global_seq` are non-negative integers.
+* `manager_states` is a deterministic list of manager readiness entries ordered by manager name.
+* Each `manager_states` entry uses `state` values `healthy`, `degraded`, `failed`, or `unknown`.
+
 **Response (errors):**
-* `500` (`internal_error`) when the backend is not ready or the probe cannot be served.
+* `500` (`internal_error`) only when the health snapshot cannot be produced.
 
 ### 5.2 POST /graph/envelope
 
@@ -96,6 +115,43 @@ The envelope must conform to [01-protocol/03-serialization-and-envelopes.md](../
 * `500` for internal failures (`internal_error`).
 
 Error payloads follow [04-error-model.md](04-error-model.md).
+
+### 5.2.1 Temporary minimal commit mode contract (Build Plan 3.4 only)
+
+When minimal commit mode is enabled (Build Plan step 3.4), `POST /graph/envelope` is constrained to one deterministic request shape:
+
+```
+{
+  "app_id": <int>,
+  "envelope": {
+    "trace_id": "<string>",
+    "ops": [
+      {
+        "op": "parent_create",
+        "app_id": <int>,
+        "type_key": "<string>" | "type_id": <int>,
+        "owner_identity": <int>,
+        "payload": {
+          "value": { ... }
+        }
+      }
+    ]
+  }
+}
+```
+
+Rules:
+
+* `envelope.ops` length must be exactly `1`.
+* `request.app_id` must equal `envelope.ops[0].app_id`.
+* `payload` must contain only `value`.
+* Any payload fields representing Attribute/Edge/Rating targets or inline ACL data are forbidden.
+* On rejection, no persistence is allowed and `global_seq` must not change.
+
+Errors in minimal commit mode:
+
+* `400` (`envelope_invalid`) for any violation of this temporary contract.
+* Other error codes remain mapped per Section 5.2 for auth, identifier/schema/ACL, and internal failures.
 
 ### 5.3 POST /graph/read
 

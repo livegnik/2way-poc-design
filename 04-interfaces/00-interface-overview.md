@@ -10,7 +10,7 @@ For the meta specifications, see [00-interface-overview meta](../10-appendix/met
 
 ## 1. Purpose and scope
 
-This overview establishes how callers reach the backend and how components communicate internally. It is not a transport specification for peer-to-peer sync; that is defined in [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
+This overview establishes how callers reach the backend and how components communicate internally. Peer-to-peer sync transport requirements are defined in [01-protocol/08-network-transport-requirements.md](../01-protocol/08-network-transport-requirements.md).
 
 ## 2. Interface surfaces
 

@@ -67,7 +67,7 @@ Every challenge issued by DoS Guard Manager MUST include:
 - `expires_at`: signed timestamp indicating when the challenge becomes invalid.
 - `context_binding`: opaque bytes supplied by DoS Guard Manager tying the challenge to the requesting connection (for example, truncated peer reference hash plus salt).
 - `payload`: opaque bytes that the requester must include unchanged when responding (for example, random nonce).
-- `algorithm`: identifier of the proof-of-work or puzzle algorithm in use (for PoC, a SHA-256 preimage proof is sufficient).
+- `algorithm`: identifier of the proof-of-work or puzzle algorithm in use (for baseline deployments, a SHA-256 preimage proof is sufficient).
 
 Challenges must be serializable without leaking internal statistics. [Network Manager](../02-architecture/managers/10-network-manager.md) treats the payload as opaque and merely transports it to the peer.
 

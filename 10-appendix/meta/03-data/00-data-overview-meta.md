@@ -28,6 +28,7 @@ This specification is responsible for the following:
 * Summarizing how system tables and per-app tables compose.
 * Defining the sequencing and sync state expectations at a high level.
 * Describing how migrations, limits, and backups fit into the persistence lifecycle.
+* Declaring requirement-ID anchors used by generated data-model references.
 
 This specification does not cover the following:
 

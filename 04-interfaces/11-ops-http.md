@@ -120,8 +120,8 @@ Errors:
 
 * `ERR_SVC_SYS_OPS_CAPABILITY`
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`storage_error`) for Identity Service persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
@@ -227,7 +227,7 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_OPS_CAPABILITY`
-* `404` (`app_not_found`) when `slug` does not resolve to an installed app service.
+* `ERR_SVC_SYS_OPS_APP_NOT_FOUND` when `slug` does not resolve to an installed app service.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `500` (`internal_error`) for internal failures.
@@ -240,5 +240,6 @@ Service-specific errors include:
 
 * `ERR_SVC_SYS_OPS_CAPABILITY`
 * `ERR_SVC_SYS_OPS_CONFIG_ACCESS`
+* `ERR_SVC_SYS_OPS_APP_NOT_FOUND`
 
 Authentication failures include `auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, and `ERR_AUTH_TOKEN_REVOKED`, mapped to HTTP `401`.

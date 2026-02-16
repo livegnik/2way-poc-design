@@ -33,6 +33,7 @@ This specification is responsible for the following:
 * Performing ECIES decryption for inbound payloads addressed to locally held private keys, as required by [01-protocol/04-cryptography.md](../../../../01-protocol/04-cryptography.md).
 * Enforcing that private keys are never returned, serialized, logged, or emitted, preserving the fail-closed posture in [01-protocol/04-cryptography.md](../../../../01-protocol/04-cryptography.md).
 * Acting as the sole component permitted to access private key material.
+* Declaring the first external route bindings that prove Key Manager hardened behavior (`/auth/identity/register`, `/system/sync/packages`).
 * Ensuring the node key exists, is valid, and is usable before dependent managers may operate, matching the Node key requirements in [01-protocol/05-keys-and-identity.md](../../../../01-protocol/05-keys-and-identity.md).
 * Refusing all cryptographic operations when invariants are violated, surfacing failures that map to [01-protocol/10-errors-and-failure-modes.md](../../../../01-protocol/10-errors-and-failure-modes.md).
 * Declaring the `key.*` configuration surface and its key directory binding.

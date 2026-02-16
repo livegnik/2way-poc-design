@@ -23,6 +23,7 @@ This specification is responsible for the following:
 
 * Declaring sync package transport requirements and admission ordering.
 * Recording replay protection and rejection behavior tied to sync cursors.
+* Declaring successful ingest side effects (commit-before-success and cursor advancement).
 * Declaring transport error mapping for ordering and admission failures.
 
 This specification does not cover the following:

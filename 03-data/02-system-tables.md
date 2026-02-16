@@ -95,8 +95,15 @@ Each row includes:
 
 * app_id
 * slug
+* composition (`frontend`, `service`, or `hybrid`)
 * version
-* creation timestamp
+* title (optional)
+* lifecycle_state (`installed_disabled`, `installed_enabled`, `degraded`, `draining`, `removed`)
+* enabled flag
+* publisher_identity_id (optional until binding is complete)
+* manifest_hash
+* created_at timestamp
+* updated_at timestamp
 
 This table is the authoritative source of app existence.
 
@@ -104,7 +111,8 @@ This table is the authoritative source of app existence.
 
 * app_id values are strictly monotonic
 * app_id values are never reused
-* app rows are append only
+* identity fields (`app_id`, `slug`, `created_at`) are immutable
+* lifecycle fields (`version`, `lifecycle_state`, `enabled`, `updated_at`) are mutable only through App Manager
 * app rows are not deleted when apps are disabled or removed
 * app existence must be verified before any graph operation using an app_id
 

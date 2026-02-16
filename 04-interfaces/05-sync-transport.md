@@ -4,13 +4,13 @@
 
 # 02 Sync Transport Interface
 
-Defines the transport-facing sync surfaces implied by protocol and manager specs. This document is transport-agnostic and does not introduce new endpoints beyond those implied by sync package handling.
+Defines the transport-facing sync surfaces implied by protocol and manager specs. This document is transport-agnostic and aligns sync package handling across interface surfaces.
 
 For the meta specifications, see [08-network-transport-requirements meta](../10-appendix/meta/01-protocol/08-network-transport-requirements-meta.md).
 
 ## 1. Purpose and scope
 
-This document specifies the expected sync transport behavior for exchanging sync package envelopes between nodes, including validation, admission, and replay protection. It does not define concrete HTTP routes unless specified elsewhere.
+This document specifies the expected sync transport behavior for exchanging sync package envelopes between nodes, including validation, admission, and replay protection.
 
 ## 2. Sync package structure
 
@@ -62,6 +62,12 @@ Response:
 ```
 {"ok": true}
 ```
+
+Success-side effects (required):
+
+* `{"ok": true}` is returned only after Network Manager admission succeeds and State Manager ingest commits successfully.
+* Successful ingest must advance sync cursor state for the `(peer_id, sync_domain)` pair.
+* Failed ingest must not advance sync cursor state or expose partial graph mutations.
 
 Errors:
 

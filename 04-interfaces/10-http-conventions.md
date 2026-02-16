@@ -10,7 +10,7 @@ For the meta specifications, see [10-http-conventions meta](../10-appendix/meta/
 
 ## 1. Purpose and scope
 
-This specification defines common constraints for local HTTP interfaces. It does not define endpoint-specific request or response shapes.
+This specification defines common constraints for local HTTP interfaces.
 
 ## 2. Common requirements
 

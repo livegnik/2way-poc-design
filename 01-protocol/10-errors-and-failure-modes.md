@@ -227,3 +227,9 @@ This specification defines no automatic recovery behavior.
 * Recovery from failure is external to the protocol.
 * Rejected input must be corrected and resubmitted.
 * Sync resumes only after invalid packages are discarded (see [07-sync-and-consistency.md](07-sync-and-consistency.md)).
+
+### 9. Requirement ID anchors
+
+This specification is authoritative for these protocol error requirement IDs:
+
+* R020-R065

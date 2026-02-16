@@ -156,7 +156,7 @@ System services:
 
 System services depend on managers but are not depended on by managers.
 
-PoC-required system services are defined in [02-system-services.md](services-and-apps/02-system-services.md):
+Required system services are defined in [02-system-services.md](services-and-apps/02-system-services.md):
 
 - System Bootstrap and Provisioning Service (Setup Service).
 - Identity Service.

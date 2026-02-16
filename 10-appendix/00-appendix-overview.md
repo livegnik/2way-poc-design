@@ -1,3 +1,7 @@
+
+
+
+
 # 00 Appendix overview
 
 The appendix collects non-normative reference material and navigational aids. It does not override the normative specifications in `specs/`. If any appendix content conflicts with a spec, the spec is authoritative.

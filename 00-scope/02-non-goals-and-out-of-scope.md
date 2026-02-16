@@ -4,25 +4,19 @@
 
 # 02 Non-goals and out-of-scope
 
-Defines excluded behaviors, assumptions, and guarantees for the 2WAY PoC. Specifies non-goals, forbidden interactions, and rejection expectations. Constrains trust dependencies and enforcement boundaries for excluded features.
+Defines excluded behaviors, assumptions, and guarantees for the 2WAY design. Specifies non-goals, forbidden interactions, and rejection expectations. Constrains trust dependencies and enforcement boundaries for excluded features.
 
 For the meta specifications, see [02-non-goals-and-out-of-scope meta](../10-appendix/meta/00-scope/02-non-goals-and-out-of-scope-meta.md).
 
-## 1. Responsibilities, invariants, and guarantees
+## 1. Invariants and guarantees
 
-### 1.1 Responsibilities
-
-- Define excluded behaviors and guarantees at the system and protocol boundary.
-- Define forbidden interactions that violate the manager, service, and app separation.
-- Define rejection expectations when excluded assumptions are relied upon.
-
-### 1.2 Invariants
+### 1.1 Invariants
 
 - Any behavior not specified in the design documents must be treated as unsupported.
 - No component may assume properties that are excluded by this document.
 - Apps and app services must not change, bypass, or redefine backend invariants.
 
-### 1.3 Guarantees
+### 1.2 Guarantees
 
 - The system provides no hidden functionality beyond what is specified in the scope documents and referenced design files.
 - Excluded behaviors are not relied upon by any manager or service.
@@ -36,6 +30,7 @@ The protocol does not define or require any centralized authority for identity v
 
 - There is no requirement for KYC, biometric verification, or government identity binding.
 - There is no global identity registry.
+- The design does not guarantee global identity uniqueness across all nodes.
 - Cryptographic identity is defined by keys represented in the graph, not by external attestations.
 
 ### 2.2 Protocol-level Sybil prevention
@@ -50,6 +45,7 @@ The protocol does not provide global Sybil prevention mechanisms.
 
 The protocol does not define global consensus.
 
+- Universal consensus is explicitly not a system goal.
 - There is no global total order across all nodes.
 - There is no requirement that all nodes converge to identical state.
 - Correctness is enforced locally by each node according to validation and access control rules.
@@ -69,6 +65,7 @@ The design does not permit direct access to persistent storage or private keys o
 - Apps and app services must not write to storage except through [Graph Manager](../02-architecture/managers/07-graph-manager.md) mediated flows.
 - Apps and app services must never access raw database connections.
 - Apps and app services must never access private keys through any interface that bypasses the [Key Manager](../02-architecture/managers/03-key-manager.md) and authorization checks.
+- Policy enforcement outside graph-encoded schema, ACL, and capability rules is not a design goal.
 
 ### 2.6 Transport-layer security as a dependency
 
@@ -76,13 +73,20 @@ The protocol does not rely on transport security guarantees.
 
 - Confidentiality and integrity are defined at the protocol layer using signatures and encryption where required.
 - The protocol must remain valid on untrusted networks.
-- Use of Tor is a deployment choice for the PoC, not a protocol security dependency.
+- Use of Tor is a deployment choice for this design, not a protocol security dependency.
+
+### 2.7 Anonymous mutation and automatic trust inference
+
+The system does not support anonymous mutation or implicit trust derivation.
+
+- Mutations without attributable cryptographic identity are not accepted.
+- Automatic trust inference from transport, peer origin, or ambient context is not a design goal.
 
 ## 3. Out-of-scope behaviors and interactions
 
 ### 3.1 Allowed behaviors
 
-The following are explicitly allowed within the scope of the PoC design.
+The following are explicitly allowed within the scope of this design.
 
 - Apps define UI and workflows on the frontend and use backend HTTP and WebSocket APIs.
 - Apps may ship app services to perform limited backend tasks.
@@ -99,17 +103,9 @@ The following are explicitly forbidden.
 - Any app or app service accessing or exporting private keys, or performing signing outside approved key usage paths defined by [Key Manager](../02-architecture/managers/03-key-manager.md).
 - Any implementation depending on implicit identity, implicit trust, or network-origin trust.
 
-## 4. Trust boundaries and dependencies
+## 4. Failure, rejection, and invalid assumptions
 
-- This document defines design-time boundaries only.
-- Inputs are repository design assumptions and constraints.
-- Outputs are review constraints that apply to all components.
-- Trust boundaries are enforced through the managers and their interfaces, and through the validation pipeline described in [01-protocol](../01-protocol/) and [02-architecture](../02-architecture/).
-- This document does not define protocol formats or manager interfaces and must not be used as a substitute for those specifications.
-
-## 5. Failure, rejection, and invalid assumptions
-
-### 5.1 Design-time failure
+### 4.1 Design-time failure
 
 If a design, component, or review depends on an excluded feature or guarantee, the result is non-compliance with the repository design.
 
@@ -117,7 +113,7 @@ If a design, component, or review depends on an excluded feature or guarantee, t
 - The component must be redesigned to use only specified interfaces and guarantees.
 - The review must treat the dependency as a correctness and security defect.
 
-### 5.2 Runtime rejection expectation
+### 4.2 Runtime rejection expectation
 
 Where an excluded assumption manifests as a runtime attempt, the system must reject the action at the appropriate validation boundary.
 

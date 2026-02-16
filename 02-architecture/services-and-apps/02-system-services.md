@@ -109,6 +109,7 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 | `service.identity.max_contacts_per_identity` | Soft limit enforced by ACL policy for the Identity Service.              | Identity Service   |
 | `service.sync.max_parallel_peers`            | Number of peer sync plans the Sync Service may run.                       | Sync Service       |
 | `service.ops.admin_routes_enabled`           | Flag gating whether Admin Service routes are exposed.                              | Operations Service |
+| `service.ops.policy_audit_interval_ms`       | Policy-audit job cadence for Admin Service drift checks.                  | Operations Service |
 
 [Config Manager](../managers/01-config-manager.md) owns validation and reload semantics. Services may listen for reload events and re validate inputs before applying them. Failure to validate keeps the previous snapshot active and marks health degraded.
 
@@ -147,9 +148,9 @@ System service configuration keys live under `service.<service_name>.*`. Typical
 
 ## 6. Canonical system service catalog
 
-The proof of concept ships with five mandatory system services. Each one is described in later sections. The table below summarizes their remit.
+This design ships with five mandatory system services. Each one is described in later sections. The table below summarizes their remit.
 
-PoC app domains (contacts, messaging, social, market) are not system services. They are app domains shipped by default for validation and can be swapped for other apps without changing system service contracts or manager boundaries.
+Default app domains (contacts, messaging, social, market) are not system services. They are app domains shipped by default for validation and can be swapped for other apps without changing system service contracts or manager boundaries.
 
 | Service                                        | Responsibilities                                                                                                                                     | Primary surfaces                                                             | Mandatory dependencies                                    |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -218,7 +219,7 @@ Setup Service owns the `admin.identity`, `admin.device`, and `admin.recovery` sc
 1. **Installation**
    * Interface layer calls Setup Service `POST /system/bootstrap/install`.
    * Setup Service validates payload, ensures node is not already installed, and constructs an [OperationContext](05-operation-context.md) with `capability=system.bootstrap.install`.
-   * If the node is already installed, Setup Service rejects the request with `ERR_SVC_SYS_SETUP_ACL`.
+   * If the node is already installed, Setup Service rejects the request with `ERR_SVC_SYS_SETUP_ALREADY_INSTALLED`.
    * Setup Service orchestrates [Graph Manager](../managers/07-graph-manager.md) writes to create node parents, admin identity, admin device, default ACL templates, and capability edges, packaged per [01-protocol/03-serialization-and-envelopes.md](../../01-protocol/03-serialization-and-envelopes.md) and authorized per [01-protocol/06-access-control-model.md](../../01-protocol/06-access-control-model.md).
    * Upon success, [Event Manager](../managers/11-event-manager.md) receives `system.bootstrap.completed`, [Health Manager](../managers/13-health-manager.md) marks the node ready, and [DoS Guard Manager](../managers/14-dos-guard-manager.md) unlocks public surfaces in line with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
    * If network transport services exist, Setup Service ensures [Network Manager](../managers/10-network-manager.md) does not accept inbound peer work until [Health Manager](../managers/13-health-manager.md) is ready so the ordering in [01-protocol/08-network-transport-requirements.md](../../01-protocol/08-network-transport-requirements.md) is respected.
@@ -232,7 +233,7 @@ Setup Service owns the `admin.identity`, `admin.device`, and `admin.recovery` sc
 
 ### 7.4 Failure handling
 
-* If any Graph or Schema operation fails, Setup Service aborts the entire operation, rolls back, and records the failure reason (`ERR_SVC_SYS_SETUP_SCHEMA`, `ERR_SVC_SYS_SETUP_ACL`) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial installs exist.
+* If any Graph or Schema operation fails, Setup Service aborts the entire operation, rolls back, and records the failure reason (`ERR_SVC_SYS_SETUP_SCHEMA`, `ERR_SVC_SYS_SETUP_ACL`, `ERR_SVC_SYS_SETUP_BOOTSTRAP_TOKEN_INVALID`, or `ERR_SVC_SYS_SETUP_ALREADY_INSTALLED`) in accordance with [01-protocol/10-errors-and-failure-modes.md](../../01-protocol/10-errors-and-failure-modes.md). No partial installs exist.
 * Expired invites result in `HTTP 410 Gone` responses with DoS telemetry increments so repeated misuse pushes puzzle difficulty upward.
 * Device attestations that cannot be verified result in `ERR_SVC_SYS_SETUP_DEVICE_ATTESTATION`. Setup Service logs the fingerprint for audit.
 
@@ -320,7 +321,7 @@ Sync Service bridges admin intent with [State Manager](../managers/09-state-mana
 
 ### 9.4 Failure handling
 
-* [State Manager](../managers/09-state-manager.md) rejections are mapped when surfaced to interfaces as follows: ordering violations return `sequence_error`, unknown peer returns `object_invalid`, ACL denial returns `acl_denied`, and remaining plan validation failures return `ERR_SVC_SYS_SYNC_PLAN_INVALID`. Sync Service logs the original reason and marks the plan `failed`.
+* [State Manager](../managers/09-state-manager.md) rejections are mapped when surfaced to interfaces as follows: ordering violations return `sequence_error`, unknown peer returns `ERR_SVC_SYS_SYNC_PEER_NOT_FOUND`, capability denial returns `ERR_SVC_SYS_SYNC_CAPABILITY`, invalid pause/resume transitions return `ERR_SVC_SYS_SYNC_TRANSITION_INVALID`, and remaining plan validation failures return `ERR_SVC_SYS_SYNC_PLAN_INVALID`. Sync Service logs the original reason and marks the plan `failed`.
 * If [DoS Guard Manager](../managers/14-dos-guard-manager.md) indicates a peer is abusive, Sync Service automatically pauses the peer and emits `system.sync.peer_paused` with severity `warning`, aligning with [01-protocol/09-dos-guard-and-client-puzzles.md](../../01-protocol/09-dos-guard-and-client-puzzles.md).
 
 ## 10. Admin Service

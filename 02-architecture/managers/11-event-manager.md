@@ -373,6 +373,8 @@ Constraints:
 | `event.delivery.heartbeat_interval_ms`         | Integer              | Yes        | Interval between heartbeats. Must be greater than or equal to 5000 ms.                                                    |
 | `event.delivery.resume_window`                 | Integer, event count | Yes        | Number of most recent events retained per class for resume requests.                                                      |
 | `event.delivery.max_msgs_per_sec`              | Integer              | Yes        | Per connection send throttle rate.                                                                                        |
+| `event.telemetry.heartbeat_interval_ms`        | Integer              | Yes        | Cadence for readiness/liveness telemetry emission to [Health Manager](13-health-manager.md).                             |
+| `event.telemetry.degraded_threshold_ms`        | Integer              | Yes        | Duration saturation may persist before raising `system.event_pipeline_degraded`.                                          |
 | `event.telemetry.emit_samples`                 | Boolean              | Yes        | Enables verbose telemetry emission to [Log Manager](12-log-manager.md) for debugging.                                                          |
 | `event.security.admin_channels`                | List                 | No         | Explicit list of event types requiring admin gating.                                                                      |
 

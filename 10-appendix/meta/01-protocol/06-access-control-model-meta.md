@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the access control model of the 2WAY protocol as implemented in the PoC. It specifies how permissions are expressed, evaluated, and enforced at the protocol level. It covers authorization semantics only. [Authentication](../../../01-protocol/05-keys-and-identity.md), [identity representation](../../../01-protocol/05-keys-and-identity.md), [cryptographic verification](../../../01-protocol/04-cryptography.md), [schema definition](../../../02-architecture/managers/05-schema-manager.md), [sync behavior](../../../01-protocol/07-sync-and-consistency.md), and [storage mechanics](../../../03-data/01-sqlite-layout.md) are defined elsewhere and are referenced but not restated.
+This document defines the access control model of the 2WAY protocol. It specifies how permissions are expressed, evaluated, and enforced at the protocol level. It covers authorization semantics only. [Authentication](../../../01-protocol/05-keys-and-identity.md), [identity representation](../../../01-protocol/05-keys-and-identity.md), [cryptographic verification](../../../01-protocol/04-cryptography.md), [schema definition](../../../02-architecture/managers/05-schema-manager.md), [sync behavior](../../../01-protocol/07-sync-and-consistency.md), and [storage mechanics](../../../03-data/01-sqlite-layout.md) are defined elsewhere and are referenced but not restated.
 
 This specification references:
 
@@ -20,7 +20,7 @@ This specification references:
 - [10-errors-and-failure-modes.md](../../../01-protocol/10-errors-and-failure-modes.md)
 - [05-operation-context.md](../../../02-architecture/services-and-apps/05-operation-context.md)
 
-This document is normative for the PoC.
+This document is normative for the protocol.
 
 ## 2. Responsibilities and boundaries
 

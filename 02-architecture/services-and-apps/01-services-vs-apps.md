@@ -48,7 +48,7 @@ System services implement functionality that is required for every conforming no
 * **API exposure** : System services expose HTTP/WebSocket endpoints or internal RPC endpoints only through the interface layer defined in `04-interfaces/**`. They cannot open sockets or background threads that bypass Network Manager.
 * **Observability** : They must emit structured logs through Log Manager and register health checks through Health Manager so that backend supervisors can determine readiness and liveness.
 * **Upgrade path** : Since they are mandatory, system services must support rolling schema or ACL migrations by coordinating with Schema Manager and Graph Manager explicitly.
-* **App neutrality** : System services must not hardcode assumptions about which app domains are installed. PoC app domains (contacts, messaging, social, market) are ordinary apps and may be replaced or removed without altering system service contracts.
+* **App neutrality** : System services must not hardcode assumptions about which app domains are installed. Default app domains (contacts, messaging, social, market) are ordinary apps and may be replaced or removed without altering system service contracts.
 
 ### 3.2 App services
 

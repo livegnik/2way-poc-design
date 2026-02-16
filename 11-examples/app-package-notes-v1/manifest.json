@@ -1,0 +1,39 @@
+{
+  "slug": "notes",
+  "version": "1.0.0",
+  "composition": "hybrid",
+  "title": "Notes",
+  "description": "Reference package example for app lifecycle install.",
+  "capabilities": [
+    "app.notes.read",
+    "app.notes.write"
+  ],
+  "dependencies": [],
+  "config_keys": [
+    "app.notes.feed.page_size",
+    "app.notes.sync.enabled"
+  ],
+  "requires": {
+    "platform": {
+      "min_version": "0.1.0"
+    },
+    "managers": [
+      "graph",
+      "schema",
+      "acl"
+    ],
+    "permissions": [
+      "app.notes.read",
+      "app.notes.write"
+    ]
+  },
+  "supports": {
+    "frontend": {
+      "min_version": "0.1.0"
+    }
+  },
+  "service": {
+    "entrypoint": "app-service/main.py",
+    "runtime": "python3.11"
+  }
+}

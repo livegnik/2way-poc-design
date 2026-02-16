@@ -18,7 +18,7 @@ This specification is responsible for:
 * Defining global invariants that apply across protocol, architecture, data, and security specifications.
 * Defining mandatory enforcement boundaries between components, including write paths and trust boundaries.
 * Defining repository-wide guarantees related to sequencing, validation, authorization, and persistence effects.
-* Defining PoC runtime and persistence constraints that are repository-wide in scope.
+* Defining runtime and persistence constraints that are repository-wide in scope.
 * Defining deterministic rejection and failure handling requirements at the scope level.
 * Defining how conflicts between documents in this repository are identified and resolved.
 
@@ -34,7 +34,7 @@ This specification is not responsible for:
 
 ## 3. Document authority and consistency
 
-This repository is internally authoritative. All documents contained within it are expected to be mutually consistent and collectively sufficient to implement and review the PoC.
+This repository is internally authoritative. All documents contained within it are expected to be mutually consistent and collectively sufficient to implement and review the design.
 
 Consistency requirements:
 
@@ -50,7 +50,7 @@ The design documents in this repository may:
 * Define normative constraints that restrict component behavior.
 * Specify validation, authorization, and sequencing rules as correctness requirements.
 * Define failure and rejection behavior where it materially affects correctness or security.
-* Define the PoC inclusion boundary and acceptance definition.
+* Define the repository inclusion boundary and acceptance definition.
 * Reference other documents in this repository as authoritative sources.
 
 ## 5. Forbidden behaviors
@@ -69,7 +69,7 @@ This file defines repository level scope and invariants.
 
 Other scope documents define details:
 
-* `01-scope-and-goals.md` defines PoC goals and deliverables.
+* `01-scope-and-goals.md` defines goals and deliverables.
 * `02-non-goals-and-out-of-scope.md` defines explicit exclusions.
 * `03-definitions-and-terminology.md` defines normative terminology.
 * `04-assumptions-and-constraints.md` defines environmental assumptions and hard constraints.

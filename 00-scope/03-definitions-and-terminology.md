@@ -1,7 +1,3 @@
-
-
-
-
 # 03 Definitions and terminology
 
 Defines canonical terms used across the 2WAY design repository. Specifies normative meanings for core entities, graph objects, and validation concepts. Defines constraints and usage rules for terminology.
@@ -15,7 +11,7 @@ Previous drafts used SBPS, IRS, SOS, OCS and 'extension/plugin' terminology. The
 ### 1.1 Terminology invariants
 
 - Terms defined in this file have a single authoritative meaning across the repository.
-- The canonical object type names are defined in [Section 7](#7-graph-model-terms).
+- The canonical object type names are defined in [Section 5](#5-graph-model-terms).
 - Canonical names must not be aliased, abbreviated, or replaced with synonyms in normative text.
 - If a document introduces a new term, it must define it locally or reference a file that defines it.
 
@@ -61,8 +57,6 @@ Constraints:
 
 - Managers are the only backend components permitted to perform their responsibility directly.
 - Write paths that mutate persisted state are mediated by the backend write pipeline as defined by the architecture specifications.
-
-This file does not define manager APIs.
 
 ### 3.3 Service
 
@@ -131,9 +125,9 @@ Constraints:
 - The public key material used for verification is stored in persisted storage under the identity's root record.
 - Identity resolution for an operation is explicit and performed by the backend, not inferred from transport metadata.
 
-This file does not define identity storage tables or key storage layout.
+### 3.10 identifier, identity_id, and owner_identity
 
-### 3.10 identity_id and owner_identity
+`identifier` is a stable value used to uniquely reference a specific entity or object within its defined scope.
 
 `identity_id` is the identifier for an identity.
 
@@ -159,8 +153,6 @@ Constraints:
 - app_id determines the per-app table set in storage.
 - app_slug identifies the app in configuration and higher-level interfaces.
 
-This file does not define allocation rules for app_id.
-
 ### 4.3 Type
 
 `type` is an app-scoped identifier for a specific object category within an app.
@@ -182,8 +174,6 @@ Constraint:
 
 - Schema validation uses schema declared constraints to accept or reject operations.
 
-This file does not define schema formats, value representations, or validation algorithms.
-
 ### 4.5 app_0
 
 `app_0` is the reserved system app identifier used for core system identities, keys, and system-scoped schema.
@@ -192,13 +182,11 @@ This file does not define schema formats, value representations, or validation a
 
 `value kind` is the schema level classification used to validate the representation of a value.
 
-In the PoC schema model, `value_kind` includes:
+In this schema model, `value_kind` includes:
 
 - text.
 - number.
 - json.
-
-This file does not define encoding rules beyond these labels.
 
 ## 5. Graph model terms
 
@@ -232,8 +220,6 @@ Constraints:
 - A Parent has a designated identity used for authorization decisions.
 - A Parent is the anchor for Attributes and an endpoint for Edges.
 
-This file does not define Parent fields.
-
 ### 5.4 Attribute
 
 `Attribute` is a typed value associated with a Parent.
@@ -242,8 +228,6 @@ Constraints:
 
 - Attribute meaning is defined by the app schema.
 - Attribute representation is validated against value kind constraints.
-
-This file does not define Attribute fields.
 
 ### 5.5 Edge
 
@@ -254,8 +238,6 @@ Constraints:
 - Edge meaning is defined by the app schema.
 - Edge validity is constrained by schema declared allowed relations.
 
-This file does not define Edge fields.
-
 ### 5.6 Rating
 
 `Rating` is a typed evaluative object with app-scoped semantics.
@@ -265,8 +247,6 @@ Constraints:
 - Rating meaning is interpreted only within the app that defines the rating type.
 - Ratings do not imply a global reputation model.
 
-This file does not define Rating fields.
-
 ### 5.7 ACL
 
 `ACL` is a graph object that defines visibility and mutation permissions for target objects within a defined scope.
@@ -275,8 +255,6 @@ Constraints:
 
 - ACL interpretation is defined by the authorization model.
 - ACL evaluation is applied to read and write decisions according to the access control specifications.
-
-This file does not define ACL fields or evaluation rules.
 
 ### 5.8 Graph object identifiers
 
@@ -319,8 +297,6 @@ Constraints:
 - An operation is subject to validation and authorization.
 - An operation may be rejected and therefore not persisted.
 
-This file does not define the operation vocabulary.
-
 ### 6.2 Envelope
 
 `envelope` is a signed container used to carry one or more operations for local processing or inter-node exchange.
@@ -329,8 +305,6 @@ Constraints:
 
 - An envelope includes an explicit author identity reference.
 - An envelope is not trusted until verified and validated.
-
-This file does not define envelope fields, signing formats, or encryption formats.
 
 ### 6.3 OperationContext identifiers
 
@@ -377,8 +351,6 @@ Constraints:
 - For inter-node exchange processing, OperationContext may include `sync_domain` and `remote_node_identity_id`.
 - OperationContext includes `trace_id` for request correlation.
 
-This file does not define OperationContext fields beyond the names listed here.
-
 ### 6.5 Operation kind labels
 
 `parent_create`, `parent_update`, `attr_create`, `attr_update`, `edge_create`, `edge_update`, `rating_create`, and `rating_update` are operation kind labels that describe creation or update of the corresponding object type.
@@ -394,8 +366,6 @@ Constraints:
 - global_seq defines a total order of accepted writes on a node.
 - global_seq is used to support incremental exchange and provenance checks.
 
-This file does not define how `global_seq` is stored, indexed, or transmitted.
-
 ### 7.2 Sync
 
 `sync` is the process by which nodes exchange envelopes or derived data so that each node can accept, reject, and persist operations according to its own rules.
@@ -403,8 +373,6 @@ This file does not define how `global_seq` is stored, indexed, or transmitted.
 Constraint:
 
 - `sync` does not imply that a node accepts all received content.
-
-This file does not define sync protocol flows.
 
 ### 7.3 Sync domain
 
@@ -415,8 +383,6 @@ Constraints:
 - Domains constrain what can be requested and what can be sent.
 - Domain scoping limits disclosure and replication.
 
-This file does not define domain membership rules.
-
 ### 7.4 domain_seq
 
 `domain_seq` is a sequence number scoped to a specific sync domain.
@@ -424,8 +390,6 @@ This file does not define domain membership rules.
 Constraint:
 
 - domain_seq ordering is meaningful only within its domain scope.
-
-This file does not define domain sequencing rules beyond this scope meaning.
 
 ### 7.5 Peer
 
@@ -436,8 +400,6 @@ Constraints:
 - A peer is identified by an identity in the graph.
 - A peer is not inherently trusted.
 
-This file does not define peer discovery or transport requirements.
-
 ### 7.6 sync_state
 
 `sync_state` is the node maintained local record of sync progress and constraints for a specific peer.
@@ -446,21 +408,15 @@ Constraint:
 
 - sync_state is used to reject replayed, malformed, out of order, or out of scope sync inputs.
 
-This file does not define sync_state structure.
-
 ### 7.7 sync_flags
 
 `sync_flags` is a bitset or enumerated label set used to express sync related state or eligibility for a graph object.
-
-This file does not define the flag values.
 
 ### 7.8 from_seq and to_seq
 
 `from_seq` is the lower bound sequence for a sync request or response window.
 
 `to_seq` is the upper bound sequence for a sync request or response window.
-
-This file does not define how sequence windows are negotiated or enforced.
 
 ### 7.9 peer_id and sender_identity
 
@@ -477,8 +433,6 @@ This file does not define how sequence windows are negotiated or enforced.
 Constraint:
 
 - Signature claims are verified against stored public keys.
-
-This file does not define key storage layout or rotation rules.
 
 ### 8.2 Authorship
 
@@ -497,8 +451,6 @@ Constraint:
 
 - `ownership` is used to enforce mutation rules and reject unauthorized writes.
 
-This file does not define ownership enforcement logic.
-
 ### 8.4 Trust boundary
 
 `trust boundary` is any interface where data crosses from a less trusted environment to a more trusted environment.
@@ -509,8 +461,6 @@ Core trust boundaries include:
 - Network input to node boundary.
 - App-scoped logic to system-scoped logic boundary.
 
-This file does not define mitigations beyond vocabulary.
-
 ### 8.5 Revocation
 
 `revocation` is a graph represented event that invalidates a previously valid key or scoped authority.
@@ -519,8 +469,6 @@ Constraints:
 
 - Revocation affects acceptance of future envelopes signed with the revoked key.
 - Revocation does not rewrite historical persisted objects.
-
-This file does not define revocation object structure.
 
 ## 9. Failure, rejection, and invalid input handling
 
@@ -537,11 +485,8 @@ For any component that references terms from this file:
 - Invalid inputs are rejected, they are not partially applied.
 - Rejection must not create new persisted graph objects.
 
-This file does not define error codes or logging requirements.
-
 ### 9.3 Trust boundary failures
 
 - Inputs received across a trust boundary are treated as untrusted until validated by the backend's defined validation and authorization pipeline.
 - If validation cannot be completed due to missing prerequisites, the input is rejected.
 
-This file does not define prerequisite acquisition behavior.

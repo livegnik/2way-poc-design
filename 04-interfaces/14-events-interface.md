@@ -10,7 +10,7 @@ For the meta specifications, see [14-events-interface meta](../10-appendix/meta/
 
 ## 1. Purpose and scope
 
-This specification defines the event envelope and channel families delivered over the local WebSocket interface. It does not replace the detailed Event Manager behavior in [02-architecture/managers/11-event-manager.md](../02-architecture/managers/11-event-manager.md).
+This specification defines the event envelope and channel families delivered over the local WebSocket interface. Detailed Event Manager behavior is defined in [02-architecture/managers/11-event-manager.md](../02-architecture/managers/11-event-manager.md).
 
 ## 2. Event envelope
 

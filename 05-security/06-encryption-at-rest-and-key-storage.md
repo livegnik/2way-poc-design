@@ -24,3 +24,9 @@ For the meta specifications, see [06-encryption-at-rest-and-key-storage-meta.md]
 
 * Missing keys prevent signing or decryption.
 * Key access failures reject operations that require cryptographic proof.
+
+## 4. Frontend local secret compromise posture (PoC)
+
+* Frontend-local secrets include bcrypt password hashes and auth tokens in the frontend local DB, plus private key files under `frontend/keys/<frontend_user_id>.pem`.
+* Compromise of the local machine or user profile can expose these local secrets.
+* This exposure is accepted for PoC scope and must be mitigated in future hardening work (for example, hardware-backed key storage and encrypted local databases).

@@ -22,8 +22,10 @@ This document references:
 This specification is responsible for the following:
 
 * Defining request/response shapes for local HTTP calls.
+* Defining the temporary minimal-commit `/graph/envelope` request subset used during early durable-write bring-up.
 * Declaring authentication and trace handling.
 * Establishing error mapping for HTTP responses.
+* Declaring canonical `/health` success payload/readiness semantics and introspection fields.
 * Declaring the health snapshot schema returned by admin health endpoints.
 * Declaring the local graph read request/response shape that binds to Graph Manager reads.
 * Declaring PoC app list/read routes that bind to Graph Manager reads.

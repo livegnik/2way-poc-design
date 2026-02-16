@@ -14,14 +14,15 @@ For the meta specifications, see [02-feature-matrix-meta.md](../10-appendix/meta
 | Storage | SQLite, migrations, global_seq | See [03-data/**](../03-data/) |
 | Managers | Config, Storage, Schema, ACL, Graph, State, Network, DoS, Auth, Log, Event, Health, App, Key | See [02-architecture/managers/**](../02-architecture/managers/) |
 | System services | Graph, Sync, Identity, Network, Bootstrap | See [02-architecture/services-and-apps/02-system-services.md](../02-architecture/services-and-apps/02-system-services.md) |
-| App services | Contact list, messaging, social, and market (domain app) | See [POC-APPS.md](../../docs-build/POC-APPS.md) |
+| App services | Contacts service (`app.contacts`), Messaging service (`app.messaging`), Social service (`app.social`), and Market service (`app.market`) | See [POC-APPS.md](../../docs-build/automated/POC-APPS.md) and [02-architecture/services-and-apps/03-app-services.md](../02-architecture/services-and-apps/03-app-services.md#2.10-PoC-default-app-service-inventory) |
 | Interfaces | Local HTTP + WebSocket | See [04-interfaces/**](../04-interfaces/) |
-| Frontend | Flask scaffold, auth flow, and marketplace UI (app discovery/install) | See [BUILD-PLAN.md](../../docs-build/BUILD-PLAN.md) |
-| Tests | Unit, integration, and e2e placeholders | See [TEST-CONVENTIONS.md](../../docs-build/TEST-CONVENTIONS.md) and [TRACEABILITY.md](../../docs-build/TRACEABILITY.md) |
+| Frontend | Flask scaffold, auth flow, and marketplace UI (app discovery/install) | See [BUILD-PLAN.md](../../docs-build/manual/BUILD-PLAN.md) |
+| Tests | Unit, integration, and e2e placeholders | See [TEST-CONVENTIONS.md](../../docs-build/hybrid/TEST-CONVENTIONS.md) and [TRACEABILITY.md](../../docs-build/hybrid/TRACEABILITY.md) |
 
 ## 3. PoC app schemas (authoritative for app payloads)
 
 Unknown fields are rejected for all schemas below. All PoC app writes use `POST /graph/envelope`; list/read flows use the Graph Manager read surface.
+Machine-readable reference install artifacts are provided in `specs/11-examples/app-package-notes-v1/`.
 
 ### 3.1 Contacts app (`app.contacts`)
 
@@ -329,4 +330,3 @@ List offers for a listing:
   }
 }
 ```
-

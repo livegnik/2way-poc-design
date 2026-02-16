@@ -19,6 +19,7 @@ This specification references:
 This specification is responsible for:
 
 * Declaring key storage boundaries and data-at-rest posture.
+* Declaring PoC posture for local-secret exposure under local machine compromise.
 
 This specification does not cover:
 

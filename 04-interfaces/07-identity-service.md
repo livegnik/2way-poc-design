@@ -155,9 +155,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `identity_id`.
-* `400` (`object_invalid`) when `identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 * `auth_invalid` for invalid or expired attestation proof.
@@ -218,8 +218,8 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_INVITE_NOT_FOUND` when `invite_token` does not resolve to an invite.
 * `400` (`envelope_invalid`) for malformed payloads.
-* `400` (`object_invalid`) when `invite_token` does not resolve to an invite.
 * `410 Gone` when invite is expired.
 * `ERR_AUTH_INVITE_EXPIRED` with `ErrorDetail.category` `auth` when invite is expired.
 * `400` (`storage_error`) for persistence failures.
@@ -247,9 +247,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 
@@ -273,9 +273,9 @@ Response:
 Errors:
 
 * `ERR_SVC_SYS_IDENTITY_CAPABILITY`
+* `ERR_SVC_SYS_IDENTITY_NOT_FOUND` when `target_identity_id` does not resolve to an identity.
 * `400` (`envelope_invalid`) for malformed payloads.
 * `400` (`identifier_invalid`) for malformed `target_identity_id`.
-* `400` (`object_invalid`) when `target_identity_id` does not resolve to an identity.
 * `400` (`storage_error`) for persistence failures.
 * `401` (`auth_required`, `auth_invalid`, `ERR_AUTH_TOKEN_EXPIRED`, `ERR_AUTH_TOKEN_REVOKED`) for authentication failures.
 

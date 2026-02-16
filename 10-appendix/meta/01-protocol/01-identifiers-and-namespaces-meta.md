@@ -6,7 +6,7 @@
 
 ## 1. Purpose and scope
 
-This document defines the identifier classes and namespace rules used by the 2WAY protocol as specified by the PoC design. It establishes how identities, applications, objects, domains, and schemas are named, scoped, and referenced at the protocol level. It specifies invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling required for correctness and security.
+This document defines the identifier classes and namespace rules used by the 2WAY protocol. It establishes how identities, applications, objects, domains, and schemas are named, scoped, and referenced at the protocol level. It specifies invariants, guarantees, allowed behaviors, forbidden behaviors, and failure handling required for correctness and security.
 
 This specification references:
 

@@ -8,10 +8,10 @@ This section defines the proof-of-concept scope for 2WAY, including its goals, t
 
 References:
 
-* [BUILD-PLAN.md](../../docs-build/BUILD-PLAN.md)
-* [POC-ACCEPTANCE.md](../../docs-build/POC-ACCEPTANCE.md)
-* [POC-APPS.md](../../docs-build/POC-APPS.md)
-* [IMPLEMENTATION-CHOICES.md](../../docs-build/IMPLEMENTATION-CHOICES.md)
+* [BUILD-PLAN.md](../../docs-build/manual/BUILD-PLAN.md)
+* [POC-ACCEPTANCE.md](../../docs-build/hybrid/POC-ACCEPTANCE.md)
+* [POC-APPS.md](../../docs-build/automated/POC-APPS.md)
+* [IMPLEMENTATION-CHOICES.md](../../docs-build/manual/IMPLEMENTATION-CHOICES.md)
 
 For the meta specifications, see [00-poc-overview-meta.md](../10-appendix/meta/07-poc/00-poc-overview-meta.md).
 
@@ -32,8 +32,9 @@ The PoC includes:
 
 Terminology:
 
-* `Market app` is the PoC market domain app (listings/offers/contracts in the graph).
-* `Marketplace` is the app discovery/install UI flow and is distinct from the market domain.
+* `Market app` is the PoC app domain that models listings, offers, contracts, and feedback in the graph.
+* `Market apps` means any apps in the market domain, including the PoC `Market app`.
+* `Marketplace` is the UI flow for discovering and installing apps via the documented app lifecycle routes. It is not the same thing as the market domain.
 * PoC app domains are shipped by default but remain ordinary apps; they may be swapped out without altering system service contracts.
 
 The PoC excludes:
@@ -54,3 +55,8 @@ The PoC specification set consists of:
 6) Known limitations.
 7) Acceptance criteria.
 
+## 4. Requirement ID anchors
+
+This section is the canonical requirement anchor list for generated PoC app coverage references.
+
+R007-R009, R013-R019, R025-R057, R060, R112, R116, R118, R131, R136, R217-R226.

@@ -25,6 +25,7 @@ This specification is responsible for the following:
 
 * Defining all global system tables that exist outside app-scoped graph storage
 * Defining invariants for identity, sequencing, sync tracking, configuration, peer state, and auth token storage
+* Defining app registry identity vs lifecycle metadata boundaries (immutable identity fields and mutable lifecycle fields)
 * Defining when tables may be written, updated, or read
 * Defining fail-closed behavior for corruption or inconsistency
 * Defining startup and shutdown expectations related to system tables

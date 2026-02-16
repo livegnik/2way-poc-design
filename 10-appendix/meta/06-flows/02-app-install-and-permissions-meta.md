@@ -23,6 +23,9 @@ This specification is responsible for:
 * Declaring the app install HTTP payload fields required by the interface contract.
 * Declaring payload constraints for schema and ACL objects.
 * Declaring package signature verification and extraction requirements for install.
+* Declaring slug-first package identity and forbidding node-local identifiers in package artifacts.
+* Declaring signature metadata rules (`publisher_public_key`, detached signature) and local-graph publisher resolution requirements used by install validation.
+* Declaring composition-specific install behavior (`service`/`hybrid` require `app-service/`) and post-validation app-service startup ordering.
 * Declaring publisher trust requirements for app installation.
 * Declaring allowed and forbidden app installation behaviors.
 * Declaring failure mapping for app install errors.
